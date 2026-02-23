@@ -351,8 +351,8 @@ const TyreInspection = () => {
                                     
                                     {/* Inline Tyre Table - appears directly under selected vehicle */}
                                     {isSelected && positions.length > 0 && (
-                                      <div className="mt-3 mb-4 border rounded-xl overflow-hidden shadow-sm bg-background">
-                                        <Table>
+                                      <div className="mt-3 mb-4 border rounded-xl overflow-hidden shadow-sm bg-background overflow-x-auto">
+                                        <Table className="min-w-[700px]">
                                           <TableHeader>
                                             <TableRow className="bg-gradient-to-r from-muted to-muted/50 border-b-2">
                                               <TableHead className="text-sm py-3 font-bold tracking-wider">POSITION</TableHead>
@@ -427,7 +427,7 @@ const TyreInspection = () => {
                                                 <TableCell className="py-2 text-right">
                                                   <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
-                                                      <Button variant="outline" size="sm" className="h-7 w-7 p-0 hover:bg-primary/10 transition-colors">
+                                                      <Button variant="outline" size="sm" className="h-8 w-8 p-0 hover:bg-primary/10 transition-colors">
                                                         <MoreHorizontal className="w-4 h-4" />
                                                       </Button>
                                                     </DropdownMenuTrigger>

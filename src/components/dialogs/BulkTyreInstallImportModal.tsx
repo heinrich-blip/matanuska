@@ -267,7 +267,7 @@ TYR004,385/65R22.5,Continental,Continental Direct,3200.00,Trailer,good,mounted,2
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] sm:max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Bulk Import Installed Tyres</DialogTitle>
           <DialogDescription>

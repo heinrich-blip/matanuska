@@ -215,12 +215,12 @@ const FaultTracking = () => {
       </AlertDialog>
 
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Fault Tracking</h1>
-            <p className="text-muted-foreground mt-2">Monitor and resolve vehicle faults</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Fault Tracking</h1>
+            <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">Monitor and resolve vehicle faults</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full sm:w-auto">
             <Button
               variant="outline"
               onClick={handleExportAllPDF}
@@ -315,7 +315,7 @@ const FaultTracking = () => {
                         {/* Actions Dropdown */}
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <Button variant="ghost" size="sm" className="h-9 w-9 p-0">
                               <MoreVertical className="h-4 w-4" />
                               <span className="sr-only">Open menu</span>
                             </Button>

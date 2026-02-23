@@ -248,7 +248,7 @@ const TyreInspectionDialog = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="inspectorName">Inspector Name *</Label>
               <Input
@@ -274,7 +274,7 @@ const TyreInspectionDialog = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="treadDepth">
                 Tread Depth (mm)

@@ -327,9 +327,9 @@ export function InspectionHistory() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-foreground">Inspection History</h1>
-        <Button onClick={() => setShowStartDialog(true)}>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Inspection History</h1>
+        <Button onClick={() => setShowStartDialog(true)} className="w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-2" />
           Start New Inspection
         </Button>
@@ -358,7 +358,8 @@ export function InspectionHistory() {
 
       {/* Table */}
       <Card>
-        <Table>
+        <div className="overflow-x-auto">
+        <Table className="min-w-[800px]">
           <TableHeader>
             <TableRow>
               <TableHead className="w-[80px]">Action</TableHead>
@@ -508,6 +509,7 @@ export function InspectionHistory() {
             )}
           </TableBody>
         </Table>
+        </div>
 
         {/* Pagination */}
         {filteredInspections.length > 0 && (
