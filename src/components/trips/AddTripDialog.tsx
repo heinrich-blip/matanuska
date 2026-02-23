@@ -7,6 +7,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { GeofenceSelect } from '@/components/ui/geofence-select';
 import { Input } from '@/components/ui/input';
 import { RouteSelect } from '@/components/ui/route-select';
+import type { RouteExpenseItem } from '@/hooks/useRoutePredefinedExpenses';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { LOAD_TYPES } from '@/constants/loadTypes';
@@ -71,6 +72,9 @@ const AddTripDialog = ({ isOpen, onClose }: AddTripDialogProps) => {
 
   // State for tracking selected route toll cost
   const [selectedTollCost, setSelectedTollCost] = useState<{ amount: number; currency: string } | null>(null);
+
+  // State for tracking selected route expenses (from predefined route config)
+  const [selectedRouteExpenses, setSelectedRouteExpenses] = useState<RouteExpenseItem[]>([]);
 
   // State for tracking costs to be added with the trip
   const [tripCosts, setTripCosts] = useState<TripCostEntry[]>([]);
@@ -171,8 +175,36 @@ const AddTripDialog = ({ isOpen, onClose }: AddTripDialogProps) => {
 
       const tripId = await addTrip(tripData);
 
-      // If a route with toll cost was selected, automatically add a toll cost entry
-      if (selectedTollCost && selectedTollCost.amount > 0 && tripId) {
+      // Add all required route expenses (from predefined route config)
+      let routeExpensesAdded = 0;
+      if (selectedRouteExpenses.length > 0 && tripId) {
+        // Filter for required expenses only - these are auto-added
+        const requiredExpenses = selectedRouteExpenses.filter(e => e.is_required);
+        
+        for (const expense of requiredExpenses) {
+          const expenseEntry: Omit<CostEntry, 'id' | 'created_at' | 'updated_at'> = {
+            trip_id: tripId,
+            category: expense.category,
+            sub_category: expense.sub_category,
+            amount: expense.amount,
+            currency: expense.currency,
+            date: data.departure_date || format(new Date(), 'yyyy-MM-dd'),
+            notes: `Auto-added from route: ${data.route}`,
+            is_flagged: false,
+            is_system_generated: true,
+          };
+          
+          try {
+            await addCostEntry(expenseEntry);
+            routeExpensesAdded++;
+          } catch {
+            console.error('Failed to add route expense:', expense.category, expense.sub_category);
+          }
+        }
+      }
+      
+      // Fallback: If no route expenses but toll cost exists (old system), add toll cost
+      if (routeExpensesAdded === 0 && selectedTollCost && selectedTollCost.amount > 0 && tripId) {
         const tollCostEntry: Omit<CostEntry, 'id' | 'created_at' | 'updated_at'> = {
           trip_id: tripId,
           category: TOLL_COST_CATEGORY,
@@ -187,6 +219,7 @@ const AddTripDialog = ({ isOpen, onClose }: AddTripDialogProps) => {
 
         try {
           await addCostEntry(tollCostEntry);
+          routeExpensesAdded = 1;
         } catch {
           // Trip was created, but toll cost failed - inform user
           console.error('Failed to add toll cost entry');
@@ -222,7 +255,7 @@ const AddTripDialog = ({ isOpen, onClose }: AddTripDialogProps) => {
       }
 
       // Show appropriate success message
-      const totalCostsAdded = costsAddedCount + (selectedTollCost ? 1 : 0);
+      const totalCostsAdded = costsAddedCount + routeExpensesAdded;
       if (totalCostsAdded > 0 || tripCosts.length > 0) {
         if (costsFailedCount > 0) {
           toast({
@@ -245,6 +278,7 @@ const AddTripDialog = ({ isOpen, onClose }: AddTripDialogProps) => {
 
       form.reset();
       setSelectedTollCost(null);
+      setSelectedRouteExpenses([]);
       setTripCosts([]);
       onClose();
     } catch {
@@ -433,9 +467,10 @@ const AddTripDialog = ({ isOpen, onClose }: AddTripDialogProps) => {
                   <FormControl>
                     <RouteSelect
                       value={field.value || ''}
-                      onValueChange={(value, tollCost) => {
+                      onValueChange={(value, tollCost, expenses) => {
                         field.onChange(value);
                         setSelectedTollCost(tollCost || null);
+                        setSelectedRouteExpenses(expenses || []);
                       }}
                       placeholder="Select route"
                       showTollFee={true}
@@ -444,9 +479,11 @@ const AddTripDialog = ({ isOpen, onClose }: AddTripDialogProps) => {
                     />
                   </FormControl>
                   <FormDescription className="text-xs">
-                    {selectedTollCost
-                      ? `Toll cost: ${selectedTollCost.currency === 'USD' ? '$' : 'R'}${selectedTollCost.amount} will be automatically added`
-                      : 'Select a route or create a new one with associated toll cost'}
+                    {selectedRouteExpenses.filter(e => e.is_required).length > 0
+                      ? `${selectedRouteExpenses.filter(e => e.is_required).length} expense(s) will be auto-added: ${selectedRouteExpenses.filter(e => e.is_required).map(e => `${e.sub_category} (${e.currency === 'USD' ? '$' : 'R'}${e.amount})`).join(', ')}`
+                      : selectedTollCost
+                        ? `Toll cost: ${selectedTollCost.currency === 'USD' ? '$' : 'R'}${selectedTollCost.amount} will be automatically added`
+                        : 'Select a route or create a new one with associated expenses'}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

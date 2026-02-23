@@ -47,6 +47,9 @@ export interface Trip {
   completed_by?: string;
   auto_completed_at?: string;
   auto_completed_reason?: string;
+  verified_no_costs?: boolean;
+  verified_no_costs_by?: string;
+  verified_no_costs_at?: string;
   edit_history?: EditHistoryRecord[];
   additional_costs?: AdditionalCost[];
   delay_reasons?: DelayReason[];

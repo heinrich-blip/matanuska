@@ -49,7 +49,8 @@ const TripManagement = () => {
   } = useQuery({
     queryKey: ["trips"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First, fetch trips with vehicle relations
+      const { data: tripsData, error: tripsError } = await supabase
         .from('trips')
         .select(`
           *,
@@ -58,21 +59,81 @@ const TripManagement = () => {
         `)
         .order('created_at', { ascending: false });
 
-      if (error) {
-        throw error;
+      if (tripsError) {
+        throw tripsError;
       }
 
-      return (data || []).map(trip => {
+      // Then fetch cost entries for all trips (including validation status fields)
+      const tripIds = (tripsData || []).map(t => t.id);
+      const costEntriesMap: Record<string, Array<{ 
+        id: string; 
+        amount: number; 
+        currency?: string; 
+        category?: string; 
+        sub_category?: string;
+        is_flagged?: boolean;
+        investigation_status?: string;
+        flag_reason?: string;
+      }>> = {};
+      
+      if (tripIds.length > 0) {
+        const { data: costData } = await supabase
+          .from('cost_entries')
+          .select('id, trip_id, amount, currency, category, sub_category, is_flagged, investigation_status, flag_reason')
+          .in('trip_id', tripIds);
+        
+        // Group costs by trip_id
+        (costData || []).forEach(cost => {
+          if (cost.trip_id) {
+            if (!costEntriesMap[cost.trip_id]) {
+              costEntriesMap[cost.trip_id] = [];
+            }
+            costEntriesMap[cost.trip_id].push(cost);
+          }
+        });
+      }
+
+      return (tripsData || []).map(trip => {
         // Extract fleet_number - prefer vehicles table (fleet_vehicle_id), fallback to wialon_vehicles
         // Note: fleet_vehicle_id join - cast needed until types are regenerated after migration
         const fleetVehicle = (trip as unknown as { vehicles?: { id: string; fleet_number: string | null; registration_number: string } | null }).vehicles;
         const wialonVehicle = trip.wialon_vehicles as { id: string; fleet_number: string | null; name: string } | null;
+        // Get cost entries for this trip
+        const costEntries = costEntriesMap[trip.id] || [];
+        
+        // Compute warning/validation stats
+        const flaggedCosts = costEntries.filter(ce => ce.is_flagged);
+        const pendingCosts = costEntries.filter(ce => 
+          ce.investigation_status === 'pending' || ce.investigation_status === 'in_progress'
+        );
+        const hasCosts = costEntries.length > 0;
+        
+        // Calculate days since trip started (for "in progress" indicator)
+        const departureDate = trip.departure_date ? new Date(trip.departure_date) : null;
+        const daysInProgress = departureDate ? Math.floor((Date.now() - departureDate.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+        
         return {
           ...trip,
           fleet_number: fleetVehicle?.fleet_number || wialonVehicle?.fleet_number || wialonVehicle?.name || null,
           payment_status: trip.payment_status || 'unpaid',
           status: trip.status || 'active',
-          revenue_currency: trip.revenue_currency || 'ZAR'
+          revenue_currency: trip.revenue_currency || 'ZAR',
+          // Warning/validation computed fields
+          hasFlaggedCosts: flaggedCosts.length > 0,
+          flaggedCostCount: flaggedCosts.length,
+          hasPendingCosts: pendingCosts.length > 0,
+          pendingCostCount: pendingCosts.length,
+          hasNoCosts: !hasCosts,
+          daysInProgress,
+          // Map cost_entries to the costs array format expected by ActiveTrips
+          costs: costEntries.map(ce => ({
+            amount: ce.amount,
+            currency: ce.currency,
+            description: ce.sub_category || ce.category,
+            is_flagged: ce.is_flagged,
+            investigation_status: ce.investigation_status,
+            flag_reason: ce.flag_reason
+          }))
         };
       });
     },

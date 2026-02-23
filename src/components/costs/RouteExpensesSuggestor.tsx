@@ -38,7 +38,7 @@ import
     Plus,
     Sparkles,
   } from 'lucide-react';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 interface RouteExpensesSuggestorProps {
   tripId: string;
@@ -58,6 +58,7 @@ const RouteExpensesSuggestor = ({
   const [selectedExpenses, setSelectedExpenses] = useState<Set<number>>(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOpen, setIsOpen] = useState(true);
+  const [hasAutoSelectedRequired, setHasAutoSelectedRequired] = useState(false);
 
   // Check which expenses already exist
   const expenseStatus = useMemo(() => {
@@ -80,6 +81,21 @@ const RouteExpensesSuggestor = ({
     if (!routeConfig?.expenses) return [];
     return routeConfig.expenses.filter((_, index) => !expenseStatus.get(index));
   }, [routeConfig?.expenses, expenseStatus]);
+
+  // Auto-select required expenses when route config loads
+  useEffect(() => {
+    if (!routeConfig?.expenses || hasAutoSelectedRequired) return;
+    
+    const requiredIndices = routeConfig.expenses
+      .map((expense, index) => ({ expense, index }))
+      .filter(({ expense, index }) => expense.is_required && !expenseStatus.get(index))
+      .map(({ index }) => index);
+    
+    if (requiredIndices.length > 0) {
+      setSelectedExpenses(new Set(requiredIndices));
+      setHasAutoSelectedRequired(true);
+    }
+  }, [routeConfig?.expenses, expenseStatus, hasAutoSelectedRequired]);
 
   // Calculate totals
   const totals = useMemo(() => {

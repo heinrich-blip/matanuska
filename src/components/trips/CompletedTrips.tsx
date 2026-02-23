@@ -72,6 +72,9 @@ const formatWeekRange = (mondayKey: string): string => {
 interface CostEntry {
   amount: number;
   currency?: string;
+  is_flagged?: boolean;
+  investigation_status?: string;
+  flag_reason?: string;
 }
 
 interface AdditionalCost {
@@ -106,6 +109,13 @@ interface Trip {
   edit_history?: EditHistoryRecord[];
   costs?: CostEntry[];
   additional_costs?: AdditionalCost[];
+  // Warning/validation fields
+  hasFlaggedCosts?: boolean;
+  flaggedCostCount?: number;
+  hasPendingCosts?: boolean;
+  pendingCostCount?: number;
+  hasNoCosts?: boolean;
+  payment_status?: string;
 }
 
 interface CompletedTripsProps {
@@ -260,6 +270,12 @@ const CompletedTrips = ({ trips, onView, onRefresh, isLoading = false }: Complet
     const totalDistance = filteredTrips.reduce((sum, t) => sum + (t.distance_km || 0), 0);
     const avgRevenuePerTrip = filteredTrips.length > 0 ? totalRevenue / filteredTrips.length : 0;
     
+    // Warning stats
+    const tripsWithFlaggedCosts = filteredTrips.filter(t => t.hasFlaggedCosts).length;
+    const tripsWithNoCosts = filteredTrips.filter(t => t.hasNoCosts).length;
+    const tripsWithPendingCosts = filteredTrips.filter(t => t.hasPendingCosts).length;
+    const tripsNeedingAttention = filteredTrips.filter(t => t.hasFlaggedCosts || t.hasNoCosts || t.hasPendingCosts).length;
+    
     return {
       totalTrips: filteredTrips.length,
       totalRevenue,
@@ -267,6 +283,10 @@ const CompletedTrips = ({ trips, onView, onRefresh, isLoading = false }: Complet
       netProfit: totalRevenue - totalExpenses,
       totalDistance,
       avgRevenuePerTrip,
+      tripsWithFlaggedCosts,
+      tripsWithNoCosts,
+      tripsWithPendingCosts,
+      tripsNeedingAttention,
     };
   }, [filteredTrips]);
 
@@ -381,8 +401,34 @@ const CompletedTrips = ({ trips, onView, onRefresh, isLoading = false }: Complet
     <TooltipProvider>
       <div className="space-y-6">
         {/* Enhanced Header with Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <Card className="col-span-1 md:col-span-2 p-5 bg-gradient-to-br from-emerald-500/5 to-emerald-500/10 border-emerald-500/20">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+          {/* Needs Attention Card - Show prominently when there are issues */}
+          {stats.tripsNeedingAttention > 0 && (
+            <Card className="p-5 bg-gradient-to-br from-amber-500/10 to-amber-500/20 border-amber-400/40">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm font-medium text-amber-700 mb-1">Needs Attention</p>
+                  <span className="text-2xl font-bold text-amber-600">{stats.tripsNeedingAttention}</span>
+                  <div className="flex flex-col gap-0.5 mt-1 text-xs text-amber-600/80">
+                    {stats.tripsWithFlaggedCosts > 0 && (
+                      <span>{stats.tripsWithFlaggedCosts} flagged costs</span>
+                    )}
+                    {stats.tripsWithNoCosts > 0 && (
+                      <span>{stats.tripsWithNoCosts} missing costs</span>
+                    )}
+                    {stats.tripsWithPendingCosts > 0 && (
+                      <span>{stats.tripsWithPendingCosts} pending review</span>
+                    )}
+                  </div>
+                </div>
+                <div className="h-10 w-10 rounded-lg bg-amber-500/30 flex items-center justify-center">
+                  <AlertTriangle className="h-5 w-5 text-amber-600" />
+                </div>
+              </div>
+            </Card>
+          )}
+
+          <Card className={`${stats.tripsNeedingAttention > 0 ? 'col-span-1' : 'col-span-1 md:col-span-2'} p-5 bg-gradient-to-br from-emerald-500/5 to-emerald-500/10 border-emerald-500/20`}>
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground mb-1">Completed Trips</p>
@@ -794,6 +840,7 @@ const CompletedTrips = ({ trips, onView, onRefresh, isLoading = false }: Complet
                                       const profit = calculateProfit(trip);
                                       const isDuplicate = duplicatePods.includes(trip.trip_number);
                                       const hasEditHistory = trip.edit_history && trip.edit_history.length > 0;
+                                      const needsAttention = trip.hasFlaggedCosts || trip.hasPendingCosts || trip.hasNoCosts;
                                       
                                       // Calculate individual trip expenses
                                       const tripExpenses = [...(trip.costs || []), ...(trip.additional_costs || [])]
@@ -801,19 +848,66 @@ const CompletedTrips = ({ trips, onView, onRefresh, isLoading = false }: Complet
 
                                       return (
                                         <Card key={trip.id} className={`overflow-hidden transition-all hover:shadow-md ${
-                                          isDuplicate ? 'border-destructive/30 bg-destructive/5' : ''
+                                          isDuplicate ? 'border-destructive/30 bg-destructive/5' : 
+                                          needsAttention ? 'border-amber-300 bg-amber-50/30' : ''
                                         }`}>
                                           <div className="p-5">
                                             {/* Header */}
                                             <div className="flex items-start justify-between mb-4">
                                               <div className="flex items-start gap-4">
-                                                <div className="flex flex-col items-center justify-center w-14 h-14 bg-emerald-500/10 rounded-xl">
+                                                <div className={`flex flex-col items-center justify-center w-14 h-14 rounded-xl ${
+                                                  trip.hasFlaggedCosts ? 'bg-amber-100 ring-2 ring-amber-400' :
+                                                  trip.hasNoCosts ? 'bg-rose-100 ring-2 ring-rose-300' :
+                                                  'bg-emerald-500/10'
+                                                }`}>
                                                   <span className="text-xs text-muted-foreground">POD</span>
-                                                  <span className="text-lg font-bold text-emerald-600 leading-none">{trip.trip_number}</span>
+                                                  <span className={`text-lg font-bold leading-none ${
+                                                    trip.hasFlaggedCosts || trip.hasNoCosts ? 'text-amber-600' : 'text-emerald-600'
+                                                  }`}>{trip.trip_number}</span>
                                                 </div>
                                                 <div>
-                                                  <div className="flex items-center gap-2 mb-1">
+                                                  <div className="flex items-center gap-2 mb-1 flex-wrap">
                                                     <h4 className="font-semibold text-lg">{trip.route || 'No route specified'}</h4>
+                                                    {/* Warning indicators */}
+                                                    {trip.hasFlaggedCosts && (
+                                                      <Tooltip>
+                                                        <TooltipTrigger>
+                                                          <Badge variant="outline" className="bg-amber-100 text-amber-700 border-amber-300 gap-1 text-xs">
+                                                            <AlertTriangle className="h-3 w-3" />
+                                                            {trip.flaggedCostCount} flagged
+                                                          </Badge>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                          <p>{trip.flaggedCostCount} cost{trip.flaggedCostCount === 1 ? '' : 's'} flagged for review</p>
+                                                        </TooltipContent>
+                                                      </Tooltip>
+                                                    )}
+                                                    {trip.hasPendingCosts && !trip.hasFlaggedCosts && (
+                                                      <Tooltip>
+                                                        <TooltipTrigger>
+                                                          <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300 gap-1 text-xs">
+                                                            <RefreshCw className="h-3 w-3" />
+                                                            {trip.pendingCostCount} pending
+                                                          </Badge>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                          <p>{trip.pendingCostCount} cost{trip.pendingCostCount === 1 ? '' : 's'} under investigation</p>
+                                                        </TooltipContent>
+                                                      </Tooltip>
+                                                    )}
+                                                    {trip.hasNoCosts && (
+                                                      <Tooltip>
+                                                        <TooltipTrigger>
+                                                          <Badge variant="outline" className="bg-rose-100 text-rose-700 border-rose-300 gap-1 text-xs">
+                                                            <AlertTriangle className="h-3 w-3" />
+                                                            No costs
+                                                          </Badge>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                          <p>No cost entries recorded for this trip</p>
+                                                        </TooltipContent>
+                                                      </Tooltip>
+                                                    )}
                                                     {isDuplicate && (
                                                       <Tooltip>
                                                         <TooltipTrigger>
@@ -835,7 +929,7 @@ const CompletedTrips = ({ trips, onView, onRefresh, isLoading = false }: Complet
                                                       </Tooltip>
                                                     )}
                                                   </div>
-                                                  <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                                                  <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
                                                     <span className="flex items-center gap-1">
                                                       <Calendar className="h-3.5 w-3.5" />
                                                       {trip.arrival_date 
@@ -849,6 +943,17 @@ const CompletedTrips = ({ trips, onView, onRefresh, isLoading = false }: Complet
                                                       <MapPin className="h-3.5 w-3.5" />
                                                       {trip.client_name || 'No client'}
                                                     </span>
+                                                    {/* Payment status badge */}
+                                                    {trip.payment_status && (
+                                                      <Badge variant="outline" className={`text-xs px-1.5 py-0 ${
+                                                        trip.payment_status === 'paid' ? 'bg-emerald-100 text-emerald-700 border-emerald-300' :
+                                                        trip.payment_status === 'partial' ? 'bg-amber-100 text-amber-700 border-amber-300' :
+                                                        'bg-slate-100 text-slate-600 border-slate-300'
+                                                      }`}>
+                                                        {trip.payment_status === 'paid' ? 'Paid' :
+                                                         trip.payment_status === 'partial' ? 'Partial' : 'Unpaid'}
+                                                      </Badge>
+                                                    )}
                                                   </div>
                                                 </div>
                                               </div>

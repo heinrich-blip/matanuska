@@ -131,15 +131,14 @@ export const GeofenceSelect = ({
           <SelectTrigger className="w-full">
             <SelectValue placeholder={placeholder}>
               {currentGeofence ? (
-                <span className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  {currentGeofence.name}
-                  {currentGeofence.description && <span className="text-muted-foreground">({currentGeofence.description})</span>}
+                <span className="flex items-center gap-2 overflow-hidden">
+                  <MapPin className="h-4 w-4 shrink-0" />
+                  <span className="truncate">{currentGeofence.name}</span>
                 </span>
               ) : value ? (
-                <span className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  {value}
+                <span className="flex items-center gap-2 overflow-hidden">
+                  <MapPin className="h-4 w-4 shrink-0" />
+                  <span className="truncate">{value}</span>
                 </span>
               ) : (
                 placeholder

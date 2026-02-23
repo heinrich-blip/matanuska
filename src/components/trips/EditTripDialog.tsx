@@ -6,17 +6,22 @@ import { DriverSelect } from '@/components/ui/driver-select';
 import { Form, FormControl, FormDescription as FormDesc, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { GeofenceSelect } from '@/components/ui/geofence-select';
 import { Input } from '@/components/ui/input';
+import { RouteSelect } from '@/components/ui/route-select';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { LOAD_TYPES } from '@/constants/loadTypes';
+import { useOperations } from '@/contexts/OperationsContext';
 import { useToast } from '@/hooks/use-toast';
+import type { RouteExpenseItem } from '@/hooks/useRoutePredefinedExpenses';
 import { useWialonVehicles } from '@/hooks/useWialonVehicles';
 import { supabase } from '@/integrations/supabase/client';
-import type { Trip } from '@/types/operations';
+import type { CostEntry, Trip } from '@/types/operations';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect, useMemo } from 'react';
+import { format } from 'date-fns';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+import TripCostSection, { TripCostEntry } from './TripCostSection';
 
 const tripSchema = z.object({
   trip_number: z.string().min(1, 'Trip number is required').max(50),
@@ -64,7 +69,17 @@ interface EditTripDialogProps {
 
 const EditTripDialog = ({ isOpen, onClose, trip, onRefresh }: EditTripDialogProps) => {
   const { toast } = useToast();
+  const { addCostEntry } = useOperations();
   const { data: vehicles, isLoading: vehiclesLoading } = useWialonVehicles();
+
+  // State for new costs to be added when editing
+  const [tripCosts, setTripCosts] = useState<TripCostEntry[]>([]);
+  
+  // State for route expenses from route selection
+  const [selectedRouteExpenses, setSelectedRouteExpenses] = useState<RouteExpenseItem[]>([]);
+  
+  // Track if route was changed to add new expenses
+  const [routeChanged, setRouteChanged] = useState(false);
 
   const form = useForm<TripFormData>({
     resolver: zodResolver(tripSchema),
@@ -160,6 +175,10 @@ const EditTripDialog = ({ isOpen, onClose, trip, onRefresh }: EditTripDialogProp
         empty_km_reason: trip.empty_km_reason || '',
         status: trip.status || 'active',
       });
+      // Reset costs state when dialog opens
+      setTripCosts([]);
+      setSelectedRouteExpenses([]);
+      setRouteChanged(false);
     }
   }, [trip, isOpen, form]);
 
@@ -199,10 +218,71 @@ const EditTripDialog = ({ isOpen, onClose, trip, onRefresh }: EditTripDialogProp
 
       if (error) throw error;
 
-      toast({
-        title: 'Success',
-        description: 'Trip updated successfully',
-      });
+      // Add route expenses if route was changed and has required expenses
+      let routeExpensesAdded = 0;
+      if (routeChanged && selectedRouteExpenses.length > 0) {
+        const requiredExpenses = selectedRouteExpenses.filter(e => e.is_required);
+        
+        for (const expense of requiredExpenses) {
+          const expenseEntry: Omit<CostEntry, 'id' | 'created_at' | 'updated_at'> = {
+            trip_id: trip.id,
+            category: expense.category,
+            sub_category: expense.sub_category,
+            amount: expense.amount,
+            currency: expense.currency,
+            date: data.departure_date || format(new Date(), 'yyyy-MM-dd'),
+            notes: `Auto-added from route: ${data.route}`,
+            is_flagged: false,
+            is_system_generated: true,
+          };
+          
+          try {
+            await addCostEntry(expenseEntry);
+            routeExpensesAdded++;
+          } catch {
+            console.error('Failed to add route expense:', expense.category, expense.sub_category);
+          }
+        }
+      }
+
+      // Add any user-specified costs
+      let costsAddedCount = 0;
+      for (const cost of tripCosts) {
+        const costEntry: Omit<CostEntry, 'id' | 'created_at' | 'updated_at'> = {
+          trip_id: trip.id,
+          category: cost.category,
+          sub_category: cost.sub_category,
+          amount: cost.amount,
+          currency: cost.currency,
+          reference_number: cost.reference_number,
+          date: cost.date,
+          notes: cost.notes || null,
+          is_flagged: cost.is_flagged,
+          flag_reason: cost.flag_reason || null,
+          is_system_generated: false,
+        };
+
+        try {
+          await addCostEntry(costEntry);
+          costsAddedCount++;
+        } catch {
+          console.error('Failed to add cost entry:', cost.category);
+        }
+      }
+
+      // Show appropriate success message
+      const totalCostsAdded = costsAddedCount + routeExpensesAdded;
+      if (totalCostsAdded > 0) {
+        toast({
+          title: 'Success',
+          description: `Trip updated with ${totalCostsAdded} cost entr${totalCostsAdded === 1 ? 'y' : 'ies'} added`,
+        });
+      } else {
+        toast({
+          title: 'Success',
+          description: 'Trip updated successfully',
+        });
+      }
 
       if (onRefresh) onRefresh();
       onClose();
@@ -392,8 +472,30 @@ const EditTripDialog = ({ isOpen, onClose, trip, onRefresh }: EditTripDialogProp
                 <FormItem>
                   <FormLabel>Route</FormLabel>
                   <FormControl>
-                    <Input placeholder="Route description" {...field} />
+                    <RouteSelect
+                      value={field.value || ''}
+                      onValueChange={(value, _tollCost, expenses) => {
+                        field.onChange(value);
+                        // Track if route was changed from original
+                        if (value !== trip?.route) {
+                          setRouteChanged(true);
+                          setSelectedRouteExpenses(expenses || []);
+                        } else {
+                          setRouteChanged(false);
+                          setSelectedRouteExpenses([]);
+                        }
+                      }}
+                      placeholder="Select route"
+                      showTollFee={true}
+                      allowCreate={true}
+                      allowEdit={true}
+                    />
                   </FormControl>
+                  <FormDesc className="text-xs">
+                    {routeChanged && selectedRouteExpenses.filter(e => e.is_required).length > 0
+                      ? `${selectedRouteExpenses.filter(e => e.is_required).length} expense(s) will be auto-added: ${selectedRouteExpenses.filter(e => e.is_required).map(e => `${e.sub_category} (${e.currency === 'USD' ? '$' : 'R'}${e.amount})`).join(', ')}`
+                      : 'Select a route with predefined expenses or add costs below'}
+                  </FormDesc>
                   <FormMessage />
                 </FormItem>
               )}
@@ -700,6 +802,13 @@ const EditTripDialog = ({ isOpen, onClose, trip, onRefresh }: EditTripDialogProp
                   <FormMessage />
                 </FormItem>
               )}
+            />
+
+            {/* Trip Costs Section - Add new costs while editing */}
+            <TripCostSection
+              costs={tripCosts}
+              onCostsChange={setTripCosts}
+              departureDate={form.watch('departure_date')}
             />
 
             <div className="flex justify-end space-x-2 pt-4">
