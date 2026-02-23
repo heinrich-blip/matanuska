@@ -477,7 +477,7 @@ export function CycleTrackerForm({ trip, open, onOpenChange }: CycleTrackerFormP
   if (isLoadingTracker) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[500px] max-h-[92vh] overflow-y-auto p-0 gap-0">
+        <DialogContent className="sm:max-w-[500px] max-h-[92vh] overflow-y-auto p-0 gap-0" aria-describedby={undefined}>
           <DialogTitle className="sr-only">Loading Tracker</DialogTitle>
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
@@ -489,7 +489,7 @@ export function CycleTrackerForm({ trip, open, onOpenChange }: CycleTrackerFormP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] max-h-[92vh] overflow-y-auto p-0 gap-0">
+      <DialogContent className="sm:max-w-[500px] max-h-[92vh] overflow-y-auto p-0 gap-0" aria-describedby={undefined}>
         <DialogTitle className="sr-only">360° Time Tracker</DialogTitle>
 
         {/* ─── Sticky Header ─────────────────────────── */}

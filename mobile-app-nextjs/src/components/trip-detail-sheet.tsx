@@ -449,7 +449,7 @@ export function TripDetailSheet({ trip, open, onOpenChange }: TripDetailSheetPro
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] max-h-[92vh] overflow-y-auto p-0 gap-0">
+      <DialogContent className="sm:max-w-[500px] max-h-[92vh] overflow-y-auto p-0 gap-0" aria-describedby={undefined}>
         <DialogTitle className="sr-only">Trip Details</DialogTitle>
         {/* Header */}
         <div className="sticky top-0 z-10 bg-background border-b px-4 py-3">

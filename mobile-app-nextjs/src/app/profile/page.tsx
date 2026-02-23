@@ -91,7 +91,7 @@ export default function ProfilePage() {
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   // Find driver by matching email - handles multiple rows gracefully
-  const { data: driver, isLoading: driverLoading } = useQuery<Driver | null>({
+  const { data: driver, isLoading: _driverLoading } = useQuery<Driver | null>({
     queryKey: ["driver-by-email", user?.email],
     queryFn: async () => {
       if (!user?.email) return null;
@@ -579,56 +579,26 @@ export default function ProfilePage() {
               <div>
                 <p className="text-sm font-medium">Assigned Vehicle</p>
                 <p className="text-xs text-muted-foreground">
-                  {assignmentLoading || vehiclesLoading || driverLoading ? (
+                  {assignmentLoading || vehiclesLoading ? (
                     <span className="flex items-center gap-1">
                       <Loader2 className="w-3 h-3 animate-spin" />
                       Loading...
                     </span>
-                  ) : assignedVehicle ? (
+                                      ) : assignedVehicle ? (
                     <span className="flex items-center gap-2">
                       {getVehicleTypeIcon(assignedVehicle.vehicle_type)}
                       <span>
                         {assignedVehicle.fleet_number || "Unknown"} - {assignedVehicle.registration_number || assignedVehicle.registration || "Unknown"}
                       </span>
                     </span>
-                  ) : driver ? (
-                    "No vehicle assigned"
                   ) : (
-                    "Driver profile required"
+                    "No vehicle assigned"
                   )}
                 </p>
               </div>
             </div>
 
-            {!driver ? (
-              driverLoading ? (
-                <div className="flex items-center justify-center p-4">
-                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                  <span className="ml-2 text-sm text-muted-foreground">Loading driver profile...</span>
-                </div>
-              ) : (
-                <div className="text-center p-4 bg-muted/50 rounded-lg">
-                  <p className="text-sm text-muted-foreground">Driver profile not found</p>
-                  <p className="text-xs text-muted-foreground/70 mt-1">
-                    Your email ({user?.email}) doesn&apos;t match any driver records
-                  </p>
-                  <p className="text-xs text-muted-foreground/50 mt-1">
-                    Contact administrator to link your account to a driver profile
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="mt-3"
-                    onClick={() => toast({
-                      title: "Contact Administrator",
-                      description: "Please contact your fleet manager to link your account to a driver profile",
-                    })}
-                  >
-                    Request Setup
-                  </Button>
-                </div>
-              )
-            ) : vehiclesLoading ? (
+            {assignmentLoading || vehiclesLoading ? (
               <div className="flex items-center justify-center p-4">
                 <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                 <span className="ml-2 text-sm text-muted-foreground">Loading vehicles...</span>
