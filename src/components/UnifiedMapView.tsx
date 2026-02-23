@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { LayersControl, MapContainer, TileLayer, ZoomControl } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
-const DEFAULT_CENTER = [-26.2707, 28.1123];
+const DEFAULT_CENTER: [number, number] = [-26.2707, 28.1123];
 const DEFAULT_ZOOM = 10;
 
 export interface RouteWaypoint {

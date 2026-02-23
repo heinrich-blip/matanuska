@@ -1,3 +1,0 @@
-Trip Number,Driver Name,Vehicle Fleet Number,Client Name,Client Type,Load Type,Origin,Destination,Route,Departure Date,Arrival Date,Starting KM,Ending KM,Distance KM,Empty KM,Empty KM Reason,Base Revenue,Revenue Currency,Special Requirements,External Load Ref
-TRIP-001,John Smith,FL-001,ABC Logistics,external,General Freight,Johannesburg,Cape Town,N1 Highway,2026-01-20,2026-01-21,150000,151500,1500,50,Returning from depot,25000,ZAR,Handle with care,PO-12345
-TRIP-002,Jane Doe,FL-002,Internal Transfer,internal,Equipment,Pretoria,Durban,N3 Route,2026-01-22,2026-01-23,85000,85600,600,0,,15000,ZAR,,

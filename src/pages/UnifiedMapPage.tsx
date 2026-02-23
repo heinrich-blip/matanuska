@@ -1,11 +1,11 @@
 import Layout from "@/components/Layout";
-import { UnifiedMapView } from "@/components/UnifiedMapView";
+import WialonMapView from "@/components/WialonMapView";
 
 
 const UnifiedMapPage = () => {
   return (
     <Layout>
-      <UnifiedMapView />
+      <WialonMapView />
     </Layout>
   );
 };

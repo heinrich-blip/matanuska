@@ -10,6 +10,9 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
     cors: true,
+    hmr: {
+      clientPort: 443,
+    },
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
@@ -154,7 +157,9 @@ export default defineConfig(({ mode }) => ({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,webmanifest}'],
+        globIgnores: ['**/node_modules/**/*', 'sw.js', 'workbox-*.js', '**/*.map'],
         maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // 10 MB
+        globDirectory: 'dist',
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api/, /^\/wialon-api/],
         runtimeCaching: [
