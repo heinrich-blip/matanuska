@@ -1,0 +1,953 @@
+import Layout from "@/components/Layout";
+import AddJobCardDialog from "@/components/dialogs/AddJobCardDialog";
+import JobCardDetailsDialog from "@/components/dialogs/JobCardDetailsDialog";
+import JobCardWeeklyCostReport from "@/components/maintenance/JobCardWeeklyCostReport";
+import { useAuth } from "@/contexts/AuthContext";
+import
+  {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+  } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
+import { useQuery } from "@tanstack/react-query";
+import
+  {
+    BarChart3,
+    Calendar,
+    CheckCircle2,
+    ClipboardList,
+    FileText,
+    ListPlus,
+    MessageSquarePlus,
+    MoreHorizontal,
+    Plus,
+    Search,
+    Trash2,
+    Truck,
+    User
+  } from "lucide-react";
+import { useState } from "react";
+
+type BaseJobCard = Database["public"]["Tables"]["job_cards"]["Row"];
+type VehicleInspectionRow = Pick<
+  Database["public"]["Tables"]["vehicle_inspections"]["Row"],
+  "id" | "inspection_number" | "inspection_type" | "inspection_date"
+>;
+type PartRequestLinkRow = Pick<
+  Database["public"]["Tables"]["parts_requests"]["Row"],
+  "job_card_id" | "part_name" | "ir_number" | "created_at" | "ordered_at"
+>;
+
+type JobCardPartsSummary = {
+  count: number;
+  latestIrNumber: string | null;
+  latestPartName: string | null;
+};
+
+type JobCard = BaseJobCard & {
+  vehicle?: {
+    id: string;
+    fleet_number: string | null;
+    registration_number: string;
+  } | null;
+  inspection?: VehicleInspectionRow | null;
+  partsSummary?: JobCardPartsSummary;
+};
+
+const JobCards = () => {
+  const { userName } = useAuth();
+  const [selectedJob, setSelectedJob] = useState<JobCard | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [jobToDelete, setJobToDelete] = useState<JobCard | null>(null);
+  const [commentDialogOpen, setCommentDialogOpen] = useState(false);
+  const [externalTaskDialogOpen, setExternalTaskDialogOpen] = useState(false);
+  const [actionTargetJob, setActionTargetJob] = useState<JobCard | null>(null);
+  const [commentText, setCommentText] = useState("");
+  const [followUpTitle, setFollowUpTitle] = useState("");
+  const [followUpDescription, setFollowUpDescription] = useState("");
+  const [followUpPriority, setFollowUpPriority] = useState("medium");
+  const [followUpAssignee, setFollowUpAssignee] = useState("");
+  const [followUpDueDate, setFollowUpDueDate] = useState("");
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const [isSubmittingFollowUp, setIsSubmittingFollowUp] = useState(false);
+  const { toast } = useToast();
+
+  // Filters
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeFleetFilter, setActiveFleetFilter] = useState<string>("all");
+  const [completedFleetFilter, setCompletedFleetFilter] = useState<string>("all");
+  const [selectedPriority, setSelectedPriority] = useState<string>("all");
+  const [selectedAssignee, setSelectedAssignee] = useState<string>("all");
+  const [activeTab, setActiveTab] = useState<string>("job-cards");
+
+  // Fetch job cards with vehicle data
+  const { data: jobCards = [], refetch, isLoading, error: queryError } = useQuery({
+    queryKey: ["job_cards_with_vehicles"],
+    queryFn: async () => {
+      const { data: baseJobCards, error: baseCardsError } = await supabase
+        .from("job_cards")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (baseCardsError) {
+        throw baseCardsError;
+      }
+
+      const cards = baseJobCards || [];
+
+      if (cards.length === 0) {
+        return [] as JobCard[];
+      }
+
+      const vehicleIds = [...new Set(cards.map(card => card.vehicle_id).filter((id): id is string => Boolean(id)))];
+      const inspectionIds = [...new Set(cards.map(card => card.inspection_id).filter((id): id is string => Boolean(id)))];
+      const jobCardIds = cards.map(card => card.id);
+
+      let vehiclesData: Pick<Database["public"]["Tables"]["vehicles"]["Row"], "id" | "fleet_number" | "registration_number">[] = [];
+      let inspectionsData: VehicleInspectionRow[] = [];
+      let partsLinkData: PartRequestLinkRow[] = [];
+
+      if (vehicleIds.length > 0) {
+        const { data, error } = await supabase
+          .from("vehicles")
+          .select("id, fleet_number, registration_number")
+          .in("id", vehicleIds);
+
+        if (error) {
+          throw error;
+        }
+
+        vehiclesData = data || [];
+      }
+
+      if (inspectionIds.length > 0) {
+        const { data, error } = await supabase
+          .from("vehicle_inspections")
+          .select("id, inspection_number, inspection_type, inspection_date")
+          .in("id", inspectionIds);
+
+        if (error) {
+          throw error;
+        }
+
+        inspectionsData = (data || []) as VehicleInspectionRow[];
+      }
+
+      if (jobCardIds.length > 0) {
+        const { data, error } = await supabase
+          .from("parts_requests")
+          .select("job_card_id, part_name, ir_number, created_at, ordered_at")
+          .in("job_card_id", jobCardIds);
+
+        if (error) {
+          throw error;
+        }
+
+        partsLinkData = (data || []) as PartRequestLinkRow[];
+      }
+
+      const vehicleMap = new Map(
+        (vehiclesData || []).map(v => [v.id, v])
+      );
+
+      const inspectionMap = new Map(
+        inspectionsData.map(inspection => [inspection.id, inspection])
+      );
+
+      const partsSummaryRaw = new Map<string, JobCardPartsSummary & { latestTimestamp: number }>();
+
+      for (const part of partsLinkData) {
+        if (!part.job_card_id) {
+          continue;
+        }
+
+        const existingSummary = partsSummaryRaw.get(part.job_card_id) || {
+          count: 0,
+          latestIrNumber: null,
+          latestPartName: null,
+          latestTimestamp: 0,
+        };
+
+        existingSummary.count += 1;
+
+        const candidateDate = part.ordered_at || part.created_at;
+        const candidateTimestamp = candidateDate ? new Date(candidateDate).getTime() : 0;
+
+        if (candidateTimestamp >= existingSummary.latestTimestamp) {
+          existingSummary.latestTimestamp = candidateTimestamp;
+          existingSummary.latestPartName = part.part_name || null;
+          existingSummary.latestIrNumber = part.ir_number || null;
+        } else {
+          if (!existingSummary.latestPartName && part.part_name) {
+            existingSummary.latestPartName = part.part_name;
+          }
+          if (!existingSummary.latestIrNumber && part.ir_number) {
+            existingSummary.latestIrNumber = part.ir_number;
+          }
+        }
+
+        partsSummaryRaw.set(part.job_card_id, existingSummary);
+      }
+
+      const partsSummaryMap = new Map<string, JobCardPartsSummary>(
+        [...partsSummaryRaw.entries()].map(([jobCardId, summary]) => [
+          jobCardId,
+          {
+            count: summary.count,
+            latestIrNumber: summary.latestIrNumber,
+            latestPartName: summary.latestPartName,
+          },
+        ])
+      );
+
+      // Map job cards with vehicle data
+      return cards.map(item => ({
+        ...item,
+        vehicle: item.vehicle_id ? vehicleMap.get(item.vehicle_id) || null : null,
+        inspection: item.inspection_id ? inspectionMap.get(item.inspection_id) || null : null,
+        partsSummary: partsSummaryMap.get(item.id) || {
+          count: 0,
+          latestIrNumber: null,
+          latestPartName: null,
+        },
+      })) as JobCard[];
+    },
+  });
+
+  // Get unique fleet numbers for filter (exclude null, undefined, and empty strings)
+  const fleetNumbers = [...new Set(
+    jobCards
+      .map(card => card.vehicle?.fleet_number)
+      .filter((fn): fn is string => fn !== null && fn !== undefined && fn !== "")
+  )].sort();
+
+  // Get unique assignees for filter (exclude null, undefined, and empty strings)
+  const assignees = [...new Set(
+    jobCards
+      .map(card => card.assignee)
+      .filter((a): a is string => a !== null && a !== undefined && a !== "")
+  )].sort();
+
+  // Base filter (search, priority, assignee)
+  const baseFilteredCards = jobCards.filter((card) => {
+    if (searchTerm && !card.title.toLowerCase().includes(searchTerm.toLowerCase()) &&
+        !card.job_number.toLowerCase().includes(searchTerm.toLowerCase())) {
+      return false;
+    }
+    if (selectedPriority !== "all" && card.priority !== selectedPriority) {
+      return false;
+    }
+    if (selectedAssignee !== "all" && card.assignee !== selectedAssignee) {
+      return false;
+    }
+    return true;
+  });
+
+  // Group by status (case-insensitive to handle any database variations)
+  const allActiveCards = baseFilteredCards.filter(card => {
+    const status = card.status?.toLowerCase();
+    return status === "pending" || status === "in_progress" || status === "in progress";
+  });
+  const allCompletedCards = baseFilteredCards.filter(card => card.status?.toLowerCase() === "completed");
+
+  // Apply per-section fleet filters
+  const activeCards = activeFleetFilter === "all"
+    ? allActiveCards
+    : allActiveCards.filter(card => card.vehicle?.fleet_number === activeFleetFilter);
+
+  const completedCards = completedFleetFilter === "all"
+    ? allCompletedCards
+    : allCompletedCards.filter(card => card.vehicle?.fleet_number === completedFleetFilter);
+
+  const handleJobClick = (job: JobCard) => {
+    setSelectedJob(job);
+    setDialogOpen(true);
+  };
+
+  const handleDeleteClick = (job: JobCard) => {
+    setJobToDelete(job);
+    setDeleteDialogOpen(true);
+  };
+
+  const openCommentDialog = (job: JobCard) => {
+    setActionTargetJob(job);
+    setCommentText("");
+    setCommentDialogOpen(true);
+  };
+
+  const openExternalFollowUpDialog = (job: JobCard) => {
+    setActionTargetJob(job);
+    setFollowUpTitle(`Follow-up: #${job.job_number} ${job.title}`);
+    setFollowUpDescription("");
+    setFollowUpPriority("medium");
+    setFollowUpAssignee("");
+    setFollowUpDueDate("");
+    setExternalTaskDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!jobToDelete) return;
+
+    try {
+      const { error } = await supabase
+        .from("job_cards")
+        .delete()
+        .eq("id", jobToDelete.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `Job card #${jobToDelete.job_number} has been deleted`,
+      });
+      refetch();
+    } catch (error) {
+      console.error("Error deleting job card:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete job card",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteDialogOpen(false);
+      setJobToDelete(null);
+    }
+  };
+
+  const handleAddComment = async () => {
+    if (!actionTargetJob || !commentText.trim()) {
+      return;
+    }
+
+    try {
+      setIsSubmittingComment(true);
+
+      const { error } = await supabase.from("job_card_notes").insert({
+        job_card_id: actionTargetJob.id,
+        note: commentText.trim(),
+        created_by: userName || "Unknown User",
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Comment added",
+        description: `Comment saved for job #${actionTargetJob.job_number}`,
+      });
+
+      setCommentDialogOpen(false);
+      setCommentText("");
+      setActionTargetJob(null);
+      refetch();
+    } catch (error) {
+      console.error("Error adding comment:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add comment",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmittingComment(false);
+    }
+  };
+
+  const handleCreateExternalFollowUp = async () => {
+    if (!actionTargetJob || !followUpTitle.trim()) {
+      return;
+    }
+
+    try {
+      setIsSubmittingFollowUp(true);
+
+      const { error } = await supabase.from("action_items").insert({
+        title: followUpTitle.trim(),
+        description: followUpDescription.trim() || null,
+        priority: followUpPriority,
+        due_date: followUpDueDate || null,
+        assigned_to: followUpAssignee.trim() || null,
+        status: "pending",
+        category: "external_follow_up",
+        related_entity_type: "job_card",
+        related_entity_id: actionTargetJob.id,
+        created_by: userName || "Unknown User",
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Follow-up created",
+        description: `External follow-up linked to job #${actionTargetJob.job_number}`,
+      });
+
+      setExternalTaskDialogOpen(false);
+      setActionTargetJob(null);
+      refetch();
+    } catch (error) {
+      console.error("Error creating external follow-up:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create external follow-up",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmittingFollowUp(false);
+    }
+  };
+
+  const getPriorityBadge = (priority: string) => {
+    switch (priority) {
+      case "urgent":
+        return <Badge variant="destructive">Urgent</Badge>;
+      case "high":
+        return <Badge variant="destructive">High</Badge>;
+      case "medium":
+        return <Badge>Medium</Badge>;
+      case "low":
+        return <Badge variant="secondary">Low</Badge>;
+      default:
+        return <Badge variant="secondary">{priority}</Badge>;
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    const normalizedStatus = status?.toLowerCase();
+    switch (normalizedStatus) {
+      case "pending":
+        return <Badge variant="secondary">Pending</Badge>;
+      case "in_progress":
+      case "in progress":
+        return <Badge className="bg-blue-500">In Progress</Badge>;
+      case "on_hold":
+      case "on hold":
+        return <Badge className="bg-yellow-500">On Hold</Badge>;
+      case "completed":
+        return <Badge className="bg-green-500">Completed</Badge>;
+      default:
+        return <Badge variant="secondary">{status}</Badge>;
+    }
+  };
+
+  const JobCardTable = ({ cards, emptyMessage }: { cards: JobCard[]; emptyMessage: string }) => (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead className="w-[100px]">Job #</TableHead>
+          <TableHead>Title</TableHead>
+          <TableHead>Fleet / Vehicle</TableHead>
+          <TableHead>Status</TableHead>
+          <TableHead>Priority</TableHead>
+          <TableHead>Assignee</TableHead>
+          <TableHead>Due Date</TableHead>
+          <TableHead>Linked References</TableHead>
+          <TableHead className="w-[80px]">Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {cards.map((card) => (
+          <TableRow
+            key={card.id}
+            className="cursor-pointer border-b transition-colors hover:bg-muted/30"
+            onClick={() => handleJobClick(card)}
+          >
+            <TableCell className="font-mono text-sm">#{card.job_number}</TableCell>
+            <TableCell className="max-w-[280px]">
+              <div className="space-y-1">
+                <p className="font-medium leading-tight truncate">{card.title}</p>
+                <p className="text-xs text-muted-foreground">Created {new Date(card.created_at).toLocaleDateString()}</p>
+              </div>
+            </TableCell>
+            <TableCell>
+              {card.vehicle ? (
+                <div className="flex items-center gap-2">
+                  <Truck className="h-3.5 w-3.5 text-muted-foreground" />
+                  <div className="flex flex-col">
+                    {card.vehicle.fleet_number && (
+                      <Badge variant="outline" className="text-xs w-fit">
+                        {card.vehicle.fleet_number}
+                      </Badge>
+                    )}
+                    <span className="text-xs text-muted-foreground">
+                      {card.vehicle.registration_number}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <span className="text-muted-foreground">—</span>
+              )}
+            </TableCell>
+            <TableCell>{getStatusBadge(card.status)}</TableCell>
+            <TableCell>{getPriorityBadge(card.priority)}</TableCell>
+            <TableCell>
+              {card.assignee ? (
+                <div className="flex items-center gap-2">
+                  <User className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-sm">{card.assignee}</span>
+                </div>
+              ) : (
+                <span className="text-muted-foreground">—</span>
+              )}
+            </TableCell>
+            <TableCell>
+              {card.due_date ? (
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-sm">{new Date(card.due_date).toLocaleDateString()}</span>
+                </div>
+              ) : (
+                <span className="text-muted-foreground">—</span>
+              )}
+            </TableCell>
+            <TableCell>
+              <div className="space-y-1 max-w-[220px]">
+                {card.inspection ? (
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                    <FileText className="h-3 w-3 mr-1" />
+                    {card.inspection.inspection_number}
+                  </Badge>
+                ) : card.inspection_id ? (
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                    <FileText className="h-3 w-3 mr-1" />
+                    Inspection Linked
+                  </Badge>
+                ) : (
+                  <span className="text-muted-foreground text-sm">No inspection</span>
+                )}
+
+                {card.partsSummary && card.partsSummary.count > 0 ? (
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap gap-1">
+                      <Badge variant="outline" className="text-xs">
+                        {card.partsSummary.count} Part{card.partsSummary.count > 1 ? "s" : ""}
+                      </Badge>
+                      {card.partsSummary.latestIrNumber && (
+                        <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200">
+                          IR {card.partsSummary.latestIrNumber}
+                        </Badge>
+                      )}
+                    </div>
+                    {card.partsSummary.latestPartName && (
+                      <p className="text-xs text-muted-foreground truncate">
+                        Latest part: {card.partsSummary.latestPartName}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">No parts linked</p>
+                )}
+              </div>
+            </TableCell>
+            <TableCell>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                  <DropdownMenuItem onClick={() => openCommentDialog(card)}>
+                    <MessageSquarePlus className="h-4 w-4 mr-2" />
+                    Add Comment
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => openExternalFollowUpDialog(card)}>
+                    <ListPlus className="h-4 w-4 mr-2" />
+                    Add External Follow-up
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={() => handleDeleteClick(card)}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Job Card
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </TableCell>
+          </TableRow>
+        ))}
+        {cards.length === 0 && (
+          <TableRow>
+            <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+              {emptyMessage}
+            </TableCell>
+          </TableRow>
+        )}
+      </TableBody>
+    </Table>
+  );
+
+  return (
+    <Layout>
+      <div className="p-6 space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Job Cards</h1>
+            <p className="text-muted-foreground mt-1">Manage and track maintenance jobs</p>
+            {isLoading && <p className="text-sm text-blue-500">Loading job cards...</p>}
+            {queryError && <p className="text-sm text-red-500">Error: {String(queryError)}</p>}
+          </div>
+          {activeTab === "job-cards" && (
+            <Button onClick={() => setShowAddDialog(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Job Card
+            </Button>
+          )}
+        </div>
+
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList>
+            <TabsTrigger value="job-cards" className="gap-2">
+              <ClipboardList className="h-4 w-4" />
+              Job Cards
+            </TabsTrigger>
+            <TabsTrigger value="cost-reports" className="gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Cost Reports
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="job-cards" className="space-y-6 mt-6">
+            {/* Stats Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Active Jobs</CardTitle>
+              <ClipboardList className="h-4 w-4 text-orange-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-orange-600">{allActiveCards.length}</div>
+              <p className="text-xs text-muted-foreground">Pending + In Progress</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Completed</CardTitle>
+              <CheckCircle2 className="h-4 w-4 text-green-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">{allCompletedCards.length}</div>
+              <p className="text-xs text-muted-foreground">Finished jobs</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Filters */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-wrap gap-4">
+              <div className="flex-1 min-w-[200px]">
+                <div className="relative">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search job cards..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-8"
+                  />
+                </div>
+              </div>
+
+              <Select value={selectedPriority} onValueChange={setSelectedPriority}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Priority" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Priorities</SelectItem>
+                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="urgent">Urgent</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {assignees.length > 0 && (
+                <Select value={selectedAssignee} onValueChange={setSelectedAssignee}>
+                  <SelectTrigger className="w-[160px]">
+                    <SelectValue placeholder="Assignee" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Assignees</SelectItem>
+                    {assignees.map((assignee) => (
+                      <SelectItem key={assignee} value={assignee}>
+                        {assignee}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Active Job Cards (Pending + In Progress) */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ClipboardList className="h-5 w-5 text-orange-500" />
+                <CardTitle>Active Job Cards</CardTitle>
+              </div>
+              <Select value={activeFleetFilter} onValueChange={setActiveFleetFilter}>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="Filter by Fleet" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Fleets</SelectItem>
+                  {fleetNumbers.map((fn) => (
+                    <SelectItem key={fn} value={fn}>
+                      {fn}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <CardDescription>
+              Jobs that are pending or currently in progress ({activeCards.length} of {allActiveCards.length} total)
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <JobCardTable cards={activeCards} emptyMessage="No active job cards" />
+          </CardContent>
+        </Card>
+
+        {/* Completed Job Cards */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                <CardTitle>Completed Job Cards</CardTitle>
+              </div>
+              <Select value={completedFleetFilter} onValueChange={setCompletedFleetFilter}>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="Filter by Fleet" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Fleets</SelectItem>
+                  {fleetNumbers.map((fn) => (
+                    <SelectItem key={fn} value={fn}>
+                      {fn}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <CardDescription>
+              Finished maintenance jobs ({completedCards.length} of {allCompletedCards.length} total)
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <JobCardTable cards={completedCards} emptyMessage="No completed job cards" />
+          </CardContent>
+        </Card>
+          </TabsContent>
+
+          <TabsContent value="cost-reports" className="mt-6">
+            <JobCardWeeklyCostReport />
+          </TabsContent>
+        </Tabs>
+
+        {/* Dialogs */}
+        <JobCardDetailsDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          jobCard={selectedJob}
+          onUpdate={refetch}
+        />
+
+        <AddJobCardDialog
+          open={showAddDialog}
+          onOpenChange={setShowAddDialog}
+        />
+
+        <Dialog
+          open={commentDialogOpen}
+          onOpenChange={(open) => {
+            setCommentDialogOpen(open);
+            if (!open) {
+              setCommentText("");
+              setActionTargetJob(null);
+            }
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add Comment</DialogTitle>
+              <DialogDescription>
+                {actionTargetJob
+                  ? `Add a comment for job #${actionTargetJob.job_number} (${actionTargetJob.title}).`
+                  : "Add a comment to this job card."}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2">
+              <Label htmlFor="job-card-comment">Comment</Label>
+              <Textarea
+                id="job-card-comment"
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                placeholder="Write context, questions, or update notes..."
+                rows={5}
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setCommentDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleAddComment} disabled={isSubmittingComment || !commentText.trim()}>
+                {isSubmittingComment ? "Saving..." : "Save Comment"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog
+          open={externalTaskDialogOpen}
+          onOpenChange={(open) => {
+            setExternalTaskDialogOpen(open);
+            if (!open) {
+              setActionTargetJob(null);
+            }
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create External Follow-up</DialogTitle>
+              <DialogDescription>
+                {actionTargetJob
+                  ? `Create an external task/question linked to job #${actionTargetJob.job_number}.`
+                  : "Create an external follow-up linked to this job card."}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="follow-up-title">Title</Label>
+                <Input
+                  id="follow-up-title"
+                  value={followUpTitle}
+                  onChange={(e) => setFollowUpTitle(e.target.value)}
+                  placeholder="Enter follow-up title"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="follow-up-description">Description</Label>
+                <Textarea
+                  id="follow-up-description"
+                  value={followUpDescription}
+                  onChange={(e) => setFollowUpDescription(e.target.value)}
+                  placeholder="Describe the external question or request"
+                  rows={4}
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="follow-up-assignee">Assignee (optional)</Label>
+                  <Input
+                    id="follow-up-assignee"
+                    value={followUpAssignee}
+                    onChange={(e) => setFollowUpAssignee(e.target.value)}
+                    placeholder="e.g. Procurement Team"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="follow-up-due-date">Due Date (optional)</Label>
+                  <Input
+                    id="follow-up-due-date"
+                    type="date"
+                    value={followUpDueDate}
+                    onChange={(e) => setFollowUpDueDate(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Priority</Label>
+                <Select value={followUpPriority} onValueChange={setFollowUpPriority}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select priority" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="urgent">Urgent</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setExternalTaskDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleCreateExternalFollowUp} disabled={isSubmittingFollowUp || !followUpTitle.trim()}>
+                {isSubmittingFollowUp ? "Creating..." : "Create Follow-up"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Job Card</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete job card #{jobToDelete?.job_number} - "{jobToDelete?.title}"?
+                This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteConfirm}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    </Layout>
+  );
+};
+
+export default JobCards;

@@ -1,0 +1,181 @@
+# External Supabase Migration Guide
+
+This guide will help you migrate from Lovable Cloud to your external Supabase project with real-time capabilities.
+
+## Current Status
+
+✅ **Authentication** - Implemented with Supabase Auth UI
+✅ **Protected Routes** - All pages require authentication
+✅ **Real-time Hooks** - Created for vehicles and tyres
+✅ **Logout Functionality** - Added to navigation
+✅ **SQL Migration Script** - Ready to execute
+
+## Migration Steps
+
+### Step 1: Run SQL Migration in Your Supabase Project
+
+1. Go to your Supabase dashboard: https://supabase.com/dashboard
+2. Select your project: **wxvhkljrbcpcgpgdqhsp**
+3. Navigate to **SQL Editor**
+4. Open the file `external_supabase_migration.sql` in your project root
+5. Copy all SQL code and paste it into the SQL Editor
+6. Click **Run** to execute the migration
+
+This will create:
+- 6 tables (vehicles, tyres, tyre_inventory, tyre_positions, tyre_inspections, tyre_performance)
+- All necessary enums, indexes, and triggers
+- Row-Level Security policies
+- Real-time configuration for all tables
+- Sample seed data
+
+### Step 2: Configure Authentication in Supabase
+
+1. In your Supabase dashboard, go to **Authentication** → **URL Configuration**
+2. Set **Site URL** to your app URL (e.g., `https://your-app.lovable.app`)
+3. Add **Redirect URLs**:
+   - `https://your-app.lovable.app/**`
+   - `http://localhost:8080/**` (for local development)
+4. Go to **Authentication** → **Providers**
+5. Enable **Email** provider
+6. **Important**: Enable **Confirm email** = OFF (for testing purposes)
+
+### Step 3: Update Lovable Project Connection
+
+#### Option A: Through Lovable Interface (Recommended)
+1. In your Lovable project settings, disconnect from Lovable Cloud
+2. Connect to external Supabase using your credentials:
+   - **Supabase URL**: `https://wxvhkljrbcpcgpgdqhsp.supabase.co`
+   - **Anon Key**: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4dmhrbGpyYmNwY2dwZ2RxaHNwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2MjYzMTEsImV4cCI6MjA3NDIwMjMxMX0.8VTE9TMQYAu2kMLpHX8EzBlCspBWddNW-FYOnDZSkHU`
+
+#### Option B: Manual Configuration (If needed)
+If you need to manually update the configuration:
+
+1. Update `.env` file:
+```env
+VITE_SUPABASE_URL=https://wxvhkljrbcpcgpgdqhsp.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4dmhrbGpyYmNwY2dwZ2RxaHNwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2MjYzMTEsImV4cCI6MjA3NDIwMjMxMX0.8VTE9TMQYAu2kMLpHX8EzBlCspBWddNW-FYOnDZSkHU
+VITE_SUPABASE_PROJECT_ID=wxvhkljrbcpcgpgdqhsp
+```
+
+2. Update `supabase/config.toml`:
+```toml
+project_id = "wxvhkljrbcpcgpgdqhsp"
+```
+
+### Step 4: Test the Application
+
+1. **Sign Up**: Create a new account at `/auth`
+2. **Verify Real-time**:
+   - Open the app in two browser windows
+   - Make changes in one window (e.g., add a vehicle)
+   - Verify updates appear in the other window instantly
+
+3. **Test Protected Routes**: Try accessing pages without logging in - should redirect to `/auth`
+
+4. **Test Logout**: Click logout button and verify redirect to auth page
+
+## Real-time Features Implemented
+
+### Active Real-time Subscriptions
+
+1. **Vehicles** (`useRealtimeVehicles` hook)
+   - Listens to all changes on vehicles table
+   - Automatically refreshes vehicle data across all components
+
+2. **Tyres** (`useRealtimeTyres` hook)
+   - Monitors: tyres, tyre_inventory, tyre_inspections, tyre_positions
+   - Enables live updates for all tyre-related features
+
+### How to Use Real-time in Components
+
+Import and call the hooks in any component:
+
+```typescript
+import { useRealtimeVehicles } from "@/hooks/useRealtimeVehicles";
+import { useRealtimeTyres } from "@/hooks/useRealtimeTyres";
+
+function MyComponent() {
+  useRealtimeVehicles(); // Enable real-time for vehicles
+  useRealtimeTyres();    // Enable real-time for tyres
+  
+  // Your component logic
+}
+```
+
+## Authentication Flow
+
+1. **Unauthenticated users** → Redirected to `/auth`
+2. **Login/Signup** → Handled by Supabase Auth UI
+3. **Success** → Redirected to dashboard (`/`)
+4. **All routes protected** → Requires authentication
+
+## Troubleshooting
+
+### Issue: "Invalid credentials" error
+- Verify your Supabase URL and Anon Key are correct
+- Check that RLS policies are enabled on all tables
+
+### Issue: Real-time not working
+- Verify real-time is enabled: Run `SHOW wal_level;` in SQL Editor (should return 'logical')
+- Check that tables are added to publication: 
+  ```sql
+  SELECT * FROM pg_publication_tables WHERE pubname = 'supabase_realtime';
+  ```
+
+### Issue: Authentication redirect error
+- Verify Site URL and Redirect URLs are set correctly in Supabase dashboard
+- Check browser console for specific error messages
+
+### Issue: Can't see data
+- Verify you're logged in (RLS requires authentication)
+- Check that seed data was inserted successfully
+- Verify RLS policies allow authenticated users to view data
+
+## Data Migration (Optional)
+
+If you have existing data in Lovable Cloud that you want to migrate:
+
+1. Export data from Lovable Cloud using SQL queries
+2. Format as INSERT statements
+3. Add to the seed data section in `external_supabase_migration.sql`
+4. Re-run the migration
+
+## Next Steps
+
+After successful migration:
+
+1. **Configure Email Templates** (optional)
+   - Customize auth emails in Supabase dashboard
+   - Add your branding
+
+2. **Set Up Edge Functions** (if needed)
+   - Deploy custom backend logic
+   - Add API integrations
+
+3. **Enable Additional Auth Providers**
+   - Google, GitHub, etc.
+   - Configure OAuth settings
+
+4. **Production Checklist**
+   - ✅ Enable email confirmation
+   - ✅ Set up custom domain
+   - ✅ Configure rate limiting
+   - ✅ Review RLS policies
+   - ✅ Set up database backups
+   - ✅ Monitor performance
+
+## Support
+
+For issues with:
+- **Supabase**: Visit https://supabase.com/docs
+- **Lovable**: Contact Lovable support
+- **This migration**: Check the SQL file for comments and structure
+
+---
+
+**Important Notes:**
+
+- Keep your Supabase credentials secure
+- Never commit `.env` file to version control
+- Test thoroughly in development before deploying to production
+- Monitor your Supabase usage to stay within plan limits

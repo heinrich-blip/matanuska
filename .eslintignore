@@ -1,0 +1,14 @@
+# Ignore node_modules
+node_modules/
+
+# Ignore distribution/output directories
+dist/
+build/
+
+# Ignore specific TypeScript files in the functions directory
+supabase/functions/quick-task/index.ts
+supabase/functions/maintenance-scheduler/index.ts
+supabase/functions/import-trips-from-webhook/index.ts
+supabase/functions/import-driver-behavior-webhook/index.ts
+supabase/functions/get-wialon-token/index.ts
+supabase/functions/assign-load/index.ts

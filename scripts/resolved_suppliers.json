@@ -1,0 +1,2414 @@
+[
+  {
+    "name": "Fuego Fuels Polokwane",
+    "url": "https://maps.app.goo.gl/xh5eZqU5VsrwvMjt8?g_st=iwb",
+    "address": "56 Antimoon Street, Polokwane, Polokwane, Limpopo, South Africa, 0699",
+    "price": 20.33,
+    "location": "Polokwane",
+    "latitude": null,
+    "longitude": null
+  },
+  {
+    "name": "XFuels Thohoyando",
+    "url": "https://maps.app.goo.gl/3m8aUwnQH9nqMCta8",
+    "address": "ERF 233, R524 Pundu Maria Road , Next to SupaQuick, Muledane, Thohoyando, Limpopo, South Africa, 0950",
+    "price": 20.9303,
+    "location": "Next to SupaQuick",
+    "latitude": -22.9871483,
+    "longitude": 30.4423237
+  },
+  {
+    "name": "Zeerust Truck Stop",
+    "url": "https://maps.app.goo.gl/48AWXrL2vbY2caJQ8?g_st=aw",
+    "address": "1214 Krans Street, Zeerust , Zeerust, North West Province, South Africa, 2865",
+    "price": 20.95,
+    "location": "Zeerust",
+    "latitude": -25.542814,
+    "longitude": 26.106821
+  },
+  {
+    "name": "Platinum Petroleum Supplies Burgersfort",
+    "url": "https://maps.app.goo.gl/ZFRmE21z4z1dPKbt7",
+    "address": "Cnr of R555 & R37 Winterbach Street, Burgersfort, Burgersfort, Limpopo, South Africa, 1150",
+    "price": 19.95,
+    "location": "Burgersfort",
+    "latitude": -24.6627407,
+    "longitude": 30.3050099
+  },
+  {
+    "name": "Optiera (Pty) Ltd (Convee Trading Zeerust)",
+    "url": "https://maps.app.goo.gl/fMDb2ihkAmQQf5N47?g_st=ipc",
+    "address": "11 Collins street, Zeerust , Zeerust , North West Province, South Africa, 2865",
+    "price": 20.75,
+    "location": "Zeerust",
+    "latitude": -25.5535278,
+    "longitude": 26.0946667
+  },
+  {
+    "name": "OVK Senekal",
+    "url": "https://maps.app.goo.gl/R9ustFVLmsfs91Qj7",
+    "address": "Johan du Plessis Street, Senekal, Senekal, Free State, South Africa, 9600",
+    "price": 20.18,
+    "location": "Senekal",
+    "latitude": -28.3265316,
+    "longitude": 27.6295276
+  },
+  {
+    "name": "SKK Fuel Group - Rustenburg",
+    "url": "https://maps.app.goo.gl/jj7rDVRupSsqiwGZA",
+    "address": "69 Main Road, Kroondal , Rustenburg, North Wes Province, South Africa, 0300",
+    "price": 19.13,
+    "location": "Rustenburg",
+    "latitude": -25.7269,
+    "longitude": 27.3067131
+  },
+  {
+    "name": "FYL Fuels Witbank",
+    "url": "https://maps.app.goo.gl/9P2V3JhuANKkTMiY7",
+    "address": "Portion 47, plot 335, Naauwpoort, Witbank, Mpumalanga, South Africa, 1035",
+    "price": 19.82,
+    "location": "Naauwpoort",
+    "latitude": -25.9517772,
+    "longitude": 29.2492473
+  },
+  {
+    "name": "Stadler N1 Vaal",
+    "url": "https://goo.gl/maps/7AqngUcxxN4rZj8L7",
+    "address": "Emfuleni Local Municipality, Vanderbijlpark, Vanderbijlpark, Gauteng, South Africa, 0000",
+    "price": 19.82,
+    "location": "Vanderbijlpark",
+    "latitude": -26.6982033,
+    "longitude": 27.7074015
+  },
+  {
+    "name": "Evander Petroleum and Gas",
+    "url": "https://goo.gl/maps/wb74oVNE1aYFvny77",
+    "address": "2 Kingston Rd, Evander, Evander, Mpoumalanga, South Africa, 2280",
+    "price": 20.21,
+    "location": "Evander",
+    "latitude": -26.4675236,
+    "longitude": 29.0983457
+  },
+  {
+    "name": "Across Africa Fuels Richardsbay",
+    "url": "https://goo.gl/maps/wCsULQroq8KPxvun6",
+    "address": "N3 RICHARDSBAY, Richardsbay, Richardsbay, KZN, South Africa, 0000",
+    "price": 19.22,
+    "location": "Richardsbay",
+    "latitude": -28.674881,
+    "longitude": 32.0441789
+  },
+  {
+    "name": "Fuel it Kroonstad",
+    "url": "https://goo.gl/maps/sdWuosELq8GrneYx5",
+    "address": "3 Swart Street, Central, Kroonstad, Free State, South Africa, 9500",
+    "price": 20.07,
+    "location": "Kroonstad",
+    "latitude": -27.6647086,
+    "longitude": 27.2276673
+  },
+  {
+    "name": "Zama Retailers Newcastle",
+    "url": "https://goo.gl/maps/4pMQL59teiZw7JL99",
+    "address": "Riverside Industrial, Newcastle, Newcastle, Newcastle, KwaZulu Natal, South Africa, 2940",
+    "price": 19.9,
+    "location": "Newcastle",
+    "latitude": -27.7590408,
+    "longitude": 29.9636316
+  },
+  {
+    "name": "Quantum Standerton",
+    "url": "https://goo.gl/maps/9DtCktrimSrm4zpd8",
+    "address": "26 Prinses St, Standerton, Standerton, Standerton, Mpumalanga, South Africa, 2430",
+    "price": 19.8023,
+    "location": "Standerton",
+    "latitude": -26.9503117,
+    "longitude": 29.2370672
+  },
+  {
+    "name": "Econo Langplaas Brits",
+    "url": "https://goo.gl/maps/z7LofAbKEeNq6e8k9",
+    "address": "R512, Brits, Brits, North West, South Africa, 0250",
+    "price": 19.8948,
+    "location": "Brits",
+    "latitude": -25.669077,
+    "longitude": 27.785326
+  },
+  {
+    "name": "Kroondal Diesel Rustenburg",
+    "url": "https://goo.gl/maps/37NZYZriYddYvMUf7",
+    "address": "PG 9 Dinie Estate Road, Kroondal, Rustenburg, North West, South Africa, 0300",
+    "price": 19.87,
+    "location": "Rustenburg",
+    "latitude": -25.736899,
+    "longitude": 27.3038425
+  },
+  {
+    "name": "Nexus Fuels Carolina",
+    "url": "https://maps.app.goo.gl/BZhaAFNhKRWVqWu5A",
+    "address": "Asbes St, Carolina, 1185, Carolina, Carolina, Mpumalanga, South Africa, 1185",
+    "price": 20.12,
+    "location": "Carolina",
+    "latitude": -26.0679714,
+    "longitude": 30.1253471
+  },
+  {
+    "name": "Test Depot",
+    "url": "https://goo.gl/maps/zc4QezwRwFoXsCgw7",
+    "address": "123 test street, Test Suburb, test City, Test Province, South Africa, 0000",
+    "price": 20.1223,
+    "location": "test City",
+    "latitude": -24.8754494,
+    "longitude": 28.3122098
+  },
+  {
+    "name": "Fueland Investments Tzaneen",
+    "url": "https://goo.gl/maps/KN6U3ud4av6xbTp27",
+    "address": "Old Gravelotte Road, Aqua Park, Tzaneen, Limpopo, South Africa, 0850",
+    "price": 20.72,
+    "location": "Tzaneen",
+    "latitude": -23.8241196,
+    "longitude": 30.1570234
+  },
+  {
+    "name": "Bosveld Bela Bela",
+    "url": "https://goo.gl/maps/zc4QezwRwFoXsCgw7",
+    "address": "Plot 43 Route 101 , Buiskop, Bela Bela, Limpopo, South Africa, 0480",
+    "price": 20.13,
+    "location": "Bela Bela",
+    "latitude": -24.8754494,
+    "longitude": 28.3122098
+  },
+  {
+    "name": "Truck Station Randfontein",
+    "url": "https://goo.gl/maps/fqwRirZYKyuWHnhX9",
+    "address": "Aureus , Randfontein, Randfontein, Gauteng, South Africa, 1760",
+    "price": 20.1223,
+    "location": "Randfontein",
+    "latitude": -26.1984603,
+    "longitude": 27.6948562
+  },
+  {
+    "name": "Kwa Nokeng Martins Drift",
+    "url": "https://goo.gl/maps/zcLs5GsnHafsexQSA",
+    "address": "Mahalapye, Botswana, Martins Drift, Botswana, Botswana, South Africa, 0",
+    "price": 19.536,
+    "location": "Martins Drift",
+    "latitude": -22.9976845,
+    "longitude": 27.9367075
+  },
+  {
+    "name": "Nexus Fuels Belfast",
+    "url": "https://goo.gl/maps/mAAf99rQbFa9xD3G6",
+    "address": "1033 Bhekumuzi Masango Dr, Belfast, 1100, Belfast, Belfast, Mpumalanga, South Africa, 1100",
+    "price": 20.17,
+    "location": "Belfast",
+    "latitude": -25.7066474,
+    "longitude": 30.0479517
+  },
+  {
+    "name": "Auto Stop Amirana Total Chimoio",
+    "url": "https://maps.app.goo.gl/rXqNajFEWP5ML8a66",
+    "address": "N6, Mozambique, Chimoio, Mozambique, Mozambique, Mozambique, MZ",
+    "price": 21.63,
+    "location": "Chimoio",
+    "latitude": -19.1110961,
+    "longitude": 33.447146
+  },
+  {
+    "name": "Mams Mega Stop Vryburg",
+    "url": "https://maps.app.goo.gl/Av4HzFRBbFgcEK7C6",
+    "address": "2 Schweizer Road, Vryburg, Vryburg, North West, South Africa, 8600",
+    "price": 20.97,
+    "location": "Vryburg",
+    "latitude": -26.9706066,
+    "longitude": 24.7659036
+  },
+  {
+    "name": "GBP Fuels Bethal (WinWin GBP Fuels)",
+    "url": "https://maps.app.goo.gl/QKUtXy6tAxRJuaXR7",
+    "address": "Portion of Portion 27 of Farm Blesbokspruit 150 , Bethal, Bethal, Mpumalanga, South Africa, 2310",
+    "price": 19.92,
+    "location": "Bethal",
+    "latitude": -26.4790912,
+    "longitude": 29.4824968
+  },
+  {
+    "name": "Shiptech Petroleum Kokstad",
+    "url": "https://maps.app.goo.gl/rMXWkkwJMCpdL38cA",
+    "address": "R56, Kokstad, Kokstad, Kokstad, KwaZulu-Natal, South Africa, 4693",
+    "price": 19.84,
+    "location": "Kokstad",
+    "latitude": -30.5664458,
+    "longitude": 29.4336499
+  },
+  {
+    "name": "Puma Truck Inn Trawal West Coast",
+    "url": "https://maps.app.goo.gl/1AeWjB1qhqZFXLC89",
+    "address": "N7 National Road, Trawal, Trawal, Western Cape, South Africa, 8147",
+    "price": 19.89,
+    "location": "Trawal",
+    "latitude": -31.8837641,
+    "longitude": 18.6296145
+  },
+  {
+    "name": "Stadler Piketberg",
+    "url": "https://maps.app.goo.gl/1nZSnTGK4JCZmRdW9",
+    "address": "Vervoer Cres, Piketberg, Piketberg, Western Cape, South Africa, 7320",
+    "price": 19.26,
+    "location": "Piketberg",
+    "latitude": -32.9115833,
+    "longitude": 18.76575
+  },
+  {
+    "name": "Shiptech Petroleum Paarl Cape Town",
+    "url": "https://maps.app.goo.gl/cRspJvuzCvsxuWfo9",
+    "address": "Farm 657, Leliefontein, R101 Klein Drakenstein Rd, , Cape Town, Paarl, Western Cape, South Africa, 7656",
+    "price": 19.56,
+    "location": "R101 Klein Drakenstein Rd",
+    "latitude": -33.7405597,
+    "longitude": 19.0242986
+  },
+  {
+    "name": "MBC Fuels Modimolle",
+    "url": "https://maps.app.goo.gl/sDFSxtrPnbzetjY87",
+    "address": "703 Oktaan Street, Modimolle, Modimolle, Limpopo, South Africa, 0510",
+    "price": 20.08,
+    "location": "Modimolle",
+    "latitude": -24.7170251,
+    "longitude": 28.4238412
+  },
+  {
+    "name": "Delta Truckstop White River",
+    "url": "https://maps.app.goo.gl/FeyaZYNNwJjzJCJD6",
+    "address": "R538 Airport Road, White River, White River, Mpumalanga, South Africa, 1240",
+    "price": 20.05,
+    "location": "White River",
+    "latitude": null,
+    "longitude": null
+  },
+  {
+    "name": "Whelson Chirundu Zimbabwe (Supergroup SA)",
+    "url": "https://maps.app.goo.gl/uxdFGKMy6QY2SV7Z7",
+    "address": "Charara Safari Area, , Makuti, Chirundu, Zimbabwe, South Africa, 0000",
+    "price": 24.67,
+    "location": "Makuti",
+    "latitude": -16.0434284,
+    "longitude": 28.8703537
+  },
+  {
+    "name": "Royale Energy Moorreesburg (Boland Diesel)",
+    "url": "https://maps.app.goo.gl/PXUUT5oaq31DgaAs7",
+    "address": "33 River Street, Moorreesburg, Moorreesburg, Western Cape province , South Africa, 7310",
+    "price": 18.9353,
+    "location": "Moorreesburg",
+    "latitude": -33.1487777,
+    "longitude": 18.6675343
+  },
+  {
+    "name": "SAF Louis Trichardt",
+    "url": "https://goo.gl/maps/YtK5kesHzqxTCQMn6",
+    "address": "Bronn Street, Louis Trichardt , Louis Trichardt , Limpopo, South Africa, 0920",
+    "price": 20.5026,
+    "location": "Louis Trichardt",
+    "latitude": -23.0666175,
+    "longitude": 29.9119896
+  },
+  {
+    "name": "Fuel 1 Kraaifontein",
+    "url": "https://maps.app.goo.gl/GgYEZtjW4HA364DK7",
+    "address": "12 Acacia Road, Kraaifontein Industrial, Cape Town, Western Cape, South Africa, 7570",
+    "price": 18.9893,
+    "location": "Cape Town",
+    "latitude": -33.8371444,
+    "longitude": 18.7316973
+  },
+  {
+    "name": "Fuel 1 Manhattan",
+    "url": "https://maps.app.goo.gl/D8o5XDXGQF5ojrGr8",
+    "address": "50 Manhattan Street, Boquinar Industrial Area, Cape Town, Western Cape, South Africa, 7441",
+    "price": 19.1893,
+    "location": "Cape Town",
+    "latitude": -33.971997,
+    "longitude": 18.579373
+  },
+  {
+    "name": "Industry Petroleum TransAgri Bloemhof",
+    "url": "https://maps.app.goo.gl/7tRifPP2NNc6aUic6",
+    "address": "Dorp Street, Bloemhof, Bloemhof, North West, South Africa, 2662",
+    "price": 20.03,
+    "location": "Bloemhof",
+    "latitude": -27.6443865,
+    "longitude": 25.6013654
+  },
+  {
+    "name": "Fuel 1 Parow",
+    "url": "https://maps.app.goo.gl/QcBoStuCiXUaW9YB7",
+    "address": "Cr of Spin & Radnor Street, Parow industria, Cape Town, Western Cape, South Africa, 7493",
+    "price": 19.1893,
+    "location": "Cape Town",
+    "latitude": -33.9345775,
+    "longitude": 18.6040447
+  },
+  {
+    "name": "Industry Petroleum Schweizer",
+    "url": "https://maps.app.goo.gl/qNnHdEQQ3tkeRMR58",
+    "address": "R34 Schweizer-Reneke to Bloemhof, North West, Schweizer-Reneke , North West, South Africa, 2792",
+    "price": 20.37,
+    "location": "Schweizer-Reneke",
+    "latitude": -27.2254567,
+    "longitude": 25.3509324
+  },
+  {
+    "name": "IPetroleum Zambesi Truck Stop",
+    "url": "https://maps.app.goo.gl/dBPH9C3JgQW8JHRR6",
+    "address": "Cnr Taaifontein &, Moepel, Wolmaranspoort AH, Pretoria, Gauteng, South Africa, 0129",
+    "price": 19.93,
+    "location": "Wolmaranspoort AH",
+    "latitude": -25.6814833,
+    "longitude": 28.2851168
+  },
+  {
+    "name": "Edge Fuels Boksburg",
+    "url": "https://maps.app.goo.gl/pRZz8WXBmqWDiBdi6",
+    "address": "113 Commissioner Street, Boksburg, Johannesburg , Gauteng, South Africa, 1459",
+    "price": 19.93,
+    "location": "Johannesburg",
+    "latitude": -26.2198325,
+    "longitude": 28.2387539
+  },
+  {
+    "name": "OVK Queenstown",
+    "url": "https://maps.app.goo.gl/b58y5abhbfYwznnp7",
+    "address": "7 Dickerson Street, Komani, Queenstown, Eastern Cape, South Africa, 5320",
+    "price": 20.05,
+    "location": "Queenstown",
+    "latitude": -31.9167393,
+    "longitude": 26.917899
+  },
+  {
+    "name": "Industry Petroleum Wadeville",
+    "url": "https://maps.app.goo.gl/vRNdH7fdzz5nMfbr8",
+    "address": "232 Wadeville Road, Wadeville, Germiston, Gauteng, South Africa, 1422",
+    "price": 19.62,
+    "location": "Germiston",
+    "latitude": -26.2625278,
+    "longitude": 28.1729444
+  },
+  {
+    "name": "Vaal Truck Inn Villiers",
+    "url": "https://maps.app.goo.gl/QbWvBpts8Pe81tJVA",
+    "address": "R51, Villiers, Villiers, Mpumalanga, South Africa, 9840",
+    "price": 19.8233,
+    "location": "Villiers",
+    "latitude": -26.978586,
+    "longitude": 28.5888571
+  },
+  {
+    "name": "OVK Cradock",
+    "url": "https://maps.app.goo.gl/JJXyxY9YyCbPr4GS6",
+    "address": "J.A. Calata Street, Cradock, Cradock, Eastern Cape, South Africa, 5880",
+    "price": 20,
+    "location": "Cradock",
+    "latitude": -32.1648241,
+    "longitude": 25.6113068
+  },
+  {
+    "name": "Industry Petroleum TransAgri Klerksdorp",
+    "url": "https://maps.app.goo.gl/Fvv8jHkRQViXtXtA8",
+    "address": "28 Oliver Tambo, Entrance behind Maryland , Klerksdorp , North West , South Africa, 2571",
+    "price": 19.82,
+    "location": "Klerksdorp",
+    "latitude": -26.938661,
+    "longitude": 26.6436935
+  },
+  {
+    "name": "Fuel 1 Bellville",
+    "url": "https://maps.app.goo.gl/eRHkSG6Mpm6kHuRt7",
+    "address": "6 Mill Road, Bellville South, Cape Town, Western cape, South Africa, 8000",
+    "price": 19.1893,
+    "location": "Cape Town",
+    "latitude": -33.923832,
+    "longitude": 18.650067
+  },
+  {
+    "name": "BDN Diesel Depot Alberton",
+    "url": "https://maps.app.goo.gl/sJm66qTJ9VDC17mK7",
+    "address": "5 Rogers Road, Alrode South, Alberton, Gauteng, South Africa, 1451",
+    "price": 19.68,
+    "location": "Alberton",
+    "latitude": -26.3552938,
+    "longitude": 28.1154712
+  },
+  {
+    "name": "Fuel 1 Paarden Eiland",
+    "url": "https://maps.app.goo.gl/vAocumemE1gYseuWA",
+    "address": "55 Section Street, Paarden Eiland, Cape Town, Western Cape, South Africa, 7405",
+    "price": 19.1893,
+    "location": "Cape Town",
+    "latitude": -33.9147607,
+    "longitude": 18.472886
+  },
+  {
+    "name": "Econo Grootvlei",
+    "url": "https://maps.app.goo.gl/R5y4NV3DU9auequaA",
+    "address": "Portion 76 Farm Grootvlei, N3 Grootvlei, Grootvlei, Mpumalanga, South Africa, 2140",
+    "price": 19.79,
+    "location": "Grootvlei",
+    "latitude": null,
+    "longitude": null
+  },
+  {
+    "name": "Rubbervale Gravelotte",
+    "url": "https://maps.app.goo.gl/sivsUm97Cb2NP42NA",
+    "address": "Farm Rubbervale, Gravelotte, Gravelotte, Limpopo, South Africa, 0895",
+    "price": 20.72,
+    "location": "Gravelotte",
+    "latitude": -23.9175697,
+    "longitude": 30.544943
+  },
+  {
+    "name": "Ecflo Echo Machadodorp",
+    "url": "https://maps.app.goo.gl/T8j145jNsAJys3ud7",
+    "address": "2 Quitzow Street, eNtokozweni, Machadodorp, Mpumalanga, South Africa, 1170",
+    "price": 20.38,
+    "location": "Machadodorp",
+    "latitude": -25.66778,
+    "longitude": 30.2419531
+  },
+  {
+    "name": "Nkomazi Fuel Upington",
+    "url": "https://maps.app.goo.gl/T9WsJuvwXsWLSL7T9",
+    "address": "38 Karakoel Street, Upington, Upington, Noord Kaap, South Africa, 8801",
+    "price": 20.75,
+    "location": "Upington",
+    "latitude": -28.4341675,
+    "longitude": 21.2273503
+  },
+  {
+    "name": "Nkomazi Truck Stop Malalane",
+    "url": "https://maps.app.goo.gl/RV6EPQRLnAvtQ8ib9",
+    "address": "Malalane Moz N4, Malalane , Malalane , Mpumalanga, South Africa, 000",
+    "price": 19.77,
+    "location": "Malalane",
+    "latitude": -25.487634,
+    "longitude": 31.5569251
+  },
+  {
+    "name": "Ultra Petroleum Griekwastad",
+    "url": "https://maps.app.goo.gl/vy5CDDx795JrjF2d6",
+    "address": "Main Street 6 , Griekwastad, Griekwastad , Northern Cape , South Africa, 8365",
+    "price": 20.48,
+    "location": "Griekwastad",
+    "latitude": -28.8483602,
+    "longitude": 23.2545619
+  },
+  {
+    "name": "Nkomazi Fuel Barberton",
+    "url": "https://maps.app.goo.gl/LdWNpBDFfe7grL127",
+    "address": "96 Crown Street, Barberton, Barberton, Mpumalanga, South Africa, 1300",
+    "price": 20.17,
+    "location": "Barberton",
+    "latitude": -25.7900962,
+    "longitude": 31.0560215
+  },
+  {
+    "name": "E Z Trade 530 Middelburg",
+    "url": "https://maps.app.goo.gl/yXMEoorKacRfrLem6",
+    "address": "1 Joule Street, Vaalbank-B, Middelburg, Mpumalanga, South Africa, 1050",
+    "price": 19.67,
+    "location": "Middelburg",
+    "latitude": -25.7867088,
+    "longitude": 29.4892807
+  },
+  {
+    "name": "Laingsburg Truck Stop",
+    "url": "https://maps.app.goo.gl/8wDiFQKxyBf17bqT9",
+    "address": "1 Voortrekker Streey, Bergsig, Laingsburg, Western Cape, South Africa, 6900",
+    "price": 19.98,
+    "location": "Laingsburg",
+    "latitude": -33.195109,
+    "longitude": 20.8422104
+  },
+  {
+    "name": "Nkomazi Truck Stop Kathu",
+    "url": "https://maps.app.goo.gl/rMAyNQjRPyS4xLyW9",
+    "address": "R380, Kathu, Kathu, Northern Cape, South Africa, 8446",
+    "price": 20.53,
+    "location": "Kathu",
+    "latitude": -27.6013037,
+    "longitude": 22.9635119
+  },
+  {
+    "name": "Ditlou Diesel Olifantshoek",
+    "url": "https://maps.app.goo.gl/TwEbdXu1aVmbS6oG7",
+    "address": "N14 Highway, Olifantshoek, Olifantshoek, Northern Cape, South Africa, 8450",
+    "price": 20.53,
+    "location": "Olifantshoek",
+    "latitude": -27.9576293,
+    "longitude": 22.7317632
+  },
+  {
+    "name": "JFK Laeveld Marble Hall",
+    "url": "https://maps.app.goo.gl/urHR6ANuvrYWuRj4A",
+    "address": "R573, Marble Hall , Marble Hall , Limpopo, South Africa, 0450",
+    "price": 19.76,
+    "location": "Marble Hall",
+    "latitude": -25.0101166,
+    "longitude": 29.2621174
+  },
+  {
+    "name": "N17 Truckstop Warburton",
+    "url": "https://maps.app.goo.gl/57pKrB6uYFEZYMFT7",
+    "address": "69 Oshoek Road, Warburton, N17, Mpumalanga , South Africa, 2333",
+    "price": 20.02,
+    "location": "N17",
+    "latitude": -26.2255826,
+    "longitude": 30.5226842
+  },
+  {
+    "name": "Shiptech Petroleum Cato Ridge",
+    "url": "https://maps.app.goo.gl/Un78VhZbYztBxjZY9",
+    "address": "Harrison, Cato Ridge, Cato Ridge, KwaZulu-Natal, South Africa, 3680",
+    "price": 19.2,
+    "location": "Cato Ridge",
+    "latitude": -29.7264614,
+    "longitude": 30.6128998
+  },
+  {
+    "name": "Southway Engen Durban (Twoline Trading)",
+    "url": "https://maps.app.goo.gl/5Y3egrfKS7g3vYq29",
+    "address": "701 Solomon Mahlangu Dr, Sea View , Durban, KwaZulu-Natal, South Africa, 4094",
+    "price": 21.48,
+    "location": "Durban",
+    "latitude": -29.8930111,
+    "longitude": 30.9687366
+  },
+  {
+    "name": "Nkomazi Fuel Nelspruit",
+    "url": "https://maps.app.goo.gl/jMKGeJ8HcEWYmAWbA",
+    "address": "5 Wolfaard Street, Mbombela, Nelspruit, Mpumalanga, South Africa, 1201",
+    "price": 19.97,
+    "location": "Nelspruit",
+    "latitude": -25.4621175,
+    "longitude": 30.982563
+  },
+  {
+    "name": "DieselGo Howick",
+    "url": "https://maps.app.goo.gl/ZgThrBw877js45mk6",
+    "address": "R107 Tweedie, Tweedie Howick, Howick, Kwa-Zulu Natal, South Africa, 3290",
+    "price": 18.6948,
+    "location": "Howick",
+    "latitude": -29.478529,
+    "longitude": 30.1855355
+  },
+  {
+    "name": "Express Petroleum Ugie",
+    "url": "https://maps.app.goo.gl/No1rN1cHvuXSfSpw5",
+    "address": "Umga Road, Ugie, Ugie, Eastern Cape, South Africa, 5470",
+    "price": 20.6,
+    "location": "Ugie",
+    "latitude": -31.1959868,
+    "longitude": 28.2318298
+  },
+  {
+    "name": "Fuel 24 Rocky Drift Nelspruit",
+    "url": "https://maps.app.goo.gl/fhsimSuDzu6XDAyv9",
+    "address": "R40 Truckstop Curlews Road, Rocky Drift, Nelspruit, Mpumalanga, South Africa, 1201",
+    "price": 20.27,
+    "location": "Nelspruit",
+    "latitude": -25.3820534,
+    "longitude": 30.9830189
+  },
+  {
+    "name": "Energi Fuels Middelburg",
+    "url": "https://maps.app.goo.gl/tmq1Bsz7Ebwzp2938",
+    "address": "Wolwefontein, Meerlus, Middelburg, Mpumalanga, South Africa, 1096",
+    "price": 20.31,
+    "location": "Middelburg",
+    "latitude": -25.9818847,
+    "longitude": 29.4793714
+  },
+  {
+    "name": "Majuba King Petroleum Ermelo",
+    "url": "https://goo.gl/maps/MzHeSJoEmsZP9on17",
+    "address": "7 Havenga Rd, Van Oudshoornstroom 261-It, Van Oudshoornstroom 261-It, Ermelo, Mpumalanga, South Africa, 2351",
+    "price": 19.9,
+    "location": "Van Oudshoornstroom 261-It",
+    "latitude": -26.5263977,
+    "longitude": 30.0004944
+  },
+  {
+    "name": "BF Filling Station Polokwane",
+    "url": "https://maps.app.goo.gl/WZXu2VGHt6x8KCqz6",
+    "address": "126 Blaauwberg Street, Polokwane Ext 16, Polokwane, Limpopo, South Africa, 0700",
+    "price": 20.4348,
+    "location": "Polokwane",
+    "latitude": -23.8881841,
+    "longitude": 29.4384285
+  },
+  {
+    "name": "Truck Station Umgeni Durban",
+    "url": "https://goo.gl/maps/SQ1tQYgMQxwhBi238",
+    "address": "50 Electron Rd, Umgeni Business Park, Durban, Durban, Kwa-Zulu Natal, South Africa, 4091",
+    "price": 19.2841,
+    "location": "Durban",
+    "latitude": -29.8146179,
+    "longitude": 30.9924695
+  },
+  {
+    "name": "SAF Peacevale",
+    "url": "https://maps.app.goo.gl/nhR3MHCa5Rdv6BoC7",
+    "address": "3-1 Sterkspruit Road, Cliffdale, Outer West , Durban, South Africa, 3626",
+    "price": 18.7533,
+    "location": "Outer West",
+    "latitude": -29.77225,
+    "longitude": 30.6819807
+  },
+  {
+    "name": "Nkomazi Fuel Cato Ridge",
+    "url": "https://goo.gl/maps/WM6FWb8GormPvsrY8",
+    "address": "N3, Cato Ridge, Cato Ridge, Kwa-Zulu Natal, South Africa, 3680",
+    "price": 19.1,
+    "location": "Cato Ridge",
+    "latitude": -29.7335358,
+    "longitude": 30.5847559
+  },
+  {
+    "name": "Industry Petroleum Midpoint Harrismith",
+    "url": "https://maps.app.goo.gl/N3vQVvkqW4jWvfwR9",
+    "address": "27 Nywerheids Road, Hardrustia , Harrismith , Free State, South Africa, 9880",
+    "price": 19.36,
+    "location": "Harrismith",
+    "latitude": -28.2975556,
+    "longitude": 29.1383611
+  },
+  {
+    "name": "Nexus Fuels Ermelo",
+    "url": "https://maps.app.goo.gl/tVk5ehyBKfiZ7y41A",
+    "address": "N11 Plaas Voorslag, Ermelo, Ermelo, Mpumalanga, South Africa, 2351",
+    "price": 19.8,
+    "location": "Ermelo",
+    "latitude": -26.4355736,
+    "longitude": 29.9410687
+  },
+  {
+    "name": "Africa Truck Stop Kendal",
+    "url": "https://maps.app.goo.gl/D683feNvjTydSAbd9",
+    "address": "R545, Wilge, Kendal, Mpumalanga, South Africa, 2230",
+    "price": 19.4723,
+    "location": "Kendal",
+    "latitude": -25.9796875,
+    "longitude": 28.9885625
+  },
+  {
+    "name": "Xtreme Fuel Mokopane",
+    "url": "https://maps.app.goo.gl/9UPmZHjz1bNsgWNC9",
+    "address": "Mogalakwena, Ga-Magongwa, Mokopane, Limpopo, South Africa, 0600",
+    "price": 19.93,
+    "location": "Mokopane",
+    "latitude": -24.0579407,
+    "longitude": 28.9610697
+  },
+  {
+    "name": "Xtreme Fuel Sandfontein Northam",
+    "url": "https://maps.app.goo.gl/EF8CyPZ1G2SjcmxeA",
+    "address": "Sekgatleng section , Sandfontein, Sandfontein, North West, South Africa, 0318",
+    "price": 19.93,
+    "location": "Sandfontein",
+    "latitude": -25.1470771,
+    "longitude": 27.2434296
+  },
+  {
+    "name": "Laser Fast Truck Stop Meyerton",
+    "url": "https://maps.app.goo.gl/cKBMdhPq5MgnnnEU8",
+    "address": "68 Rooibok Road, Highbury, Meyerton, Gauteng, South Africa, 1961",
+    "price": 20.04,
+    "location": "Meyerton",
+    "latitude": -26.5198866,
+    "longitude": 28.0389195
+  },
+  {
+    "name": "MPT Fuel Middelburg",
+    "url": "https://maps.app.goo.gl/iBDhV2QDPxB5ZAFMA",
+    "address": "7 Joule Street, Middelburg, Middelburg, Mpumalanga, South Africa, 1055",
+    "price": 19.72,
+    "location": "Middelburg",
+    "latitude": -25.7859535,
+    "longitude": 29.4924698
+  },
+  {
+    "name": "Exel Filling Station Hanover Northern Cape",
+    "url": "https://maps.app.goo.gl/8zKVujHNzf5HnoWa6",
+    "address": "Queen Street, Hanover, Hanover, Northern Cape, South Africa, 7005",
+    "price": 20.54,
+    "location": "Hanover",
+    "latitude": -31.0826542,
+    "longitude": 24.3301898
+  },
+  {
+    "name": "Blyde Motors (Tobiplex) Hoedspruit",
+    "url": "https://maps.app.goo.gl/vuVHdWUbAyv39sjdA",
+    "address": "Main Road R527, Blyde Complex, Hoedspruit, Limpopo, South Africa, 1380",
+    "price": 20.9303,
+    "location": "Hoedspruit",
+    "latitude": -24.4040622,
+    "longitude": 30.7993974
+  },
+  {
+    "name": "Shiptech Petroleum Lydenburg",
+    "url": "https://maps.app.goo.gl/fCn2pfEoXRCLMLee6",
+    "address": "R37, Lydenburg, Lydenburg, Lydenburg, Mpumalanga, South Africa, 1120",
+    "price": 20.3035,
+    "location": "Lydenburg",
+    "latitude": -24.6773801,
+    "longitude": 30.3311396
+  },
+  {
+    "name": "Baruk Petroleum Bloemfontein",
+    "url": "https://maps.app.goo.gl/3KzSp7WwwJLFmGs3A",
+    "address": "2 Taxi Street, Ferreira, Bloemfontein, Free State, South Africa, 9301",
+    "price": 19.8193,
+    "location": "Bloemfontein",
+    "latitude": -29.2024758,
+    "longitude": 26.1874783
+  },
+  {
+    "name": "BB Energy Vryheid",
+    "url": "https://maps.app.goo.gl/Gw9Qs7HzcJjEqDLF8",
+    "address": "10 Industria Street, Vryheid, Vryheid, Kwa-Zulu Natal, South Africa, 3100",
+    "price": 19.38,
+    "location": "Vryheid",
+    "latitude": -27.7647457,
+    "longitude": 30.814436
+  },
+  {
+    "name": "Royale Energy Polokwane",
+    "url": "https://maps.app.goo.gl/AysMTxdm48h8Xidd9",
+    "address": "Prov Roodepoort St, Southern Gateway, Polokwane, Limpopo, South Africa, 0699",
+    "price": 20.0803,
+    "location": "Polokwane",
+    "latitude": -23.9353142,
+    "longitude": 29.4175202
+  },
+  {
+    "name": "Bethlehem Diesel",
+    "url": "https://maps.app.goo.gl/qjy9X6tcbWdWV5kb8",
+    "address": "19 Adolf de Jongh Street, Bethlehem, Bethlehem, Free State, South Africa, 9700",
+    "price": 19.9125,
+    "location": "Bethlehem",
+    "latitude": -28.22202,
+    "longitude": 28.30668
+  },
+  {
+    "name": "Rousseau Lichtenburg",
+    "url": "https://goo.gl/maps/QNSWtWnXcsHovkMg9",
+    "address": "104 Dr Beyers Naude Dr, North West, Lichtenburg, Lichtenburg, Lichtenburg, North West, South Africa, 2740",
+    "price": 20.13,
+    "location": "Lichtenburg",
+    "latitude": -26.1769905,
+    "longitude": 26.1689215
+  },
+  {
+    "name": "Kuhle Fuels Kendal",
+    "url": "https://maps.app.goo.gl/jrK54s94UnrQeyi17",
+    "address": "Plot 9 Balmoral Road, Kendal, Kendal, Mpumalanga, South Africa, 2232",
+    "price": 19.95,
+    "location": "Kendal",
+    "latitude": -26.0362125,
+    "longitude": 28.9637837
+  },
+  {
+    "name": "Africa Wholesale Diesel Richards Bay",
+    "url": "https://goo.gl/maps/AJCfatdX81g8iD6w6",
+    "address": "39 Bauxite Bay, Alton, Richards Bay, KwaZulu-Natal, South Africa, 0000",
+    "price": 19.13,
+    "location": "Richards Bay",
+    "latitude": -28.750807,
+    "longitude": 32.015008
+  },
+  {
+    "name": "Midway Motors Truckstop Estcourt",
+    "url": "https://maps.app.goo.gl/HiHcqBuQpkZNGgN47",
+    "address": "Lowlands Road, Estcourt, Estcourt, KwaZulu-Natal Province, South Africa, 3310",
+    "price": 20.28,
+    "location": "Estcourt",
+    "latitude": -29.0550431,
+    "longitude": 29.8827911
+  },
+  {
+    "name": "A2Z Diesel Depot Vryburg",
+    "url": "https://maps.app.goo.gl/JrKUs3ywA5rb3FHT7",
+    "address": "Bernauw plot Schweizer 22 Reneke Road,, Vryburg, Vryburg, North West, South Africa, 8601",
+    "price": 20.38,
+    "location": "Vryburg",
+    "latitude": -26.9764401,
+    "longitude": 24.786326
+  },
+  {
+    "name": "Q4 Diesel Depot Eloff",
+    "url": "https://maps.app.goo.gl/pioEfPkBSKYdgxhB6",
+    "address": "Eloff SH, Eloff, Eloff, Mpumalanga, South Africa, 2211",
+    "price": 20.26,
+    "location": "Eloff",
+    "latitude": -26.1628064,
+    "longitude": 28.6213184
+  },
+  {
+    "name": "AWD N11 Ladysmith",
+    "url": "https://maps.app.goo.gl/aE521hkXUccViKrr8",
+    "address": "N11, Elandslaagte, Ladysmith, Ladysmith, Kwa-Zulu Natal, South Africa, 2900",
+    "price": 19.22,
+    "location": "Ladysmith",
+    "latitude": -28.3677816,
+    "longitude": 29.9533487
+  },
+  {
+    "name": "IMPI Fuels Newtown Secunda",
+    "url": "https://maps.app.goo.gl/FPAgnGRSqYBeE3fL7",
+    "address": "Winkelhaak mines, Secunda, Secunda, Mpumalanga, South Africa, 2302",
+    "price": 20.02,
+    "location": "Secunda",
+    "latitude": -26.5104599,
+    "longitude": 29.1228352
+  },
+  {
+    "name": "Marblehall Truck Stop",
+    "url": "https://maps.app.goo.gl/Q2NzyyREH3cwyTjy5",
+    "address": "Plot G1, Rooibokkop, Loskop Noord, N11, Marble Hall, Marble Hall, Limpopo, South Africa, 0450",
+    "price": 20.29,
+    "location": "Loskop Noord",
+    "latitude": -24.983833,
+    "longitude": 29.309148999999998
+  },
+  {
+    "name": "Shiptech Petroleum Piet Retief",
+    "url": "https://maps.app.goo.gl/equZ5cwTC65jtZsJA",
+    "address": "Cemetery Road, Piet Retief, Mkhondo, Mpumalanga, South Africa, 2380",
+    "price": 20.12,
+    "location": "Mkhondo",
+    "latitude": -26.990576,
+    "longitude": 30.8028943
+  },
+  {
+    "name": "Black Rock Fuels Modimolle",
+    "url": "https://maps.app.goo.gl/qSeuwiRdbHTB7RYY8?g_st=aw",
+    "address": "10 Nywerheid Street, Industrial Area, Modimolle , Limpopo, South Africa, 0510",
+    "price": 20.18,
+    "location": "Modimolle",
+    "latitude": -24.712619,
+    "longitude": 28.425386
+  },
+  {
+    "name": "Gaspet Koedoeskop (Ubuntu Gas Petroleum)",
+    "url": "https://maps.app.goo.gl/cP5P3HxPdu7feYTS9",
+    "address": "40B Doornfontein 498KQ, Koedoeskop, Koedoeskop, Limpopo, South Africa, 0361",
+    "price": 20.18,
+    "location": "Koedoeskop",
+    "latitude": -24.8836421,
+    "longitude": 27.5253557
+  },
+  {
+    "name": "Mooi River Truck Stop",
+    "url": "https://maps.app.goo.gl/vX2BoW9QjDtBXkLo9",
+    "address": "Across The Weighbride, R103 Old Main Road, Mooi River, Mooi River, KwaZulu-Natal, South Africa, 3300",
+    "price": 19.51,
+    "location": "Mooi River",
+    "latitude": -29.2264215,
+    "longitude": 30.0004303
+  },
+  {
+    "name": "Whelson Harare Zimbabwe (Supergroup SA)",
+    "url": "https://maps.app.goo.gl/tpyifzznQvDsQSzBA",
+    "address": "Workington, Harare, Zimbabwe, Zimbabwe, Zimbabwe, 00000",
+    "price": 24.67,
+    "location": "Zimbabwe",
+    "latitude": -17.8530951,
+    "longitude": 31.0130928
+  },
+  {
+    "name": "Vision Petroleum Postmasburg",
+    "url": "https://maps.app.goo.gl/wWAvSoo76wxBmaoq6",
+    "address": "1 Meent, Postmasburg, Postmasburg, Northern Cape, South Africa, 8420",
+    "price": 20.59,
+    "location": "Postmasburg",
+    "latitude": -28.3089797,
+    "longitude": 23.0595933
+  },
+  {
+    "name": "Vecto Bulk Olifantsfontein",
+    "url": "https://maps.app.goo.gl/9pJyEu2L2R4A3jJN9",
+    "address": "Harvest Pl, Marwyn AH, Marwyn AH, , Olifantsfontein, Pretoria, Gauteng, South Africa, 0181",
+    "price": 19.47,
+    "location": "Marwyn AH",
+    "latitude": -25.9394178,
+    "longitude": 28.2401743
+  },
+  {
+    "name": "MS Petroleum Potchefstroom",
+    "url": "https://goo.gl/maps/WpSVPAq8C5p3twAx7",
+    "address": "Plot 754, Vyfhoek, N12 Road, Potchefstroom , Potchefstroom , Nort West Province, South Africa, 2531",
+    "price": 19.92,
+    "location": "N12 Road",
+    "latitude": -26.6962156,
+    "longitude": 27.1375024
+  },
+  {
+    "name": "ATS Mosselbaai",
+    "url": "https://maps.app.goo.gl/x7QDY2Tey4BCWzTf7",
+    "address": "5 & 7 Mkuzi Street, Mossdustria, Mossel bay, Western Cape, South Africa, 6510",
+    "price": 18.9,
+    "location": "Mossel bay",
+    "latitude": null,
+    "longitude": null
+  },
+  {
+    "name": "Limpopo Fuels Phalaborwa",
+    "url": "https://maps.app.goo.gl/4TMWEcxhuWaG9ZTa8",
+    "address": "6 Coster Steet, Phalaborwa, Phalaborwa, Limpopo, South Africa, 1390",
+    "price": 20.54,
+    "location": "Phalaborwa",
+    "latitude": -23.9498794,
+    "longitude": 31.1267883
+  },
+  {
+    "name": "Industry Petroleum Pietermaritzburg",
+    "url": "https://maps.app.goo.gl/spJtF3M3sAkpHxon7",
+    "address": "2 Chesterfield Road, Willowton, Pietermaritzburg, Kwazulu Natal, South Africa, 3201",
+    "price": 18.49,
+    "location": "Pietermaritzburg",
+    "latitude": -29.582220999999997,
+    "longitude": 30.415563
+  },
+  {
+    "name": "Uptank Diesel Depot Rosslyn",
+    "url": "https://maps.app.goo.gl/NoTrahQMz4iwuV197",
+    "address": "301 Willem Cruywagen St, , Klerksoord AH Akasia, Pretoria, Gauteng, South Africa, 0200",
+    "price": 20.37,
+    "location": "Klerksoord AH Akasia",
+    "latitude": -25.6370334,
+    "longitude": 28.1298313
+  },
+  {
+    "name": "Lion Park Truck Stop Pietermaritzburg",
+    "url": "https://maps.app.goo.gl/dSJ1JgfdntD5xKQGA",
+    "address": "iBhubesi Industrial Park, 28 R103, , Lynnfield Park Ashburton, Pietermaritzburg, KwaZulu-Natal, South Africa, 3213",
+    "price": 19.25,
+    "location": "Lynnfield Park Ashburton",
+    "latitude": -29.663133,
+    "longitude": 30.4436924
+  },
+  {
+    "name": "Karan Zambia Choma",
+    "url": "https://maps.app.goo.gl/jMitHw5FmQQffaqF6",
+    "address": "N/A, Choma, Choma, Choma, Zambia, N/A",
+    "price": 20.76,
+    "location": "Choma",
+    "latitude": -16.8088646,
+    "longitude": 26.9838944
+  },
+  {
+    "name": "Quantum Pietermaritzburg",
+    "url": "https://maps.app.goo.gl/wF8Q2nVjwkzf8VXr7?g_st=iw",
+    "address": "Market Road, Mkondeni, Pietermaritzburg, Kwazulu Natal, South Africa, 0321",
+    "price": 19.04,
+    "location": "Pietermaritzburg",
+    "latitude": null,
+    "longitude": null
+  },
+  {
+    "name": "Ecflo Echo Mogoshandi Lebowakgomo",
+    "url": "https://maps.app.goo.gl/MYwQd2nWg61nKR9t8",
+    "address": "Corner R37 and R518, Mogodi, Lebowakgomo, Limpopo, South Africa, 0736",
+    "price": 20.65,
+    "location": "Lebowakgomo",
+    "latitude": -24.2668171,
+    "longitude": 29.5511198
+  },
+  {
+    "name": "Mega 1 Stop Potchefstroom (Ikra Energies (Pty) Ltd)",
+    "url": "https://maps.app.goo.gl/upSazB1W95vAQqvA7",
+    "address": "200 Nelson Mandela Drive, Potchefstroom, Potchefstroom, North West Province, South Africa, 2531",
+    "price": 19.82,
+    "location": "Potchefstroom",
+    "latitude": -26.7078514,
+    "longitude": 27.1167793
+  },
+  {
+    "name": "Stadler Jan Kemp",
+    "url": "https://goo.gl/maps/WmEYhMDX7TvUjWeDA",
+    "address": "70 Station Street, Jan Kempdorp, Jan Kempdorp, Jan Kempdorp, Northern Cape, South Africa, 8550",
+    "price": 20.27,
+    "location": "Jan Kempdorp",
+    "latitude": -27.8968959,
+    "longitude": 24.8188915
+  },
+  {
+    "name": "EFFA Fuel Heidelberg",
+    "url": "https://maps.app.goo.gl/5Gps8rNnztcAKMB57",
+    "address": "26 Houtpoort, Heidelberg, Heidelberg, Gauteng, South Africa, 1441",
+    "price": 19.74,
+    "location": "Heidelberg",
+    "latitude": -26.5396862,
+    "longitude": 28.3698781
+  },
+  {
+    "name": "Burnside Nelspruit (Prima Onderberg)",
+    "url": "https://maps.app.goo.gl/AFJtxYVCQenavBhU7?g_st=aw",
+    "address": "Plot 5B, Burnside, Mbombela, Mpumalanga, South Africa, 1200",
+    "price": 20.36,
+    "location": "Mbombela",
+    "latitude": -25.451456,
+    "longitude": 30.884891
+  },
+  {
+    "name": "Industry Petroleum Musina",
+    "url": "https://maps.app.goo.gl/UbnAgAQLGoH7WBTq5?g_st=com.google.maps.preview.copy",
+    "address": "22 Joubert Fourie Street, Musina, Musina, Limpopo, South Africa, 0900",
+    "price": 20.28,
+    "location": "Musina",
+    "latitude": null,
+    "longitude": null
+  },
+  {
+    "name": "Royale Energy Olifantsfontein",
+    "url": "https://maps.app.goo.gl/XgoeY3UrhTWpYACk9",
+    "address": "28 Axle Drive, Olifantsfontein, Olifantsfontein, Gauteng, South Africa, 1665",
+    "price": 19.8223,
+    "location": "Olifantsfontein",
+    "latitude": -25.9725843,
+    "longitude": 28.2232168
+  },
+  {
+    "name": "Isomaster Fuel Midrand",
+    "url": "https://maps.app.goo.gl/mkMpWN1fKnhXU58F9?g_st=aw",
+    "address": "1070 Old Pretoria Main Road, Halfway House, Midrand, Johannesburg , Gauteng, South Africa, 1685",
+    "price": 19.82,
+    "location": "Midrand",
+    "latitude": -25.990671,
+    "longitude": 28.131218999999998
+  },
+  {
+    "name": "BG Petro Hennenman (Coco Haven cc)",
+    "url": "https://maps.app.goo.gl/qykqvfgtk6mem6KZA?g_st=aw",
+    "address": "740 Ventersvlakte, Hennenman, Hennenman, Free State, South Africa, 9445",
+    "price": 19.8,
+    "location": "Hennenman",
+    "latitude": -28.001213999999997,
+    "longitude": 27.034927
+  },
+  {
+    "name": "N2 Eco Fuel Pongola",
+    "url": "https://goo.gl/maps/no2KhJzHCZv5mszq7",
+    "address": "239 acasia st, Pongola, Pongola, Pongola, KwaZulu-Natal, South Africa, 3170",
+    "price": 19.72,
+    "location": "Pongola",
+    "latitude": -27.3796082,
+    "longitude": 31.6041031
+  },
+  {
+    "name": "Inyameko Trading Durban",
+    "url": "https://maps.app.goo.gl/wZ7WNaDeGXCXG2yK9",
+    "address": "Corner of Mulner and Voortrekker, 167 Voortrekker Street, Mobeni East, Durban, Kwa-Zulu Natal, South Africa, 4060",
+    "price": 18.99,
+    "location": "Mobeni East",
+    "latitude": -29.9290398,
+    "longitude": 30.9855056
+  },
+  {
+    "name": "Infinity Diesel Pretoria (CShell 106)",
+    "url": "https://maps.app.goo.gl/7D7JDLYThu2BmKnQ8?g_st=aw",
+    "address": "M6 Graham Road, Plot 182, Zwavelpoort, Pretoria East, Gauteng, South Africa, 0081",
+    "price": 20.19,
+    "location": "Zwavelpoort",
+    "latitude": -25.813153999999997,
+    "longitude": 28.380385999999998
+  },
+  {
+    "name": "Karan Zambia Ibex",
+    "url": "https://maps.app.goo.gl/aVuPHjW1Ty6XLp2P6",
+    "address": "Ibex, Ibex, Lusaka, Zambia, South Africa, 0",
+    "price": 20.76,
+    "location": "Lusaka",
+    "latitude": -15.4095364,
+    "longitude": 28.3838724
+  },
+  {
+    "name": "Karan Zambia Mbereshi",
+    "url": "https://maps.app.goo.gl/gxmJaYnm2aRkY6aS7",
+    "address": "N/A, Mbereshi, Mbereshi, Mbereshi, South Africa, N/A",
+    "price": 20.76,
+    "location": "Mbereshi",
+    "latitude": -9.7412966,
+    "longitude": 28.7664246
+  },
+  {
+    "name": "Karan Zambia Shimabala",
+    "url": "https://maps.app.goo.gl/WRSJoDY5bL6V3bMo6",
+    "address": "N/A, Shimabala, Shimabala, Shimabala, Zambia, N/A",
+    "price": 20.76,
+    "location": "Shimabala",
+    "latitude": -15.6448314,
+    "longitude": 28.2193704
+  },
+  {
+    "name": "Tarlton Truckstop (Setjhaba Energy (Pty) Ltd)",
+    "url": "https://maps.app.goo.gl/kVTqYfdtxy31X3XF8?g_st=iwb",
+    "address": "Portion 135, Vlakplaats Farm, HQ160, Tarlton, Krugersdorp, Gauteng, South Africa, 1739",
+    "price": 19.93,
+    "location": "HQ160",
+    "latitude": null,
+    "longitude": null
+  },
+  {
+    "name": "Mid Petroleum Middelburg",
+    "url": "https://maps.app.goo.gl/88heBGXWFG16Hmu7A?g_st=aw",
+    "address": "Farm Vaalbank, R35, Middelburg, Middelburg, Mpumalanga, South Africa, 1050",
+    "price": 19.83,
+    "location": "Middelburg",
+    "latitude": -25.833267,
+    "longitude": 29.467005999999998
+  },
+  {
+    "name": "Karan Zambia Mazabuka",
+    "url": "https://maps.app.goo.gl/Bw3QvhNXmytcPfTw5",
+    "address": "N/A, Mqzabuka, Mqzabuka, Mqzabuka, Zambia, N/A",
+    "price": 20.76,
+    "location": "Mqzabuka",
+    "latitude": -15.8547001,
+    "longitude": 27.7550774
+  },
+  {
+    "name": "Karan Zambia Zambezi",
+    "url": "https://maps.app.goo.gl/8tw62rJmJ4oTSifU6",
+    "address": "N/A, Zambezi, Zambezi, Zambezi, Zambia, N/A",
+    "price": 20.76,
+    "location": "Zambezi",
+    "latitude": -15.3825321,
+    "longitude": 28.313406
+  },
+  {
+    "name": "Karan Zambia Mungwi",
+    "url": "https://maps.app.goo.gl/3erkYzRMx5vPXW9q7",
+    "address": "N/A, Mungwi, Mungwi, Mungwi, Zambia, N/A",
+    "price": 20.76,
+    "location": "Mungwi",
+    "latitude": -15.3848722,
+    "longitude": 28.2019407
+  },
+  {
+    "name": "Karan Zambia Linda",
+    "url": "https://maps.app.goo.gl/yACnvRNtd9Z2i2fb9",
+    "address": "N/A, Linda, Linda, Linda, Zambia, N/A",
+    "price": 20.76,
+    "location": "Linda",
+    "latitude": -15.4943904,
+    "longitude": 28.2271034
+  },
+  {
+    "name": "Karan Zambia Mumbwa",
+    "url": "https://maps.app.goo.gl/x7yHhY8w7CAueqVe9",
+    "address": "N/A, Mumbwa, Mumbwa, Mumbwa, South Africa, N/A",
+    "price": 20.76,
+    "location": "Mumbwa",
+    "latitude": -15.4198971,
+    "longitude": 28.1693344
+  },
+  {
+    "name": "Africa Truck Stop Pomona",
+    "url": "https://goo.gl/maps/pj3J98ebhcwDSEDj9",
+    "address": "12 Pomona Rd, Pomona AH, Kempton Park, 1619, Kempton Park, Kempton Park, Gauteng, South Africa, 1619",
+    "price": 19.47,
+    "location": "Kempton Park",
+    "latitude": -26.0933555,
+    "longitude": 28.2614961
+  },
+  {
+    "name": "Ipex Filling Station",
+    "url": "https://goo.gl/maps/sBTPzCFStQRgtjNo8",
+    "address": "42 Sussex Street, Industria, Mokopane, Limpopo, South Africa, 0601",
+    "price": 20.38,
+    "location": "Mokopane",
+    "latitude": -24.1691047,
+    "longitude": 29.0091121
+  },
+  {
+    "name": "Karan Zambia Meanwood",
+    "url": "https://maps.app.goo.gl/TRiYLi9fGTTjsEzj7",
+    "address": "N/A, Meanwood, Meanwood, Meanwood, Zambia, N/A",
+    "price": 20.76,
+    "location": "Meanwood",
+    "latitude": -15.332365,
+    "longitude": 28.3847447
+  },
+  {
+    "name": "Shiptech Petroleum JHB City Deep",
+    "url": "https://maps.app.goo.gl/ZvZiDzwoXhF1RKZd7",
+    "address": "Rosherville Road, City Deep, Johannesburg South, Gauteng, South Africa, 2197",
+    "price": 20.0635,
+    "location": "Johannesburg South",
+    "latitude": -26.2240604,
+    "longitude": 28.0849035
+  },
+  {
+    "name": "Sunset Oil Pienaarsrivier (Suncore M&E)",
+    "url": "https://goo.gl/maps/hKkth3uXB5CqTYN6A",
+    "address": "Catanhos St, Pienaarsrivier, Pienaarsrivier, Pienaarsrivier, Limpopo, South Africa, 0420",
+    "price": 19.6148,
+    "location": "Pienaarsrivier",
+    "latitude": -25.206152,
+    "longitude": 28.296911
+  },
+  {
+    "name": "Karan Zambia Chongwe",
+    "url": "https://maps.app.goo.gl/uZ1p7RJnjKYsP6Ua6",
+    "address": "N/A, Chongwe, Chongwe, Chongwe, Zambia, N/A",
+    "price": 20.76,
+    "location": "Chongwe",
+    "latitude": -15.3588266,
+    "longitude": 28.4387074
+  },
+  {
+    "name": "Karan Zambia Solwezi",
+    "url": "https://maps.app.goo.gl/j8cJr83HB1JyuvSV6",
+    "address": "N/A, Solwezi, Solwezi, Solwezi, Zambia, N/A",
+    "price": 20.76,
+    "location": "Solwezi",
+    "latitude": -12.1763763,
+    "longitude": 26.3720494
+  },
+  {
+    "name": "Karan Zambia Mkushi",
+    "url": "https://maps.app.goo.gl/PjeoKvRjc8x35zCU9",
+    "address": "N/A, Mkushi, Mkushi, Mkushi, Zambia, N/A",
+    "price": 20.76,
+    "location": "Mkushi",
+    "latitude": -13.6460953,
+    "longitude": 29.352314
+  },
+  {
+    "name": "Force Petroleum Kimberley",
+    "url": "https://maps.app.goo.gl/PxFboCuGHrBMQb9q8",
+    "address": "Plot 8994, Forrestdale, Kimberley, Northern Cape , South Africa, 8301",
+    "price": 20.08,
+    "location": "Kimberley",
+    "latitude": -28.732817999999998,
+    "longitude": 24.704231
+  },
+  {
+    "name": "XFuels Mokopane",
+    "url": "https://maps.app.goo.gl/Sd1BSwpTW9QXdwwX7",
+    "address": "9 Beitel Street, New Industria, Mokopane, Limpopo, South Africa, 0601",
+    "price": 20.25,
+    "location": "Mokopane",
+    "latitude": null,
+    "longitude": null
+  },
+  {
+    "name": "HMI Fuel Germiston",
+    "url": "https://maps.app.goo.gl/xV9CtjYexduLj29e8?g_st=aw",
+    "address": "Sharland Street, Unit 1, Stani Properties, Driehoek, Germiston, Gateng, South Africa, 1401",
+    "price": 19.83,
+    "location": "Stani Properties",
+    "latitude": null,
+    "longitude": null
+  },
+  {
+    "name": "Ticamanzi Mobeni Durban",
+    "url": "https://maps.app.goo.gl/xCVZW4JxbiZ2nsbp9?g_st=aw",
+    "address": "42 Brooklyn Road, Jacobs, Mobeni, Durban, Kwazulu Natal, South Africa, 4052",
+    "price": 18.9893,
+    "location": "Mobeni",
+    "latitude": -29.938729499999997,
+    "longitude": 30.9784038
+  },
+  {
+    "name": "Karan Zambia 12 Miles",
+    "url": "https://maps.app.goo.gl/5Ysm4ZFUVB22sqNBA",
+    "address": "N/A, 12 Miles, 12 Miles, Zambia, Zambia, N/A",
+    "price": 20.76,
+    "location": "12 Miles",
+    "latitude": -15.2448254,
+    "longitude": 28.2555752
+  },
+  {
+    "name": "Falkfuel Marblehall Truck Stop",
+    "url": "https://maps.app.goo.gl/pswCGQTAPoKWyict8?g_st=aw",
+    "address": "cnr of N11 and Ewoud Malan Street, Marblehall, Marblehall, Limpopo, South Africa, 0450",
+    "price": 19.97,
+    "location": "Marblehall",
+    "latitude": null,
+    "longitude": null
+  },
+  {
+    "name": "Karan Zambia Kitwe",
+    "url": "https://maps.app.goo.gl/5g4Nr3XxXECnAf897",
+    "address": "N/A, Kitwe, Kitwe, Kitwe, Zambia, N/A",
+    "price": 20.76,
+    "location": "Kitwe",
+    "latitude": -12.8324413,
+    "longitude": 28.2371884
+  },
+  {
+    "name": "Karan Zambia Ndola",
+    "url": "https://maps.app.goo.gl/VYgdNne5fGxGWAGB6",
+    "address": "N/A, Ndola, Zambia, Ndola, South Africa, N/A",
+    "price": 20.76,
+    "location": "Ndola",
+    "latitude": -13.0228662,
+    "longitude": 28.6694432
+  },
+  {
+    "name": "Karan DRC 8 Kolwezi",
+    "url": "https://maps.app.goo.gl/z4Hp3ehcVbBhMaWu8?g_st=iwb",
+    "address": "Avenue Kalaka Ngombe, Kolwezi, Kinshasa, Kinshasa, DRC, 0047",
+    "price": 27.66,
+    "location": "Kinshasa",
+    "latitude": null,
+    "longitude": null
+  },
+  {
+    "name": "Kwa Nokeng Kazungula",
+    "url": "https://goo.gl/maps/ipKcE12FW7qH1U5B7",
+    "address": "56XR+R98, Kazungul, Kazungula, Kazungula, Botswana, 0000",
+    "price": 19.536,
+    "location": "Kazungula",
+    "latitude": -17.8004529,
+    "longitude": 25.2409486
+  },
+  {
+    "name": "Stadler Warrenton",
+    "url": "https://goo.gl/maps/DtrSJx6vJL47YKzaA",
+    "address": "Magareng Local Municipality, Warrenton, Warrenton, Northern Cape, South Africa, 0000",
+    "price": 20.27,
+    "location": "Warrenton",
+    "latitude": -28.1308847,
+    "longitude": 24.8384571
+  },
+  {
+    "name": "Kwa Nokeng Lobatse",
+    "url": "https://goo.gl/maps/Kr1NvAGcHkmNhN6E9",
+    "address": "PPH5+VQH, Lobatse, Botswana, Lobatse, Botswana, Botswana, Botswana, BW",
+    "price": 19.536,
+    "location": "Lobatse",
+    "latitude": -25.2698086,
+    "longitude": 25.7072657
+  },
+  {
+    "name": "Kwa Nokeng Pandamatenga",
+    "url": "https://goo.gl/maps/w2ENLJPSXLgosMo59",
+    "address": "Pandamatenga, Botswana, Pandamatenga, Botswana, Botswana, Botswana, BW",
+    "price": 19.536,
+    "location": "Pandamatenga",
+    "latitude": -18.5655804,
+    "longitude": 25.6255881
+  },
+  {
+    "name": "Kwa Nokeng Maun",
+    "url": "https://goo.gl/maps/rJyqYGaAGuDr2erb7",
+    "address": "XF62+3R8, A3, Maun, Botswana, Maun, Botswana, Botswana, Botswana, BW",
+    "price": 19.536,
+    "location": "Maun",
+    "latitude": -20.0398445,
+    "longitude": 23.4520912
+  },
+  {
+    "name": "Kwa Nokeng Mamuno",
+    "url": "https://goo.gl/maps/W3LSJKvhDw9JHWf17",
+    "address": "P2CJ+WG9, Ghanzi, Botswana, Ghanzi , Botswana, Botswana, Botswana, BW",
+    "price": 19.536,
+    "location": "Ghanzi",
+    "latitude": -22.2778154,
+    "longitude": 20.0291064
+  },
+  {
+    "name": "Kwa Nokeng Phakalane",
+    "url": "https://maps.app.goo.gl/VcG9XskmCioqSfWp9",
+    "address": "21314, Gaborone, Botswana, Gaborone, Botswana, Botswana, Botswana, BW",
+    "price": 19.536,
+    "location": "Gaborone",
+    "latitude": -24.545874,
+    "longitude": 25.9860993
+  },
+  {
+    "name": "Stadler Prieska",
+    "url": "https://goo.gl/maps/2HRj9PVTiDYnaap17",
+    "address": "Hedley St, Prieska, Prieska, Prieska, Northern Cape, South Africa, 8940",
+    "price": 20.11,
+    "location": "Prieska",
+    "latitude": -29.6801486,
+    "longitude": 22.7492523
+  },
+  {
+    "name": "Karan DRC 10 Lubambashi",
+    "url": "https://maps.app.goo.gl/7RmPAgyp3cHgjfAQ9?g_st=iwb",
+    "address": "CF9R+PP, Lubumbashi, Kinshasa, Kinshasa, DRC, 0044",
+    "price": 26.06,
+    "location": "Kinshasa",
+    "latitude": null,
+    "longitude": null
+  },
+  {
+    "name": "Stadler Hopetown",
+    "url": "https://goo.gl/maps/RLZ3Wp47QsSvafZu9",
+    "address": "Hopetown, Hopetown , Hopetown, Northern Cape, South Africa, 8750",
+    "price": 20.11,
+    "location": "Hopetown",
+    "latitude": -29.6232357,
+    "longitude": 24.0934293
+  },
+  {
+    "name": "Kwa Nokeng Letlhakane",
+    "url": "https://goo.gl/maps/FdaYNtGPYQ7nCGv39",
+    "address": "HHHC+PVG, Letlhakane, Botswana, Letlhakane, Botswana, Botswana, Botswana, BW",
+    "price": 19.536,
+    "location": "Letlhakane",
+    "latitude": -21.4206817,
+    "longitude": 25.5722072
+  },
+  {
+    "name": "Stadler Kimberley",
+    "url": "https://goo.gl/maps/zDjeys1Ztb46Bnki6",
+    "address": "Sol Plaatje Local Municipality, Kimberley, Kimberley, Northern Cape, South Africa, 0000",
+    "price": 20.27,
+    "location": "Kimberley",
+    "latitude": -28.7822612,
+    "longitude": 24.7337303
+  },
+  {
+    "name": "Stadler Bloemfontein",
+    "url": "https://goo.gl/maps/FHfUCWyNjeRaQ5it5",
+    "address": "Kwaggastr 5, Kwaggafontein, Quaggafontein, Bloemfontein, Free State, South Africa, 9301",
+    "price": 19.92,
+    "location": "Quaggafontein",
+    "latitude": -29.1299984,
+    "longitude": 26.1574377
+  },
+  {
+    "name": "Africa Truck Stop Brakpan",
+    "url": "https://goo.gl/maps/df9iH77uya7qPPX46",
+    "address": "133 Floors St, Withok Estates, Brakpan, 1545, Brakpan, Brakpan, Gauteng , South Africa, 1545",
+    "price": 19.47,
+    "location": "Brakpan",
+    "latitude": -26.3017483,
+    "longitude": 28.332036
+  },
+  {
+    "name": "Stadler Beaufort Wes",
+    "url": "https://maps.app.goo.gl/ZtGUY9BWCUj32bZh9?g_st=ipc",
+    "address": "Beaufort West, Beaufort West, Cape town, Western Cape, South Africa, 6970",
+    "price": 19.4,
+    "location": "Cape town",
+    "latitude": -32.3597222,
+    "longitude": 22.5606389
+  },
+  {
+    "name": "Kwa Nokeng Tlokweng",
+    "url": "https://maps.app.goo.gl/XKMVTAadqo9MuS6c7",
+    "address": "8XGR+3R4, Gaborone, Botswana, Tlokweng, Botswana, Botswana, Botswana, BW",
+    "price": 19.536,
+    "location": "Tlokweng",
+    "latitude": -24.674942,
+    "longitude": 25.9895325
+  },
+  {
+    "name": "Engen Truck Stop Beaufort West",
+    "url": "https://maps.app.goo.gl/CpRAdV1jNmnY7TcY6",
+    "address": "Konkreet Street, Beaufort West, Beaufort West, Western Cape, South Africa, 6970",
+    "price": 19.7453,
+    "location": "Beaufort West",
+    "latitude": -32.3622169,
+    "longitude": 22.5582199
+  },
+  {
+    "name": "Stadler Mosselbaai",
+    "url": "https://goo.gl/maps/Yh8cFsAvpKQcUJUA6",
+    "address": "7 Voorloper Cres, Mossdustria, Mossel Bay, , Mossel bay, Mossel bay, Westen Cape, South Africa, 6510",
+    "price": 19.09,
+    "location": "Mossel Bay",
+    "latitude": -34.158105,
+    "longitude": 22.007833
+  },
+  {
+    "name": "OIL MOJ 15W40 5L",
+    "url": "https://goo.gl/maps/4hNDq2e5BoKuJFKu9",
+    "address": "N1, Musina, 0900, Musina, Musina, Limpopo, South Africa, 0900",
+    "price": 550.3,
+    "location": "Musina",
+    "latitude": -22.3061447,
+    "longitude": 30.0156647
+  },
+  {
+    "name": "Elegant Fuel Lephalale",
+    "url": "https://maps.app.goo.gl/D7uiVckPZ2DnQpTD9",
+    "address": "R510, Lephalale, 0555, Lephalale, Ellisras, Limpopo, South Africa, 0555",
+    "price": 20.57,
+    "location": "Lephalale",
+    "latitude": -23.6877115,
+    "longitude": 27.7394076
+  },
+  {
+    "name": "Mass Petroleum Sasolburg",
+    "url": "https://maps.app.goo.gl/Vao9C52DTv1TBERq6",
+    "address": "DF Malan Road, Sasolburg, Sasolburg, Free State, South Africa, 1947",
+    "price": 19.92,
+    "location": "Sasolburg",
+    "latitude": -26.7892818,
+    "longitude": 27.798185
+  },
+  {
+    "name": "Kwa Nokeng Francistown",
+    "url": "https://goo.gl/maps/FM1cg37DssmxZDF19",
+    "address": "Francistown, Botswana, Francistown, Francistown, Botswana, South Africa, BW",
+    "price": 19.536,
+    "location": "Francistown",
+    "latitude": -21.1174178,
+    "longitude": 27.5302284
+  },
+  {
+    "name": "JEV Petroleum Nelspruit",
+    "url": "https://goo.gl/maps/UKCGkZg4z5ZuDtYu5",
+    "address": "Alkmaar, Mbombela, Nelspruit, Mpumalanga, South Africa, 1200",
+    "price": 19.97,
+    "location": "Nelspruit",
+    "latitude": -25.4460864,
+    "longitude": 30.8258494
+  },
+  {
+    "name": "Edge Fuel Upington",
+    "url": "https://goo.gl/maps/7XwvSLMX2ZcusghD7",
+    "address": "C/O Dakota and, Keimoes St, Upington, Upington, Upington, Northern Cape, South Africa, 8801",
+    "price": 20.36,
+    "location": "Upington",
+    "latitude": -28.4577766,
+    "longitude": 21.2325176
+  },
+  {
+    "name": "Stadler Wolmaransstad",
+    "url": "https://goo.gl/maps/rC4t4LQhThHKKZCe6",
+    "address": "Wolmaranstad, Wolmaransstad, Wolmaransstad, Wolmaransstad, North West, South Africa, 2630",
+    "price": 20.03,
+    "location": "Wolmaransstad",
+    "latitude": -27.1979969,
+    "longitude": 25.9897632
+  },
+  {
+    "name": "Across Africa Fuels Port Elizabeth",
+    "url": "https://maps.app.goo.gl/Jj4H2eXnvBMTaby86?g_st=com.google.maps.preview.copy",
+    "address": "13 Markman Road, Gqeberha, Port Elizabeth , Eastern Cape, South Africa, 6210",
+    "price": 19.6,
+    "location": "Port Elizabeth",
+    "latitude": -33.8044167,
+    "longitude": 25.6284722
+  },
+  {
+    "name": "Engen Sydney Road Durban",
+    "url": "https://goo.gl/maps/58xAoi6WYs2C3MTSA",
+    "address": "115 Sydney Rd, , Congela, Durban, KwaZulu-Natal, South Africa, 4001",
+    "price": 19.4,
+    "location": "Congela",
+    "latitude": -29.8663315,
+    "longitude": 31.005214
+  },
+  {
+    "name": "INCHOPE N6 GALP",
+    "url": "https://maps.app.goo.gl/BnjyYHCDAYdmfaWa7",
+    "address": "Inchope, Mozambique, Inchope, Mozambique, Mozambique, MZ",
+    "price": 21.13,
+    "location": "Inchope",
+    "latitude": -19.2115364,
+    "longitude": 33.9348107
+  },
+  {
+    "name": "Astro Fuels Krugersdorp",
+    "url": "https://goo.gl/maps/yJ97SbNypFtoWMtJ8",
+    "address": "Plot 35, Vanwyksrante, Krugersdorp, Gauteng, South Africa, 1747",
+    "price": 19.85,
+    "location": "Krugersdorp",
+    "latitude": -26.087881,
+    "longitude": 27.7422313
+  },
+  {
+    "name": "Cuamba - Engen",
+    "url": "https://maps.app.goo.gl/rq68gJiZzaLuSzvk8",
+    "address": "5GVH+5HV, N13, Cuamba, Mozambique, Mozambique, Mozambique, MZ",
+    "price": 22.14,
+    "location": "Cuamba",
+    "latitude": -14.8070679,
+    "longitude": 36.5262566
+  },
+  {
+    "name": "Nampula Galp",
+    "url": "https://maps.app.goo.gl/PSR7K3ThFHYVS6k28",
+    "address": "N1, Mozambique, Nampula, Mozambique, Mozambique, Mozambique, MZ",
+    "price": 21.54,
+    "location": "Nampula",
+    "latitude": -15.1217003,
+    "longitude": 39.2128372
+  },
+  {
+    "name": "Ressano Garcia - Galp",
+    "url": "https://maps.app.goo.gl/QGCutacw5dFvt7ec9",
+    "address": "Ressano Garcia, , Chelene, Mozambique, Mozambique, Mozambique, MZ",
+    "price": 21.07,
+    "location": "Chelene",
+    "latitude": -25.4764709,
+    "longitude": 31.992054
+  },
+  {
+    "name": "MZ Cumbeza 1 - EN1 Exit Galp",
+    "url": "https://maps.app.goo.gl/dKzdFsuCxFybferR8",
+    "address": "Maputo, Mabilinga, Mozambique, Mozambique, Mozambique, MZ",
+    "price": 21.07,
+    "location": "Mozambique",
+    "latitude": -25.7913265,
+    "longitude": 32.5795708
+  },
+  {
+    "name": "Inchope N1 Engen",
+    "url": "https://maps.app.goo.gl/Gq8kVzVDTtifPhfj6",
+    "address": "Jasse, Mozambique, Inchope, Mozambique, Mozambique, Mozambique, Mozambique, MZ",
+    "price": 21.13,
+    "location": "Inchope",
+    "latitude": -19.2011185,
+    "longitude": 33.9467278
+  },
+  {
+    "name": "Leloko Innovations Zebediela",
+    "url": "https://maps.app.goo.gl/Z83X4FAfNKwbEAoy5",
+    "address": "Capricorn R518, Matome, Zebediela, Mokopane, Limpopo, South Africa, 0600",
+    "price": 20.47,
+    "location": "Zebediela",
+    "latitude": -24.3179116,
+    "longitude": 29.3961522
+  },
+  {
+    "name": "Ropax Casino Truckstop East London",
+    "url": "https://maps.app.goo.gl/rx4zmRGuqhJ36DrHA",
+    "address": "Two Rivers Dr, Cambridge Village, Cambridge Village, East London, South Africa, 5241",
+    "price": 19.49,
+    "location": "Cambridge Village",
+    "latitude": -32.9664307,
+    "longitude": 27.8985251
+  },
+  {
+    "name": "Econo Uraniaville Klerksdorp",
+    "url": "https://maps.app.goo.gl/ovMrjSsyocXgPcPx8",
+    "address": "Meteor Road Benji Oliphant , Uraniaville, Klerksdorp, North West, South Africa, 2571",
+    "price": 20.17,
+    "location": "Klerksdorp",
+    "latitude": -26.8710461,
+    "longitude": 26.6229725
+  },
+  {
+    "name": "OILCO Musina t/a Upfreight Energy",
+    "url": "https://goo.gl/maps/G8t9PBhhSCH1T49Z8",
+    "address": "Outer Musina, N1, Musina, Musina, Musina, Limpopo, South Africa, 0900",
+    "price": 20.367,
+    "location": "Musina",
+    "latitude": -22.2962493,
+    "longitude": 30.0081806
+  },
+  {
+    "name": "MOJ Musina",
+    "url": "https://goo.gl/maps/YxEmfsd5rbVHLWCY6",
+    "address": "N1, Musina, Musina, Musina, Limpopo, South Africa, 0900",
+    "price": 20.6,
+    "location": "Musina",
+    "latitude": -22.3061447,
+    "longitude": 30.0156647
+  },
+  {
+    "name": "Petrostop Tete",
+    "url": "https://maps.app.goo.gl/P7BZRouM7ndgKE5R9?g_st=aw",
+    "address": "Cidade de Tete, Mozambique, Mozambique, Mozambique, Mozambique, MZ",
+    "price": 22.75,
+    "location": "Mozambique",
+    "latitude": null,
+    "longitude": null
+  },
+  {
+    "name": "Highlands Commodities cc Bronkhorstspruit",
+    "url": "https://maps.app.goo.gl/ULyvNMuSKiHTqtkZA",
+    "address": "5QMR+757 Bronkhorstspruit, Bronkhorstspruit, Bronkhorstspruit, Gauteng , South Africa, 1020",
+    "price": 19.9237,
+    "location": "Bronkhorstspruit",
+    "latitude": -25.816839,
+    "longitude": 28.7878571
+  },
+  {
+    "name": "Nkomazi Fuel Richards Bay",
+    "url": "https://goo.gl/maps/6uphReB6p5RCWjBP8",
+    "address": "14 Ceramic Curve,, Alton, Richards Bay, Kwa-Zulu Natal, South Africa, 3875",
+    "price": 19.19,
+    "location": "Alton",
+    "latitude": -28.753306,
+    "longitude": 32.0285271
+  },
+  {
+    "name": "Berin CCOV Witbank",
+    "url": "https://maps.app.goo.gl/8fQvCKd8rYbnAnZ58",
+    "address": "Plot 303 Naauwpoort, Naauwpoort, Witbank, Mpumalanga , South Africa, 1035",
+    "price": 20.21,
+    "location": "Witbank",
+    "latitude": -25.9648113,
+    "longitude": 29.2655506
+  },
+  {
+    "name": "Matola Tegafil",
+    "url": "https://maps.app.goo.gl/BtyP23dxwC2ms6zc8",
+    "address": "5C59+H35, Matola, Matola, Mozambique, Mozambique, Mozambique, MZ",
+    "price": 18.3,
+    "location": "Matola",
+    "latitude": -25.8414497,
+    "longitude": 32.4153328
+  },
+  {
+    "name": "Clix Auto Logistics Bulawayo",
+    "url": "https://maps.app.goo.gl/tzY194W3id8u2P4U7",
+    "address": "A7, Bulawayo, Bulawayo, Bulawayo, Zimbabwe, Zimbabwe, ZIM",
+    "price": 25.65,
+    "location": "Bulawayo",
+    "latitude": -20.2005939,
+    "longitude": 28.5486737
+  },
+  {
+    "name": "Stadler Colesberg",
+    "url": "https://maps.app.goo.gl/7mBS3Ygj7GaJV48A9",
+    "address": "Colesberg, 9795, Colesberg, Colesberg, Northern Cape, South Africa, 9795",
+    "price": 19.74,
+    "location": "Colesberg",
+    "latitude": -30.710593,
+    "longitude": 25.109748
+  },
+  {
+    "name": "Dondo Galp",
+    "url": "https://maps.app.goo.gl/n3cKvq4NTVTomFAD9",
+    "address": "N6, Dondo, , Mozambique, Mozambique, Mozambique, Mozambique, MZ",
+    "price": 21.07,
+    "location": "",
+    "latitude": -19.5866077,
+    "longitude": 34.7359749
+  },
+  {
+    "name": "Phela Energies Harrismith",
+    "url": "https://goo.gl/maps/6PFUxqEeKK8XZX6e6",
+    "address": "J7QP+PQ, Harrismith, Swinburne, Harrismith , Harrismith , Free State, South Africa, 9880",
+    "price": 19.45,
+    "location": "Swinburne",
+    "latitude": -28.3606304,
+    "longitude": 29.286673
+  },
+  {
+    "name": "Stadler Harrismith",
+    "url": "https://goo.gl/maps/Mz7hLhg92YopzTyW7",
+    "address": "Hardustria, Harrismith, Harrismith, Harrismith, Free State, South Africa, 9800",
+    "price": 19.45,
+    "location": "Harrismith",
+    "latitude": -28.2945563,
+    "longitude": 29.131912
+  },
+  {
+    "name": "SEO Komatipoort",
+    "url": "https://goo.gl/maps/G3UnpXumJxVt2w8H6",
+    "address": "PO Box 725, Komatipoort, Komatipoort, Mpumalanga, South Africa, 1340",
+    "price": 19.12,
+    "location": "Komatipoort",
+    "latitude": -25.4439213,
+    "longitude": 31.9288709
+  },
+  {
+    "name": "Stadler Kraaifontein",
+    "url": "https://goo.gl/maps/CN6n7Ah2xidTftkJ6",
+    "address": "Kraaifontein Industria, Cape Town, Kraaifontein , Cape Town, Western Cape, South Africa, 7570",
+    "price": 18.99,
+    "location": "Kraaifontein",
+    "latitude": -33.834214,
+    "longitude": 18.749738
+  },
+  {
+    "name": "Karan DRC 2 Lubumbashi",
+    "url": "https://maps.app.goo.gl/bVVbEKLrH6iD1sSS8?g_st=iwb",
+    "address": "2500 Avenue, Mandunga, Lubumbashi, Kinshasa, DRC, 0044",
+    "price": 26.06,
+    "location": "Lubumbashi",
+    "latitude": null,
+    "longitude": null
+  },
+  {
+    "name": "Karan DRC Likaski",
+    "url": "https://maps.app.goo.gl/dcouxa3uyDsc3rU3A?g_st=iwb",
+    "address": "3P8Q+H7, Likasi, Kinshasa, Kinshasa, DRC, 0047",
+    "price": 27.35,
+    "location": "Kinshasa",
+    "latitude": null,
+    "longitude": null
+  },
+  {
+    "name": "Karan DRC 3 Lubumbashi",
+    "url": "https://maps.app.goo.gl/ZfdnoDnrTXZgMNsA9?g_st=iwb",
+    "address": "8FXC+W2W, Lubumbashi, Lubumbashi, Kinshasa, DRC, 0044",
+    "price": 26.06,
+    "location": "Lubumbashi",
+    "latitude": null,
+    "longitude": null
+  },
+  {
+    "name": "Karan DRC 5 Lubambashi",
+    "url": "https://maps.app.goo.gl/47jsihk51qePUzQA6?g_st=iwb",
+    "address": "7110501, Lubumbashi, Kinshasa, Kinshasa, DRC, 0044",
+    "price": 26.06,
+    "location": "Kinshasa",
+    "latitude": null,
+    "longitude": null
+  },
+  {
+    "name": "Karan DRC Kolwezi",
+    "url": "https://maps.app.goo.gl/CZBrxLZgW51te9Yn9?g_st=iwb",
+    "address": "8G5F+99, Kolwezi, Kinshasa, Kinshasa, DRC, 0047",
+    "price": 27.66,
+    "location": "Kinshasa",
+    "latitude": null,
+    "longitude": null
+  },
+  {
+    "name": "Karan DRC 7 Lubumbashi",
+    "url": "https://maps.app.goo.gl/oLrHd37sh7E3TfRx9?g_st=iwb",
+    "address": "8CH7+P9, Lubumbashi, Kinshasa, Congo, South Africa, 1825",
+    "price": 26.06,
+    "location": "Kinshasa",
+    "latitude": null,
+    "longitude": null
+  },
+  {
+    "name": "Karan Rwanda Rusizi",
+    "url": "https://maps.apple.com/?address=NR11,%20Rwanda&ll=-2.486810,28.932955&q=NR11&t=m",
+    "address": "N/A, Rusizi, Rusizi, Rusizi, Rwanda, N/A",
+    "price": 19.52,
+    "location": "Rusizi",
+    "latitude": -2.48681,
+    "longitude": 28.932955
+  },
+  {
+    "name": "Karan DRC Station Kalubwe Lubumbashi",
+    "url": "https://maps.app.goo.gl/2sEBKBa8pWvNPK7Z7?g_st=iwb",
+    "address": "Avenue de la LibÃ©ration, Lubumbashi, Kinshasa, Kinshasa, DRC, 0044",
+    "price": 26.06,
+    "location": "Kinshasa",
+    "latitude": null,
+    "longitude": null
+  },
+  {
+    "name": "Prima Onderberg Hectorspruit",
+    "url": "https://maps.app.goo.gl/vNB6xvLamYtv4D1T8",
+    "address": "726 Kroon Arend street, Stand 404, Hectorspruit, Malelane, Mpumalanga, South Africa, 1320",
+    "price": 19.9248,
+    "location": "Hectorspruit",
+    "latitude": -25.449592,
+    "longitude": 31.694004
+  },
+  {
+    "name": "Karan Rwanda Gyseni",
+    "url": "https://maps.apple.com/?address=NR18,%20Gisenyi,%20Rwanda&ll=-1.668920,29.263395&q=NR18&t=m",
+    "address": "NR18, Gyseni, Gyseni, Gyseni, Rwanda, N/A",
+    "price": 19.47,
+    "location": "Gyseni",
+    "latitude": -1.66892,
+    "longitude": 29.263395
+  },
+  {
+    "name": "Karan Rwanda Kicukiro Kigali",
+    "url": "https://maps.google.com/?q=-1.998321,30.094473",
+    "address": "NR5, Kicukiro, Kigali, Kigali, Rwanda, N/A",
+    "price": 19,
+    "location": "Kigali",
+    "latitude": -1.998321,
+    "longitude": 30.094473
+  },
+  {
+    "name": "Karan Rwanda Masaka Kigali",
+    "url": "https://maps.apple.com/?address=Kigali,%20Rwanda&auid=14868946951211930294&ll=-1.993460,30.198208&lsp=7618&q=Kigali&t=m",
+    "address": "N/A, Masaka, Kigali, Kigali, Rwanda, N/A",
+    "price": 19.35,
+    "location": "Kigali",
+    "latitude": -1.99346,
+    "longitude": 30.198208
+  },
+  {
+    "name": "Karan Rwanda Rebero Kigali",
+    "url": "https://maps.apple.com/?address=KK%2035%20Avenue,%20Kigali,%20Rwanda&ll=-1.991105,30.064499&q=KK%2035%20Avenue&t=m",
+    "address": "KK35 Avenue, Rebero, Kigali, Kigali, Rwanda, N/A",
+    "price": 19.35,
+    "location": "Kigali",
+    "latitude": -1.991105,
+    "longitude": 30.064499
+  },
+  {
+    "name": "Magnus Fuels Hammersdale",
+    "url": "https://maps.apple.com/?address=76209%20Track,%20Durban,%20KwaZulu-Natal,%20South%20Africa&ll=-29.812706,30.667442&q=76209%20Track&t=m",
+    "address": "90 Kelly Road , Hammersdale Industrial Park, Hammersdale, Kwazulu Natal, South Africa, 3699",
+    "price": 18.7148,
+    "location": "Hammersdale",
+    "latitude": -29.812706,
+    "longitude": 30.667442
+  },
+  {
+    "name": "Gauteng Truck Stop and Diesel",
+    "url": "https://maps.app.goo.gl/N8uaGxc65kAPMmwx9",
+    "address": "403 Dekema Road , Wadeville, Germiston, Gauteng, South Africa, 1627",
+    "price": 19.9248,
+    "location": "Germiston",
+    "latitude": null,
+    "longitude": null
+  },
+  {
+    "name": "Ultimate Fuel Rustenburg",
+    "url": "https://maps.app.goo.gl/BMadh2msAMHGaMW17",
+    "address": "138 Donkerhoek, Portion 271, Donkerhoek, Rustenburg, Rustenburg, South Africa, North West Province",
+    "price": 20.17,
+    "location": "Donkerhoek",
+    "latitude": -25.6484683,
+    "longitude": 27.1617696
+  },
+  {
+    "name": "Nkomazi Fuel Pongola",
+    "url": "https://maps.app.goo.gl/d1M5TuyiQHnnrvcx6",
+    "address": "Martin Street, Pongola, Pongola, Kwa-Zulu Natal, South Africa, 3170",
+    "price": 19.9,
+    "location": "Pongola",
+    "latitude": -27.3802109,
+    "longitude": 31.615175
+  },
+  {
+    "name": "Karan Malawi Area 55",
+    "url": "https://maps.apple.com/place?address=M1,%20Malawi&coordinate=-13.816036,33.808136&name=M1&map=explore",
+    "address": "M1, Malawi, Malawi, Malawi, Malawi, 0000",
+    "price": 26.57,
+    "location": "Malawi",
+    "latitude": -13.816036,
+    "longitude": 33.808136
+  },
+  {
+    "name": "Stadler Johannesburg South",
+    "url": "https://maps.app.goo.gl/56fuxcHMeYRjikun9",
+    "address": "Edge Road/King Mohlala Road, Gardenvale AH, Johannesburg, Gauteng, South Africa, 2001",
+    "price": 19.82,
+    "location": "Johannesburg",
+    "latitude": -26.4206063,
+    "longitude": 28.1160918
+  },
+  {
+    "name": "AfriQ Petroleum Vaalwater",
+    "url": "https://maps.app.goo.gl/T11xTBBhbwENm8ti7?g_st=aw",
+    "address": "R33 Voortrekker Weg , Vaalwater, Vaalwater, Limpopo, South Africa, 0530",
+    "price": 20.0648,
+    "location": "Vaalwater",
+    "latitude": -24.307434999999998,
+    "longitude": 28.116794
+  },
+  {
+    "name": "NC Petroleum (Springbok)",
+    "url": "https://maps.app.goo.gl/zsyVDqHge8jgvnWh6",
+    "address": "Farm Mesklip 259, Springbok, Springbok, Northern Cape , South Africa, 8240",
+    "price": 20.31,
+    "location": "Springbok",
+    "latitude": -29.8268555,
+    "longitude": 17.8513071
+  },
+  {
+    "name": "Senatla Energies Maanhaarrand (on R24)",
+    "url": "https://maps.app.goo.gl/YbK1gZZhdHfVykKx9?g_st=iw",
+    "address": "R24 Rustenburg Road, Maanhaarrand, Maanhaarrand, Northwest, South Africa, 1791",
+    "price": 19.82,
+    "location": "Maanhaarrand",
+    "latitude": null,
+    "longitude": null
+  },
+  {
+    "name": "Karan Malawi Mponela",
+    "url": "https://maps.apple.com/place?address=M1,%20Mponela,%20Malawi&coordinate=-13.530723,33.736450&name=M1&map=explore",
+    "address": "M1, Mponela, Mponela, Mponela, Malawi, 0000",
+    "price": 26.57,
+    "location": "Mponela",
+    "latitude": -13.530723,
+    "longitude": 33.73645
+  },
+  {
+    "name": "KwaZinhle Energy - Olifantsfontein",
+    "url": "https://maps.app.goo.gl/v5B7jvPcgHs7mWv7A",
+    "address": "Portion 12A, Rensburg Jr-623, Clayville, Olifantsfontein, Gauteng, South Africa, 1666",
+    "price": 20.2223,
+    "location": "Clayville",
+    "latitude": -25.955757,
+    "longitude": 28.2400531
+  },
+  {
+    "name": "African Fuels Rustenburg",
+    "url": "https://maps.app.goo.gl/hVECKa4XmU7ANhdo9",
+    "address": "Plot 32, 1st Avenue, Waterfall East , Rustenburg , North West Province, South Africa, 2999",
+    "price": 19.72,
+    "location": "Waterfall East",
+    "latitude": -25.6787229,
+    "longitude": 27.2587753
+  },
+  {
+    "name": "African Fuels R104 Bronkhorspruit",
+    "url": "https://maps.app.goo.gl/kHq19duxq6kc1utV6",
+    "address": "Plot 89, Durley, Bronkhorstspruit , Gauteng , South Africa, 0159",
+    "price": 19.9223,
+    "location": "Bronkhorstspruit",
+    "latitude": -25.8052381,
+    "longitude": 28.7550606
+  },
+  {
+    "name": "Mafura Energy - Vanderbijlpark",
+    "url": "https://share.google/tSfrcHmi7z7nS6zsx",
+    "address": "13 McColm Boulevard, Building 20 ,Vecor Park, Vanderbijlpark, Gauteng , South Africa, 1193",
+    "price": 19.82,
+    "location": "Vecor Park",
+    "latitude": null,
+    "longitude": null
+  },
+  {
+    "name": "Shiptech Petroleum Shaka's Head",
+    "url": "https://maps.app.goo.gl/qdZsTTt91KVeB2H17",
+    "address": "North Point Avenue, Ballito, Ballito, Kwazulu Natal, South Africa, 4301",
+    "price": 19.41,
+    "location": "Ballito",
+    "latitude": -29.4896536,
+    "longitude": 31.2087161
+  },
+  {
+    "name": "Shiptec Petroleum Richards Bay",
+    "url": "https://maps.app.goo.gl/N5c1YUsu6PDMX9JR9",
+    "address": "3 Bronze Bar, Alton, Richards Bay, Kwazulu Natal , South Africa, 3900",
+    "price": 19.49,
+    "location": "Richards Bay",
+    "latitude": -28.7497989,
+    "longitude": 32.0239566
+  },
+  {
+    "name": "Shiptech Petroleum Estcourt",
+    "url": "https://maps.app.goo.gl/czrWAvJjpYaQyMG66",
+    "address": "Adjacent to N3 Highway, Loskop Power Crescent, Estcourt, Kwazulu Natal , South Africa, 3310",
+    "price": 19.63,
+    "location": "Estcourt",
+    "latitude": -28.9841477,
+    "longitude": 29.4881468
+  },
+  {
+    "name": "NFD Katima Mulilo Petrosol",
+    "url": "https://maps.app.goo.gl/2GLvXYjwsHw2ua758",
+    "address": "ERF 567, Mpacha Road, Katima Mulilo, Zambezi, Namibia, 9000",
+    "price": 18.83,
+    "location": "Katima Mulilo",
+    "latitude": -17.513794,
+    "longitude": 24.2660921
+  },
+  {
+    "name": "Karan Zimbabwe Bulawayo",
+    "url": "https://maps.app.goo.gl/Ym2V7KhbZgL9BRTw9",
+    "address": "13 Chester Road, Bulawayo, Bulawayo, Bulawayo, Zimbabwe, 0067",
+    "price": 26.3,
+    "location": "Bulawayo",
+    "latitude": null,
+    "longitude": null
+  },
+  {
+    "name": "Majuba King Warden",
+    "url": "https://maps.app.goo.gl/HPHZ4Rdqa7GrKL87A?g_st=aw",
+    "address": "1 Nywerheidsweg, Warden, Warden, Free State, South Africa, 9890",
+    "price": 19.68,
+    "location": "Warden",
+    "latitude": -27.86338,
+    "longitude": 28.970309999999998
+  },
+  {
+    "name": "Tete - Sara Lda",
+    "url": "https://maps.app.goo.gl/mV2EcixehVA7Cnmq9",
+    "address": "N7, Tete, Tete, Tete, Mozambique, 0000",
+    "price": 22.68,
+    "location": "Tete",
+    "latitude": -16.2176429,
+    "longitude": 33.5821545
+  },
+  {
+    "name": "Beira Dondo - Sara Lda",
+    "url": "https://maps.app.goo.gl/Ev1HNU34NCiKqfbr9",
+    "address": "N6, Dondo, Beira, Beira, Mozambique, 0.00",
+    "price": 21.17,
+    "location": "Beira",
+    "latitude": -19.5749216,
+    "longitude": 34.7180543
+  },
+  {
+    "name": "Nampula - Sara Lda",
+    "url": "https://maps.app.goo.gl/bfD39FEb1PdeVqhw6",
+    "address": "N1, Nampula, Nampula, Nampula, Mozambique, 0000",
+    "price": 21.64,
+    "location": "Nampula",
+    "latitude": -15.1123049,
+    "longitude": 39.2267791
+  },
+  {
+    "name": "NFD Gobabis Agra (200 Liter and up only)",
+    "url": "https://maps.app.goo.gl/zPW4xa14PPzYx2zF9",
+    "address": "Church Street, Gobabis, Gobabis, Gobabis, Namibia, 0000",
+    "price": 19.12,
+    "location": "Gobabis",
+    "latitude": -22.449907,
+    "longitude": 18.9715331
+  },
+  {
+    "name": "NFD Grunau Kaap Agri Shell",
+    "url": "https://maps.app.goo.gl/SeddBrTcSeFA6b148",
+    "address": "B1, Grunau, Grunau, Grunau, Namibia, 0000",
+    "price": 19.26,
+    "location": "Grunau",
+    "latitude": -27.719862,
+    "longitude": 18.3789461
+  },
+  {
+    "name": "NFD Keetmanshoop B1 Puma",
+    "url": "https://maps.app.goo.gl/VNcS7gDg6wZ8tcmZ8",
+    "address": "B1, Keetmanshoop, Keetmanshoop, Keetmanshoop, Namibia, 0000",
+    "price": 19.2,
+    "location": "Keetmanshoop",
+    "latitude": -26.611685,
+    "longitude": 18.1632561
+  },
+  {
+    "name": "NFD Okahandja Petrosol",
+    "url": "https://maps.app.goo.gl/GbhcgQQGPpHJLQbn7",
+    "address": "Noord Sint, Okahandja, Okahandja, Okahandja, Namibia, 0000",
+    "price": 18.57,
+    "location": "Okahandja",
+    "latitude": -21.966738,
+    "longitude": 16.9006291
+  },
+  {
+    "name": "NFD Keetmanshoop Kaap Agri",
+    "url": "https://maps.app.goo.gl/fvRRZp9rMCVZSjnf6",
+    "address": "Ferro Street, Keetmanshoop, Keetmanshoop, Keetmanshoop, Namibia, 0000",
+    "price": 19.2,
+    "location": "Keetmanshoop",
+    "latitude": -26.588745,
+    "longitude": 18.1339471
+  },
+  {
+    "name": "NFD Otjiwarongo Petrosol",
+    "url": "https://maps.app.goo.gl/vJopojKnKth2JGG67",
+    "address": "Bahn Hoff Street, Otjiwarongo, Otjiwarongo, Otjiwarongo, Namibia, 0000",
+    "price": 18.66,
+    "location": "Otjiwarongo",
+    "latitude": -20.456446,
+    "longitude": 16.6448501
+  },
+  {
+    "name": "NFD Ondangwa Kaap Agri",
+    "url": "https://maps.app.goo.gl/pUfPhq765ogVAty76",
+    "address": "B1, Ondangwa, Ondangwa, Ondangwa, Namibia, 0000",
+    "price": 19.01,
+    "location": "Ondangwa",
+    "latitude": -17.917187,
+    "longitude": 15.9880441
+  },
+  {
+    "name": "NFD Rundu Kavango Total",
+    "url": "https://maps.app.goo.gl/MLgBqGEQxJ2UDgQr6",
+    "address": "Markus Siwarongo Street, Rundu, Rundu, Rundu, Namibia, 0000",
+    "price": 19.93,
+    "location": "Rundu",
+    "latitude": -17.913906,
+    "longitude": 19.7673891
+  },
+  {
+    "name": "NFD Mariental Shell Kaap Agri COC",
+    "url": "https://maps.app.goo.gl/Ffnkmhy3xCaha4no9",
+    "address": "B1 , Mariental, Mariental, Mariental, Namibia, 0000",
+    "price": 18.87,
+    "location": "Mariental",
+    "latitude": -24.6283301,
+    "longitude": 17.9543269
+  },
+  {
+    "name": "NFD Rundu Ndama Shell",
+    "url": "https://maps.app.goo.gl/DV2BQ4VwFCcdTabKA",
+    "address": "E Kakakuru Street, Rundu, Rundu, Rundu, South Africa, 0.00",
+    "price": 20.52,
+    "location": "Rundu",
+    "latitude": -17.9300048,
+    "longitude": 19.7686602
+  },
+  {
+    "name": "NFD Noordoewer Orange River Shell",
+    "url": "https://maps.app.goo.gl/umohrej6YY1UBXuR7",
+    "address": "B1, Noordoewer , Noordoewer , Noordoewer , Namibia, 0000",
+    "price": 19.76,
+    "location": "Noordoewer",
+    "latitude": -28.743176,
+    "longitude": 17.6168402
+  },
+  {
+    "name": "NFD Ohakane Petrosol",
+    "url": "https://maps.app.goo.gl/DiH9ixre1NoJVAKb9",
+    "address": "Ohakane, Ohakane , Ohakane , Ohakane , South Africa, 0000",
+    "price": 19.67,
+    "location": "Ohakane",
+    "latitude": -18.0597098,
+    "longitude": 13.8408249
+  },
+  {
+    "name": "NFD Otavi Agra",
+    "url": "https://maps.app.goo.gl/6kumvz9NUTWPvfWp6",
+    "address": "Joseph Buchholz Avenue, Otavi, Otavi, Otavi, Namibia, 0000",
+    "price": 18.96,
+    "location": "Otavi",
+    "latitude": -19.6391778,
+    "longitude": 17.3447605
+  },
+  {
+    "name": "NFD Tsumeb Agra",
+    "url": "https://maps.app.goo.gl/uiEcUBmEHbU18z7Z8",
+    "address": "B1, Tsumeb, Tsumeb, Tsumeb, Namibia, 0000",
+    "price": 19.9,
+    "location": "Tsumeb",
+    "latitude": -19.238619,
+    "longitude": 17.7067581
+  },
+  {
+    "name": "NFD Windhoek Lafrenz Shell",
+    "url": "https://maps.app.goo.gl/tLPrH4M5LCCFbZBPA",
+    "address": "Industria Street, Windhoek, Windhoek, Windhoek, Namibia, 0000",
+    "price": 18.64,
+    "location": "Windhoek",
+    "latitude": -22.512379,
+    "longitude": 17.0694711
+  },
+  {
+    "name": "NFD Grootfontein Agra (200 Liter and up only)",
+    "url": "https://maps.app.goo.gl/bZNUNh2s2h7MQxjN6",
+    "address": "Bahnhof Street, Grootfontein, Grootfontein, Grootfontein, Namibia, 0000",
+    "price": 19.13,
+    "location": "Grootfontein",
+    "latitude": -19.8571189,
+    "longitude": 16.0555793
+  },
+  {
+    "name": "NFD Omakange Petrosol",
+    "url": "https://maps.app.goo.gl/auFGJcLaLomv3vdb6",
+    "address": "C35, Omakange, Omakange, Omakange, Namibia, 0.00",
+    "price": 19.67,
+    "location": "Omakange",
+    "latitude": -18.1584912,
+    "longitude": 14.2899304
+  },
+  {
+    "name": "Jetpark Diesel Supplies - Boksburg",
+    "url": "https://maps.app.goo.gl/jscXoJQYmCezXZUo7",
+    "address": "29 Taljaard Road, Jetpark, Boksburg, Gauteng, South Africa, 1459",
+    "price": 19.8223,
+    "location": "Boksburg",
+    "latitude": -26.167219,
+    "longitude": 28.2306651
+  },
+  {
+    "name": "Stanger Fuel Depot (Ascobar Investments)",
+    "url": "https://maps.app.goo.gl/VUvaK1RAgLvrj44s5",
+    "address": "2 A King Shaka Street, Stanger, Stanger, Kwa Zulu Natal, South Africa, 4450",
+    "price": 19.13,
+    "location": "Stanger",
+    "latitude": -29.340939,
+    "longitude": 31.2954061
+  },
+  {
+    "name": "MBT Stilfontein N12 (Newlyn Property Investments (Pty) Ltd",
+    "url": "https://maps.app.goo.gl/CpRF8g7d1S6f2UjPA",
+    "address": "N12 Highway, Stilfontein Nywerheid Park, Stilfontein, North West Province, South Africa, 2575",
+    "price": 20.13,
+    "location": "Stilfontein",
+    "latitude": -26.817688,
+    "longitude": 26.8348651
+  },
+  {
+    "name": "Big 5 Fuel-Cato Ridge (Pty) Ltd",
+    "url": "https://maps.app.goo.gl/gYxmdyn5YuR7A4YD6",
+    "address": "3 Alice Goswell Road, A Part of Portion 320 of Uitkomst and Doornrug No 852, Cato Ridge, Kwazulu Natal, South Africa, 3680",
+    "price": 18.64,
+    "location": "Cato Ridge",
+    "latitude": -29.7322217,
+    "longitude": 30.5803277
+  },
+  {
+    "name": "Four Arrow Investments 219 (Pty) Ltd - Phalaborwa",
+    "url": "https://maps.app.goo.gl/WoxfBrqB2uuCj51AA",
+    "address": "1st Avenue, Heavy Industrial Area X5, Phalaborwa, Limpopo Province, South Africa, 1390",
+    "price": 20.33,
+    "location": "Phalaborwa",
+    "latitude": -23.9683456,
+    "longitude": 31.080571
+  },
+  {
+    "name": "NFD Swakopmund Engen Truck Port",
+    "url": "https://maps.app.goo.gl/2w2P14L3SKZWrvEF8",
+    "address": "Nelson Mandela Avenue , Swakopmund, Swakopmund, Swakopmund, Namibia, 0000",
+    "price": 18.55,
+    "location": "Swakopmund",
+    "latitude": -22.671988,
+    "longitude": 14.5450931
+  },
+  {
+    "name": "NFD Walvis Bay - Engen One Stop Service Station",
+    "url": "https://maps.app.goo.gl/7WJSWrL5aAi9Fy5h8",
+    "address": "Warehouse Street, Ext 14, Industrial Area, Walvis Bay , Walvis Bay , Walvis Bay , Namibia, 0000",
+    "price": 18.16,
+    "location": "Industrial Area",
+    "latitude": -22.962633,
+    "longitude": 14.5315371
+  },
+  {
+    "name": "Shiptech Petroleum Port Shepstone",
+    "url": "https://maps.app.goo.gl/NSdeDvS8h2wqUF4r9",
+    "address": "1704 Izotsha Road, Grosvenor, Port Shepstone, KwaZulu-Natal, South Africa, 4230",
+    "price": 19.56,
+    "location": "Port Shepstone",
+    "latitude": -30.7525159,
+    "longitude": 30.4141592
+  },
+  {
+    "name": "Truckers Diesel CC - Delmas",
+    "url": "https://maps.app.goo.gl/r5M4cFvBiRKMHnVB6",
+    "address": "Plot 21, R555, Dwarsfontein Argent, Delmas, Mpumalanga, South Africa, 2210",
+    "price": 20.99,
+    "location": "Dwarsfontein Argent",
+    "latitude": -26.062399,
+    "longitude": 28.8122161
+  },
+  {
+    "name": "Big 5 Fuel Holdings (Pty) Ltd - Bronkhorstspruit",
+    "url": "https://maps.app.goo.gl/ASAnt2Qr9GDNebg96",
+    "address": "Portion 41, Farm Klipeiland 524 JR, Bronkhorstspruit, Gauteng, South Africa, 1020",
+    "price": 19.62,
+    "location": "Bronkhorstspruit",
+    "latitude": -25.834272,
+    "longitude": 28.6919292
+  },
+  {
+    "name": "Eco Wholesale Diesel (Pty) Ltd-Eco Fuel Piet Retief",
+    "url": "https://maps.app.goo.gl/ZBow8RDG9PW4JrkH6",
+    "address": "522 Venostas Street, PIet Retief , Piet Retief , Mpumalanga, South Africa, 2280",
+    "price": 19.88,
+    "location": "Piet Retief",
+    "latitude": -27.009588,
+    "longitude": 30.7855381
+  },
+  {
+    "name": "LVFD Truck Stop and Go (Pty) Ltd - Lydenburg",
+    "url": "https://maps.app.goo.gl/kHdz3FcpWmd1HGg49",
+    "address": "Portion 42, Rooidraai Farm, Lydenburg, 1120, Mpumalanga, South Africa, 1120",
+    "price": 20.17,
+    "location": "Lydenburg",
+    "latitude": -25.126858,
+    "longitude": 30.4051721
+  }
+]
