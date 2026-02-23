@@ -8,7 +8,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { createClient } from "@/lib/supabase/client";
 import { formatDate, formatNumber } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, Calendar, Clock, MapPin, Truck, Receipt } from "lucide-react";
+import { ArrowRight, Calendar, Clock, MapPin } from "lucide-react";
 import { useState } from "react";
 
 interface Vehicle {
@@ -219,7 +219,7 @@ export default function TripsPage() {
   }, {} as Record<string, { trip_id: string; current_phase: number; is_completed: boolean }>);
 
   // Create a map for quick lookup of freight by trip_id
-  const freightMap = freightDetails.reduce((acc, freight) => {
+  const _freightMap = freightDetails.reduce((acc, freight) => {
     acc[freight.trip_id] = freight;
     return acc;
   }, {} as Record<string, FreightDetail>);

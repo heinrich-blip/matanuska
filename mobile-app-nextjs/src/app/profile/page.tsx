@@ -123,7 +123,7 @@ export default function ProfilePage() {
         }
 
         return drivers[0];
-      } catch (_error) {
+      } catch {
         return null;
       }
     },
@@ -195,7 +195,7 @@ export default function ProfilePage() {
         }
 
         return data as DriverAssignment | null;
-      } catch (_error) {
+      } catch {
         return null;
       }
     },
@@ -338,7 +338,7 @@ export default function ProfilePage() {
       // Sign out from Supabase
       try {
         await supabase.auth.signOut({ scope: 'local' });
-      } catch (_e) {
+      } catch {
         // signOut error - continue with cleanup
       }
 

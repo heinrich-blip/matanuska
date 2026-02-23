@@ -354,7 +354,7 @@ export default function ExpensesPage(): JSX.Element {
   });
 
   // Memoized values
-  const availableSubCategories = useMemo((): string[] => {
+  const availableSubCategories = useMemo((): readonly string[] => {
     if (!formData.category) return [];
     return COST_CATEGORIES[formData.category as CostCategory] || [];
   }, [formData.category]);

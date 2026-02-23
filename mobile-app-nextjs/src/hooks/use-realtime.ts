@@ -286,6 +286,7 @@ export function useRealtimeSubscription<T extends Record<string, unknown>>(
     return () => {
       supabase.removeChannel(channel);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tableName, queryKey, filter?.value, queryClient]);
 }
 

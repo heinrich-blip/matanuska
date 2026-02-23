@@ -129,7 +129,143 @@ const SelectSeparator = React.forwardRef<
 ));
 SelectSeparator.displayName = SelectPrimitive.Separator.displayName;
 
-export
-{
-  Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectScrollDownButton, SelectScrollUpButton, SelectSeparator, SelectTrigger, SelectValue
+// BottomSheetSelect - Mobile-friendly select using bottom sheet pattern
+interface BottomSheetSelectOption {
+  value: string;
+  label: string;
+}
+
+interface BottomSheetSelectProps {
+  value: string;
+  onValueChange: (value: string) => void;
+  options: BottomSheetSelectOption[];
+  placeholder?: string;
+  label?: string;
+  className?: string;
+  disabled?: boolean;
+}
+
+const BottomSheetSelect = ({
+  value,
+  onValueChange,
+  options,
+  placeholder = "Select...",
+  className,
+  disabled,
+}: BottomSheetSelectProps) => {
+  const selectedOption = options.find((opt) => opt.value === value);
+
+  return (
+    <Select value={value} onValueChange={onValueChange} disabled={disabled}>
+      <SelectTrigger className={className}>
+        <SelectValue placeholder={placeholder}>
+          {selectedOption?.label || placeholder}
+        </SelectValue>
+      </SelectTrigger>
+      <SelectContent>
+        {options.map((option) => (
+          <SelectItem key={option.value} value={option.value}>
+            {option.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+};
+
+// SearchableSelect - Select with search/filter capability
+interface SearchableSelectOption {
+  value: string;
+  label: string;
+  description?: string;
+}
+
+interface SearchableSelectProps {
+  value: string;
+  onValueChange: (value: string) => void;
+  options: SearchableSelectOption[];
+  placeholder?: string;
+  searchPlaceholder?: string;
+  label?: string;
+  className?: string;
+  disabled?: boolean;
+}
+
+const SearchableSelect = ({
+  value,
+  onValueChange,
+  options,
+  placeholder = "Select...",
+  className,
+  disabled,
+}: SearchableSelectProps) => {
+  const [searchQuery, setSearchQuery] = React.useState("");
+
+  const filteredOptions = React.useMemo(() => {
+    if (!searchQuery) return options;
+    const query = searchQuery.toLowerCase();
+    return options.filter(
+      (opt) =>
+        opt.label.toLowerCase().includes(query) ||
+        opt.description?.toLowerCase().includes(query)
+    );
+  }, [options, searchQuery]);
+
+  const selectedOption = options.find((opt) => opt.value === value);
+
+  return (
+    <Select value={value} onValueChange={onValueChange} disabled={disabled}>
+      <SelectTrigger className={className}>
+        <SelectValue placeholder={placeholder}>
+          {selectedOption?.label || placeholder}
+        </SelectValue>
+      </SelectTrigger>
+      <SelectContent>
+        <div className="px-2 py-1.5">
+          <input
+            type="text"
+            placeholder="Search..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full h-8 px-2 text-sm border rounded-md bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+        <SelectSeparator />
+        {filteredOptions.length === 0 ? (
+          <div className="py-4 text-center text-sm text-muted-foreground">
+            No results found
+          </div>
+        ) : (
+          filteredOptions.map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              <div className="flex flex-col">
+                <span>{option.label}</span>
+                {option.description && (
+                  <span className="text-xs text-muted-foreground">
+                    {option.description}
+                  </span>
+                )}
+              </div>
+            </SelectItem>
+          ))
+        )}
+      </SelectContent>
+    </Select>
+  );
+};
+
+export {
+  BottomSheetSelect,
+  SearchableSelect,
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectScrollDownButton,
+  SelectScrollUpButton,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
 };

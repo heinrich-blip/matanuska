@@ -355,7 +355,7 @@ export function TripDetailSheet({ trip, open, onOpenChange }: TripDetailSheetPro
       if (inserted?.id && receiptFiles.length > 0) {
         try {
           await uploadReceipts(inserted.id);
-        } catch (_uploadErr) {
+        } catch {
           // Expense saved but upload failed - still show success with warning
           toast({ title: "Expense saved", description: "Receipt upload failed - you can retry later", variant: "destructive" });
         }
