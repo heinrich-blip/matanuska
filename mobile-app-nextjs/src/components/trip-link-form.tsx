@@ -118,7 +118,7 @@ function TripLinkForm({
             additional_notes: values.additional_notes,
             status: values.status,
             updated_at: new Date().toISOString(),
-          })
+          } as never)
           .eq("id", existingFreight.id);
 
         if (error) throw error;
@@ -133,7 +133,7 @@ function TripLinkForm({
           weight_kg: values.weight_kg,
           additional_notes: values.additional_notes,
           status: values.status,
-        });
+        } as never);
 
         if (error) throw error;
       }

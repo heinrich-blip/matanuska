@@ -382,14 +382,14 @@ export function CycleTrackerForm({ trip, open, onOpenChange }: CycleTrackerFormP
         // Update existing
         const { error } = await supabase
           .from("trip_cycle_tracker")
-          .update(payload)
+          .update(payload as never)
           .eq("id", trackerId);
         if (error) throw error;
       } else {
         // Insert new
         const { data, error } = await supabase
           .from("trip_cycle_tracker")
-          .insert(payload)
+          .insert(payload as never)
           .select("id")
           .single();
         if (error) throw error;
@@ -417,7 +417,7 @@ export function CycleTrackerForm({ trip, open, onOpenChange }: CycleTrackerFormP
             duration_mins: s.duration_mins,
             sort_order: i,
           }));
-          const { error } = await supabase.from("trip_transit_stops").insert(rows);
+          const { error } = await supabase.from("trip_transit_stops").insert(rows as never);
           if (error) throw error;
         }
 
@@ -433,7 +433,7 @@ export function CycleTrackerForm({ trip, open, onOpenChange }: CycleTrackerFormP
               time_out: stop.time_out || null,
               duration_mins: stop.duration_mins,
               sort_order: stop.sort_order,
-            })
+            } as never)
             .eq("id", stop.id!);
         }
       }

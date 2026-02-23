@@ -316,6 +316,44 @@ export function TripDetailSheet({ trip, open, onOpenChange }: TripDetailSheetPro
     }
   };
 
+  // ─── Start 360° Cycle Tracker (Save Trip First) ────────────────────
+
+  const [isStartingCycleTracker, setIsStartingCycleTracker] = useState(false);
+
+  const handleStart360CycleTracker = async () => {
+    setIsStartingCycleTracker(true);
+    try {
+      // Save current trip info before opening cycle tracker
+      const startKm = startingKm ? parseFloat(startingKm) : null;
+      const endKm = endingKm ? parseFloat(endingKm) : null;
+      const distanceKm = startKm != null && endKm != null && endKm > startKm ? endKm - startKm : trip.distance_km;
+
+      const { error } = await supabase
+        .from("trips")
+        .update({
+          trip_number: podNumber.trim() || null,
+          starting_km: startKm,
+          ending_km: endKm,
+          distance_km: distanceKm,
+        } as never)
+        .eq("id", trip.id);
+
+      if (error) throw error;
+
+      // Invalidate queries to ensure data consistency
+      queryClient.invalidateQueries({ queryKey: ["monthly-trips"] });
+      queryClient.invalidateQueries({ queryKey: ["trip-expenses", trip.id] });
+
+      // Now open the cycle tracker
+      setShowCycleTracker(true);
+      toast({ title: "Trip Saved", description: "Starting 360° Time Tracker" });
+    } catch {
+      toast({ title: "Error", description: "Failed to save trip before starting tracker", variant: "destructive" });
+    } finally {
+      setIsStartingCycleTracker(false);
+    }
+  };
+
   // ─── Expense Mutation ──────────────────────────────────────────────
 
   const addExpenseMutation = useMutation({
@@ -335,7 +373,7 @@ export function TripDetailSheet({ trip, open, onOpenChange }: TripDetailSheetPro
       const usdAmount = data.currency === "ZAR" ? rawAmount / ZAR_TO_USD_RATE : rawAmount;
       const zarNote = data.currency === "ZAR" ? ` [Original: ZAR ${rawAmount.toFixed(2)}, Rate: ${ZAR_TO_USD_RATE}]` : "";
 
-      const { data: inserted, error } = await (supabase.from("cost_entries").insert({
+      const { data: inserted, error } = await supabase.from("cost_entries").insert({
         trip_id: trip.id,
         category: data.category,
         sub_category: data.sub_category,
@@ -347,14 +385,15 @@ export function TripDetailSheet({ trip, open, onOpenChange }: TripDetailSheetPro
         is_flagged: shouldFlag,
         flag_reason: flagReason || null,
         is_system_generated: false,
-      })).select("id").single() as { data: { id: string } | null; error: Error | null };
+      } as never).select("id").single();
 
       if (error) throw error;
+      const insertedEntry = inserted as { id: string } | null;
 
       // Upload receipt files if any
-      if (inserted?.id && receiptFiles.length > 0) {
+      if (insertedEntry?.id && receiptFiles.length > 0) {
         try {
-          await uploadReceipts(inserted.id);
+          await uploadReceipts(insertedEntry.id);
         } catch {
           // Expense saved but upload failed - still show success with warning
           toast({ title: "Expense saved", description: "Receipt upload failed - you can retry later", variant: "destructive" });
@@ -451,10 +490,15 @@ export function TripDetailSheet({ trip, open, onOpenChange }: TripDetailSheetPro
           <Button
             variant="outline"
             className="w-full h-12 text-sm font-semibold gap-2 border-primary/30 hover:bg-primary/5"
-            onClick={() => setShowCycleTracker(true)}
+            onClick={handleStart360CycleTracker}
+            disabled={isStartingCycleTracker}
           >
-            <Clock className="w-4 h-4" />
-            360° Time Tracker
+            {isStartingCycleTracker ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Clock className="w-4 h-4" />
+            )}
+            {isStartingCycleTracker ? "Saving Trip..." : "360° Time Tracker"}
             <ArrowRight className="w-3.5 h-3.5 ml-auto" />
           </Button>
 

@@ -241,7 +241,7 @@ export default function DieselPage() {
           file_size: item.file.size,
           file_type: item.file.type,
           uploaded_by: user?.email || "Driver",
-        });
+        } as never);
       }
     } finally {
       setIsUploadingPhotos(false);
@@ -415,7 +415,7 @@ export default function DieselPage() {
 
       const { data: result, error } = await supabase
         .from("diesel_records")
-        .insert(insertData)
+        .insert(insertData as never)
         .select("id")
         .single();
 
@@ -752,7 +752,6 @@ export default function DieselPage() {
                   {slipFiles.map((file: File, idx: number) => (
                     <div key={idx} className="relative group">
                       {slipPreviews[idx] ? (
-                        // eslint-disable-next-line @next/next/no-img-element
                         <img src={slipPreviews[idx]} alt={file.name} className="w-16 h-16 rounded-lg object-cover border border-border/50" />
                       ) : (
                         <div className="w-16 h-16 rounded-lg bg-muted/30 border border-border/50 flex items-center justify-center">
@@ -824,7 +823,6 @@ export default function DieselPage() {
                   {pumpFiles.map((file: File, idx: number) => (
                     <div key={idx} className="relative group">
                       {pumpPreviews[idx] ? (
-                        // eslint-disable-next-line @next/next/no-img-element
                         <img src={pumpPreviews[idx]} alt={file.name} className="w-16 h-16 rounded-lg object-cover border border-border/50" />
                       ) : (
                         <div className="w-16 h-16 rounded-lg bg-muted/30 border border-border/50 flex items-center justify-center">

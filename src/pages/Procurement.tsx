@@ -91,6 +91,7 @@ import
     DollarSign,
     Download,
     Edit,
+    FileDown,
     FileText,
     Loader2,
     MoreHorizontal,
@@ -106,6 +107,8 @@ import
   } from "lucide-react";
 import { useState } from "react";
 import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const Procurement = () => {
   const { data: allRequests = [], isLoading: loadingRequests } = useProcurementRequests();
@@ -616,6 +619,218 @@ const Procurement = () => {
     );
   };
 
+  // Export All Requests to Excel
+  const exportAllRequestsToExcel = () => {
+    if (filteredRequests.length === 0) return;
+
+    const worksheetData = filteredRequests.map((request) => ({
+      "Part Name": request.part_name,
+      "Part Number": request.part_number || "-",
+      "Quantity": request.quantity,
+      "Unit Price": request.unit_price ? `$${request.unit_price.toFixed(2)}` : "-",
+      "Total Price": request.total_price ? `$${request.total_price.toFixed(2)}` : "-",
+      "Vendor": request.vendor?.vendor_name || "-",
+      "Status": request.status,
+      "Sage Req #": request.sage_requisition_number || "-",
+      "Cash Manager Ref": request.cash_manager_reference || "-",
+      "Ordered Date": request.ordered_at ? formatDate(request.ordered_at) : "-",
+      "Received Date": request.received_date ? formatDate(request.received_date) : "-",
+      "Requested By": request.requested_by || "-",
+      "Job Card": request.job_card?.job_number || "-",
+      "Notes": request.notes || "-",
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+    worksheet["!cols"] = [
+      { wch: 30 }, { wch: 15 }, { wch: 10 }, { wch: 12 }, { wch: 12 },
+      { wch: 20 }, { wch: 12 }, { wch: 18 }, { wch: 18 }, { wch: 14 },
+      { wch: 14 }, { wch: 15 }, { wch: 12 }, { wch: 30 },
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "All Requests");
+    XLSX.writeFile(workbook, `Procurement_All_Requests_${new Date().toISOString().split("T")[0]}.xlsx`);
+  };
+
+  // Export All Requests to PDF
+  const exportAllRequestsToPDF = () => {
+    if (filteredRequests.length === 0) return;
+
+    const doc = new jsPDF({ orientation: "landscape" });
+    doc.setFontSize(16);
+    doc.text("Procurement Requests", 14, 15);
+    doc.setFontSize(10);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 22);
+
+    autoTable(doc, {
+      startY: 28,
+      head: [["Part Name", "Part #", "Qty", "Price", "Vendor", "Status", "Sage Ref", "Ordered", "Received"]],
+      body: filteredRequests.map((r) => [
+        r.part_name,
+        r.part_number || "-",
+        r.quantity,
+        r.total_price ? `$${r.total_price.toFixed(2)}` : "-",
+        r.vendor?.vendor_name || "-",
+        r.status,
+        r.sage_requisition_number || "-",
+        r.ordered_at ? formatDate(r.ordered_at) : "-",
+        r.received_date ? formatDate(r.received_date) : "-",
+      ]),
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [59, 130, 246] },
+    });
+
+    doc.save(`Procurement_All_Requests_${new Date().toISOString().split("T")[0]}.pdf`);
+  };
+
+  // Export Pending Requests to Excel
+  const exportPendingRequestsToExcel = () => {
+    if (pendingRequests.length === 0) return;
+
+    const worksheetData = pendingRequests.map((request) => ({
+      "Part Name": request.part_name,
+      "Part Number": request.part_number || "-",
+      "Quantity": request.quantity,
+      "Unit Price": request.unit_price ? `$${request.unit_price.toFixed(2)}` : "-",
+      "Total Price": request.total_price ? `$${request.total_price.toFixed(2)}` : "-",
+      "Vendor": request.vendor?.vendor_name || "-",
+      "Status": request.status,
+      "Source": request.job_card_id ? "Job Card" : "Manual",
+      "Job Card": request.job_card?.job_number || "-",
+      "Requested By": request.requested_by || "-",
+      "Date Requested": request.created_at ? formatDate(request.created_at) : "-",
+      "Notes": request.notes || "-",
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+    worksheet["!cols"] = [
+      { wch: 30 }, { wch: 15 }, { wch: 10 }, { wch: 12 }, { wch: 12 },
+      { wch: 20 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 15 },
+      { wch: 14 }, { wch: 30 },
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Pending Requests");
+    XLSX.writeFile(workbook, `Procurement_Pending_Requests_${new Date().toISOString().split("T")[0]}.xlsx`);
+  };
+
+  // Export Pending Requests to PDF
+  const exportPendingRequestsToPDF = () => {
+    if (pendingRequests.length === 0) return;
+
+    const doc = new jsPDF({ orientation: "landscape" });
+    doc.setFontSize(16);
+    doc.text("Pending Procurement Requests", 14, 15);
+    doc.setFontSize(10);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 22);
+
+    autoTable(doc, {
+      startY: 28,
+      head: [["Part Name", "Part #", "Qty", "Price", "Vendor", "Source", "Job Card", "Requested By", "Date"]],
+      body: pendingRequests.map((r) => [
+        r.part_name,
+        r.part_number || "-",
+        r.quantity,
+        r.total_price ? `$${r.total_price.toFixed(2)}` : "-",
+        r.vendor?.vendor_name || "-",
+        r.job_card_id ? "Job Card" : "Manual",
+        r.job_card?.job_number || "-",
+        r.requested_by || "-",
+        r.created_at ? formatDate(r.created_at) : "-",
+      ]),
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [234, 179, 8] },
+    });
+
+    doc.save(`Procurement_Pending_Requests_${new Date().toISOString().split("T")[0]}.pdf`);
+  };
+
+  // Export Low Stock Items to Excel
+  const exportLowStockToExcel = () => {
+    if (lowStockItems.length === 0) return;
+
+    const worksheetData = lowStockItems.map((item) => ({
+      "Item Name": item.name,
+      "Part Number": item.part_number,
+      "Category": item.category || "-",
+      "Current Stock": item.quantity,
+      "Minimum Required": item.min_quantity,
+      "Shortage": item.shortage,
+      "Unit Price": item.unit_price ? `$${item.unit_price.toFixed(2)}` : "-",
+      "Supplier": item.supplier || "-",
+      "Location": item.location || "-",
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+    worksheet["!cols"] = [
+      { wch: 30 }, { wch: 15 }, { wch: 15 }, { wch: 14 },
+      { wch: 16 }, { wch: 10 }, { wch: 12 }, { wch: 20 }, { wch: 15 },
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Low Stock Items");
+    XLSX.writeFile(workbook, `Procurement_Low_Stock_${new Date().toISOString().split("T")[0]}.xlsx`);
+  };
+
+  // Export Low Stock Items to PDF
+  const exportLowStockToPDF = () => {
+    if (lowStockItems.length === 0) return;
+
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text("Low Stock Items Report", 14, 15);
+    doc.setFontSize(10);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 22);
+    doc.text(`Total Items Below Minimum: ${lowStockItems.length}`, 14, 28);
+
+    autoTable(doc, {
+      startY: 34,
+      head: [["Item Name", "Part #", "Current", "Minimum", "Shortage", "Supplier"]],
+      body: lowStockItems.map((item) => [
+        item.name,
+        item.part_number,
+        item.quantity,
+        item.min_quantity,
+        `-${item.shortage}`,
+        item.supplier || "-",
+      ]),
+      styles: { fontSize: 9, cellPadding: 2 },
+      headStyles: { fillColor: [239, 68, 68] },
+    });
+
+    doc.save(`Procurement_Low_Stock_${new Date().toISOString().split("T")[0]}.pdf`);
+  };
+
+  // Export Restock Items to PDF
+  const exportRestockToPDF = () => {
+    const selectedItems = lowStockItems.filter((item) => selectedRestockItems.has(item.id));
+    if (selectedItems.length === 0) return;
+
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text("Restock Request", 14, 15);
+    doc.setFontSize(10);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 22);
+    doc.text(`Items Selected: ${selectedItems.length}`, 14, 28);
+
+    autoTable(doc, {
+      startY: 34,
+      head: [["Item Name", "Part #", "Current", "Shortage", "Priority", "Supplier"]],
+      body: selectedItems.map((item) => [
+        item.name,
+        item.part_number,
+        item.quantity,
+        `-${item.shortage}`,
+        PRIORITY_OPTIONS.find((p) => p.value === restockPriorities[item.id])?.label || "Not Set",
+        item.supplier || "-",
+      ]),
+      styles: { fontSize: 9, cellPadding: 2 },
+      headStyles: { fillColor: [59, 130, 246] },
+    });
+
+    doc.save(`Procurement_Restock_Requests_${new Date().toISOString().split("T")[0]}.pdf`);
+  };
+
   if (loadingRequests) {
     return (
       <Layout>
@@ -775,6 +990,24 @@ const Procurement = () => {
                     </CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <Download className="h-4 w-4 mr-2" />
+                          Export
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={exportAllRequestsToExcel} disabled={filteredRequests.length === 0}>
+                          <FileText className="h-4 w-4 mr-2" />
+                          Export to Excel
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={exportAllRequestsToPDF} disabled={filteredRequests.length === 0}>
+                          <FileDown className="h-4 w-4 mr-2" />
+                          Export to PDF
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                     <Select
                       value={statusFilter}
                       onValueChange={setStatusFilter}
@@ -1035,6 +1268,29 @@ const Procurement = () => {
           {/* Pending Requests Tab */}
           <TabsContent value="pending">
             <div className="space-y-6">
+              {/* Export Actions for Pending */}
+              {pendingRequests.length > 0 && (
+                <div className="flex justify-end">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <Download className="h-4 w-4 mr-2" />
+                        Export Pending
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={exportPendingRequestsToExcel}>
+                        <FileText className="h-4 w-4 mr-2" />
+                        Export to Excel
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={exportPendingRequestsToPDF}>
+                        <FileDown className="h-4 w-4 mr-2" />
+                        Export to PDF
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              )}
               {/* Job Card Requests */}
               {jobCardRequests.length > 0 && (
                 <Card>
@@ -1259,13 +1515,35 @@ const Procurement = () => {
           <TabsContent value="low-stock">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5 text-red-500" />
-                  Items Below Minimum Stock
-                </CardTitle>
-                <CardDescription>
-                  These inventory items need to be replenished
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5 text-red-500" />
+                      Items Below Minimum Stock
+                    </CardTitle>
+                    <CardDescription>
+                      These inventory items need to be replenished
+                    </CardDescription>
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" disabled={lowStockItems.length === 0}>
+                        <Download className="h-4 w-4 mr-2" />
+                        Export
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={exportLowStockToExcel}>
+                        <FileText className="h-4 w-4 mr-2" />
+                        Export to Excel
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={exportLowStockToPDF}>
+                        <FileDown className="h-4 w-4 mr-2" />
+                        Export to PDF
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </CardHeader>
               <CardContent>
                 {loadingLowStock ? (
@@ -1359,7 +1637,15 @@ const Procurement = () => {
                       disabled={selectedRestockItems.size === 0}
                     >
                       <Download className="h-4 w-4 mr-2" />
-                      Export to Excel
+                      Export Excel
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={exportRestockToPDF}
+                      disabled={selectedRestockItems.size === 0}
+                    >
+                      <FileDown className="h-4 w-4 mr-2" />
+                      Export PDF
                     </Button>
                   </div>
                 </div>

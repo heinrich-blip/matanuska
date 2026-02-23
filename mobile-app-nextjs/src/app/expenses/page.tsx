@@ -431,7 +431,7 @@ export default function ExpensesPage(): JSX.Element {
 
       const { data: result, error } = await supabase
         .from("cost_entries")
-        .insert(costData)
+        .insert(costData as never)
         .select()
         .single();
 
