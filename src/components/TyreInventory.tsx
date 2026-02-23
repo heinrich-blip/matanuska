@@ -679,7 +679,7 @@ const TyreInventory = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="flex overflow-x-auto w-full lg:grid lg:grid-cols-5">
           <TabsTrigger value="installed">
             <Truck className="h-4 w-4 mr-2" />
             Installed

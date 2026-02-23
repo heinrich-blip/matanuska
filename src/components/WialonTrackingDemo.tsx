@@ -235,7 +235,8 @@ const WialonTrackingDemo = () => {
                 <p className="text-sm mt-2">Make sure units are registered in Wialon</p>
               </div>
             ) : (
-              <Table>
+              <div className="overflow-x-auto">
+              <Table className="min-w-[700px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Vehicle Name</TableHead>
@@ -282,6 +283,7 @@ const WialonTrackingDemo = () => {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             )}
           </CardContent>
         </Card>

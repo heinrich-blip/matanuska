@@ -147,8 +147,8 @@ const VendorsPage = () => {
               </div>
             ) : (
               <>
-                <div className="rounded-md border">
-                  <Table>
+                <div className="rounded-md border overflow-x-auto">
+                  <Table className="min-w-[800px]">
                     <TableHeader className="sticky top-0 bg-background">
                       <TableRow>
                         <TableHead>Action</TableHead>

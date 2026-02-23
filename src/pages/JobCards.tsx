@@ -462,7 +462,8 @@ const JobCards = () => {
   };
 
   const JobCardTable = ({ cards, emptyMessage }: { cards: JobCard[]; emptyMessage: string }) => (
-    <Table>
+    <div className="overflow-x-auto">
+    <Table className="min-w-[900px]">
       <TableHeader>
         <TableRow>
           <TableHead className="w-[100px]">Job #</TableHead>
@@ -613,15 +614,16 @@ const JobCards = () => {
         )}
       </TableBody>
     </Table>
+    </div>
   );
 
   return (
     <Layout>
-      <div className="p-6 space-y-6">
+      <div className="p-2 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <h1 className="text-3xl font-bold">Job Cards</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold">Job Cards</h1>
             <p className="text-muted-foreground mt-1">Manage and track maintenance jobs</p>
             {isLoading && <p className="text-sm text-blue-500">Loading job cards...</p>}
             {queryError && <p className="text-sm text-red-500">Error: {String(queryError)}</p>}
@@ -675,8 +677,8 @@ const JobCards = () => {
         {/* Filters */}
         <Card>
           <CardContent className="pt-6">
-            <div className="flex flex-wrap gap-4">
-              <div className="flex-1 min-w-[200px]">
+            <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-4">
+              <div className="flex-1 min-w-0 sm:min-w-[200px]">
                 <div className="relative">
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -689,7 +691,7 @@ const JobCards = () => {
               </div>
 
               <Select value={selectedPriority} onValueChange={setSelectedPriority}>
-                <SelectTrigger className="w-[140px]">
+                <SelectTrigger className="w-full sm:w-[140px]">
                   <SelectValue placeholder="Priority" />
                 </SelectTrigger>
                 <SelectContent>
@@ -703,7 +705,7 @@ const JobCards = () => {
 
               {assignees.length > 0 && (
                 <Select value={selectedAssignee} onValueChange={setSelectedAssignee}>
-                  <SelectTrigger className="w-[160px]">
+                  <SelectTrigger className="w-full sm:w-[160px]">
                     <SelectValue placeholder="Assignee" />
                   </SelectTrigger>
                   <SelectContent>
@@ -723,13 +725,13 @@ const JobCards = () => {
         {/* Active Job Cards (Pending + In Progress) */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <ClipboardList className="h-5 w-5 text-orange-500" />
                 <CardTitle>Active Job Cards</CardTitle>
               </div>
               <Select value={activeFleetFilter} onValueChange={setActiveFleetFilter}>
-                <SelectTrigger className="w-[160px]">
+                <SelectTrigger className="w-full sm:w-[160px]">
                   <SelectValue placeholder="Filter by Fleet" />
                 </SelectTrigger>
                 <SelectContent>
@@ -754,13 +756,13 @@ const JobCards = () => {
         {/* Completed Job Cards */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-5 w-5 text-green-500" />
                 <CardTitle>Completed Job Cards</CardTitle>
               </div>
               <Select value={completedFleetFilter} onValueChange={setCompletedFleetFilter}>
-                <SelectTrigger className="w-[160px]">
+                <SelectTrigger className="w-full sm:w-[160px]">
                   <SelectValue placeholder="Filter by Fleet" />
                 </SelectTrigger>
                 <SelectContent>

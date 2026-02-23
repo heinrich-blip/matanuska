@@ -1029,7 +1029,7 @@ const Procurement = () => {
               </CardHeader>
               <CardContent>
                 <ScrollArea className="h-[600px]">
-                  <Table>
+                  <Table className="min-w-[700px]">
                     <TableHeader>
                       <TableRow>
                         <TableHead>Part</TableHead>
@@ -1304,7 +1304,8 @@ const Procurement = () => {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <Table>
+                    <div className="overflow-x-auto">
+                    <Table className="min-w-[700px]">
                       <TableHeader>
                         <TableRow>
                           <TableHead>Part</TableHead>
@@ -1393,6 +1394,7 @@ const Procurement = () => {
                         ))}
                       </TableBody>
                     </Table>
+                    </div>
                   </CardContent>
                 </Card>
               )}
@@ -1410,7 +1412,8 @@ const Procurement = () => {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <Table>
+                    <div className="overflow-x-auto">
+                    <Table className="min-w-[700px]">
                       <TableHeader>
                         <TableRow>
                           <TableHead>Part</TableHead>
@@ -1495,6 +1498,7 @@ const Procurement = () => {
                         ))}
                       </TableBody>
                     </Table>
+                    </div>
                   </CardContent>
                 </Card>
               )}
@@ -1551,7 +1555,8 @@ const Procurement = () => {
                     <Loader2 className="h-6 w-6 animate-spin" />
                   </div>
                 ) : lowStockItems.length > 0 ? (
-                  <Table>
+                  <div className="overflow-x-auto">
+                  <Table className="min-w-[700px]">
                     <TableHeader>
                       <TableRow>
                         <TableHead>Item</TableHead>
@@ -1600,6 +1605,7 @@ const Procurement = () => {
                       ))}
                     </TableBody>
                   </Table>
+                  </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-12">
                     <CheckCircle className="h-12 w-12 text-green-500 mb-4" />
@@ -1656,7 +1662,8 @@ const Procurement = () => {
                     <Loader2 className="h-6 w-6 animate-spin" />
                   </div>
                 ) : lowStockItems.length > 0 ? (
-                  <Table>
+                  <div className="overflow-x-auto">
+                  <Table className="min-w-[800px]">
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-[50px]">
@@ -1755,6 +1762,7 @@ const Procurement = () => {
                       ))}
                     </TableBody>
                   </Table>
+                  </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-12">
                     <CheckCircle className="h-12 w-12 text-green-500 mb-4" />

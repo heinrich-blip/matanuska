@@ -179,7 +179,8 @@ export const LoadsTable = React.memo(({
 
   return (
     <Card>
-      <Table>
+      <div className="overflow-x-auto">
+      <Table className="min-w-[900px]">
         <TableHeader>
           <TableRow>
             <TableHead>Load #</TableHead>
@@ -242,6 +243,7 @@ export const LoadsTable = React.memo(({
           ))}
         </TableBody>
       </Table>
+      </div>
     </Card>
   );
 });

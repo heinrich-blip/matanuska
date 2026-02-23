@@ -636,8 +636,8 @@ const DriverRecruitmentSection = () => {
           </div>
 
           {/* Table */}
-          <div className="border rounded-lg overflow-hidden">
-            <Table>
+          <div className="border rounded-lg overflow-hidden overflow-x-auto">
+            <Table className="min-w-[800px]">
               <TableHeader>
                 <TableRow className="bg-gray-50">
                   <TableHead>Candidate</TableHead>

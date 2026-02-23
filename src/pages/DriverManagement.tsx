@@ -31,7 +31,7 @@ export default function DriverManagement() {
         </div>
 
         <Tabs defaultValue="registry" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="flex overflow-x-auto w-full lg:grid lg:grid-cols-5">
             <TabsTrigger value="registry" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               Driver Registry

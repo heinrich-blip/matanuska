@@ -74,10 +74,10 @@ export default function MaintenanceScheduling() {
   return (
     <Layout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <h1 className="text-3xl font-bold">Maintenance Scheduling</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-2xl sm:text-3xl font-bold">Maintenance Scheduling</h1>
+            <p className="text-muted-foreground text-sm">
               Manage and track vehicle maintenance schedules
             </p>
           </div>
@@ -134,10 +134,11 @@ export default function MaintenanceScheduling() {
         </div>
 
         <Tabs defaultValue="list" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-7">
-            <TabsTrigger value="list">Schedule List</TabsTrigger>
-            <TabsTrigger value="calendar">Calendar View</TabsTrigger>
-            <TabsTrigger value="overdue">
+          <div className="overflow-x-auto -mx-1 px-1">
+            <TabsList className="inline-flex w-auto min-w-full lg:grid lg:w-full lg:grid-cols-7">
+              <TabsTrigger value="list" className="whitespace-nowrap">Schedule List</TabsTrigger>
+              <TabsTrigger value="calendar" className="whitespace-nowrap">Calendar View</TabsTrigger>
+              <TabsTrigger value="overdue" className="whitespace-nowrap">
               Overdue
               {stats && stats.overdue > 0 && (
                 <Badge variant="destructive" className="ml-2">
@@ -145,23 +146,24 @@ export default function MaintenanceScheduling() {
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="history">
+            <TabsTrigger value="history" className="whitespace-nowrap">
               <History className="w-4 h-4 mr-2" />
               History
             </TabsTrigger>
-            <TabsTrigger value="analytics">
+            <TabsTrigger value="analytics" className="whitespace-nowrap">
               <BarChart3 className="w-4 h-4 mr-2" />
               Analytics
             </TabsTrigger>
-            <TabsTrigger value="templates">
+            <TabsTrigger value="templates" className="whitespace-nowrap">
               <FileText className="w-4 h-4 mr-2" />
               Templates
             </TabsTrigger>
-            <TabsTrigger value="notifications">
+            <TabsTrigger value="notifications" className="whitespace-nowrap">
               <Bell className="w-4 h-4 mr-2" />
               Alerts
             </TabsTrigger>
           </TabsList>
+          </div>
 
           <TabsContent value="list" className="space-y-4">
             <ScheduleList schedules={schedules || []} onUpdate={refetch} />

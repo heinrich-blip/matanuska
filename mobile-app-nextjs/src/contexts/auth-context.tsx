@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/client";
 import type { Profile } from "@/types/database";
 import { Session, User } from "@supabase/supabase-js";
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, useRef } from "react";
 
 interface AuthContextType {
   user: User | null;
@@ -25,6 +25,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Refs to manage abort controllers and mounted state
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const mountedRef = useRef(true);
+  const profileFetchInProgressRef = useRef(false);
+
   // Memoize Supabase client creation to handle errors gracefully
   const supabase = useMemo(() => {
     try {
@@ -38,9 +43,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const fetchProfile = async (userEmail: string | undefined, authUser?: User | null) => {
-    if (!userEmail || !supabase) return null;
+    // Prevent concurrent profile fetches
+    if (profileFetchInProgressRef.current || !userEmail || !supabase || !mountedRef.current) {
+      return null;
+    }
+
+    // Abort previous request if exists
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    // Create new abort controller for this request
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
 
     try {
+      profileFetchInProgressRef.current = true;
+
       // Try to fetch from users table by notification_email or username
       const { data, error } = await supabase
         .from("users")
@@ -58,12 +77,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq("status", "Active")
         .single();
 
+      // Check if request was aborted
+      if (signal.aborted) {
+        console.log('Profile fetch aborted');
+        return null;
+      }
+
       if (error) {
         // If user not found in users table, create a basic profile from auth user
         console.log("User not in users table, creating fallback profile from auth data");
 
         // Create a minimal profile from auth user metadata
-        if (authUser) {
+        if (authUser && mountedRef.current && !signal.aborted) {
           const metadata = authUser.user_metadata || {};
           return {
             user_id: 0, // Placeholder
@@ -80,6 +105,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         return null;
       }
+
+      if (!mountedRef.current || signal.aborted) return null;
 
       // Extract role name - roles is an object from single FK join
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -100,9 +127,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         full_name: userData.name, // Alias for compatibility
       } as Profile;
     } catch (err) {
+      // Check if error is due to abort
+      if (err instanceof Error && err.name === 'AbortError') {
+        console.log('Profile fetch aborted');
+        return null;
+      }
+      
+      // Check if signal was aborted (some browsers might not throw AbortError)
+      if (signal.aborted) {
+        console.log('Profile fetch aborted (signal check)');
+        return null;
+      }
+      
       console.error("Error fetching profile:", err);
+      
       // Return fallback profile on any error
-      if (authUser) {
+      if (authUser && mountedRef.current && !signal.aborted) {
         const metadata = authUser.user_metadata || {};
         return {
           user_id: 0,
@@ -118,27 +158,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } as Profile;
       }
       return null;
+    } finally {
+      profileFetchInProgressRef.current = false;
+      // Only clear if this controller hasn't been replaced
+      if (abortControllerRef.current?.signal === signal && !signal.aborted) {
+        abortControllerRef.current = null;
+      }
     }
   };
 
   const refreshProfile = async () => {
-    if (user?.email) {
+    if (user?.email && mountedRef.current) {
       const profileData = await fetchProfile(user.email, user);
-      setProfile(profileData);
+      if (mountedRef.current) {
+        setProfile(profileData);
+      }
     }
   };
 
   useEffect(() => {
+    mountedRef.current = true;
+    
     // If supabase client failed to initialize, don't proceed
     if (!supabase) {
+      setIsLoading(false);
       return;
     }
 
-    let isMounted = true;
-
     // Safety timeout - ensure loading state resolves even if auth hangs
     const loadingTimeout = setTimeout(() => {
-      if (isMounted && isLoading) {
+      if (mountedRef.current && isLoading) {
         console.warn("Auth initialization timeout - forcing loading state to complete");
         setIsLoading(false);
       }
@@ -151,28 +200,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (sessionError) {
           console.error("Error getting session:", sessionError);
-          if (isMounted) setIsLoading(false);
+          if (mountedRef.current) setIsLoading(false);
           return;
         }
 
-        if (isMounted) {
+        if (mountedRef.current) {
           setSession(session);
           setUser(session?.user ?? null);
 
           if (session?.user?.email) {
             try {
               const profileData = await fetchProfile(session.user.email, session.user);
-              if (isMounted) setProfile(profileData);
+              if (mountedRef.current) setProfile(profileData);
             } catch (err) {
-              console.error("Error fetching profile:", err);
+              // Ignore abort errors
+              if (err instanceof Error && err.name !== 'AbortError') {
+                console.error("Error fetching profile:", err);
+              }
             }
           }
 
           setIsLoading(false);
         }
       } catch (err) {
-        console.error("Auth initialization error:", err);
-        if (isMounted) setIsLoading(false);
+        // Ignore abort errors
+        if (err instanceof Error && err.name !== 'AbortError') {
+          console.error("Auth initialization error:", err);
+        }
+        if (mountedRef.current) setIsLoading(false);
       }
     };
 
@@ -182,14 +237,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!isMounted) return;
+      if (!mountedRef.current) return;
 
       setSession(session);
       setUser(session?.user ?? null);
 
       if (session?.user?.email) {
-        const profileData = await fetchProfile(session.user.email, session.user);
-        if (isMounted) setProfile(profileData);
+        try {
+          const profileData = await fetchProfile(session.user.email, session.user);
+          if (mountedRef.current) setProfile(profileData);
+        } catch (err) {
+          // Ignore abort errors in auth state change
+          if (err instanceof Error && err.name !== 'AbortError') {
+            console.error("Error in auth state change:", err);
+          }
+        }
       } else {
         setProfile(null);
       }
@@ -198,8 +260,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => {
-      isMounted = false;
+      mountedRef.current = false;
       clearTimeout(loadingTimeout);
+      
+      // Abort any pending requests
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+      
       subscription.unsubscribe();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -208,6 +277,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (email: string, password: string) => {
     if (!supabase) {
       return { error: new Error("Authentication service not available") };
+    }
+
+    // Abort any pending profile fetches before sign in
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
     }
 
     try {
@@ -222,11 +297,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Manually set user/session if auth state change doesn't fire immediately
-      if (data.user && data.session) {
+      if (data.user && data.session && mountedRef.current) {
         setUser(data.user);
         setSession(data.session);
         const profileData = await fetchProfile(data.user.email, data.user);
-        setProfile(profileData);
+        if (mountedRef.current) setProfile(profileData);
       }
 
       return { error: null };
@@ -237,6 +312,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
+    // Abort any pending requests
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+
     if (!supabase) {
       // Still clear local state even if no supabase client
       setUser(null);

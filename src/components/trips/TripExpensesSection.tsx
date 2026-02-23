@@ -40,6 +40,12 @@ import
     TableHeader,
     TableRow,
   } from '@/components/ui/table';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useOperations } from '@/contexts/OperationsContext';
 import { useToast } from '@/hooks/use-toast';
 import { useWialonVehicles } from '@/hooks/useWialonVehicles';
@@ -956,8 +962,8 @@ const TripExpensesSection = ({ trips, onViewTrip }: TripExpensesSectionProps) =>
                     </CollapsibleTrigger>
 
                     <CollapsibleContent>
-                      <div className="border-t">
-                        <Table>
+                      <div className="border-t overflow-x-auto">
+                        <Table className="min-w-[550px]">
                           <TableHeader>
                             <TableRow className="hover:bg-transparent bg-muted/30">
                               <TableHead className="text-xs font-medium">Category</TableHead>
@@ -985,7 +991,16 @@ const TripExpensesSection = ({ trips, onViewTrip }: TripExpensesSectionProps) =>
                                     <div className="flex items-center gap-1.5">
                                       <span className="text-sm">{expense.category}</span>
                                       {isMissingSlip && (
-                                        <FileWarning className="h-3.5 w-3.5 text-rose-500" title="Missing slip/attachment" />
+                                        <TooltipProvider>
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <FileWarning className="h-3.5 w-3.5 text-rose-500" />
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                              <p>Missing slip/attachment</p>
+                                            </TooltipContent>
+                                          </Tooltip>
+                                        </TooltipProvider>
                                       )}
                                     </div>
                                     {expense.sub_category && (

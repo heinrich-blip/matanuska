@@ -137,8 +137,8 @@ export function ScheduleList({ schedules, onUpdate, showOverdueOnly }: ScheduleL
         </div>
       </div>
 
-      <div className="border rounded-lg">
-        <Table>
+      <div className="border rounded-lg overflow-x-auto">
+        <Table className="min-w-[800px]">
           <TableHeader>
             <TableRow>
               <TableHead>Title</TableHead>

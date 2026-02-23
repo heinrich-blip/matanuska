@@ -506,7 +506,7 @@ const FleetTyreReports = () => {
         </CardHeader>
         <CardContent>
           <Tabs value={reportType} onValueChange={setReportType}>
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="flex overflow-x-auto w-full lg:grid lg:grid-cols-5">
               <TabsTrigger value="overview">
                 <BarChart3 className="w-4 h-4 mr-2" />
                 Overview

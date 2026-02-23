@@ -5,6 +5,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
 import { useGeofenceNotifications } from "@/hooks/useGeofenceNotifications";
+import { useIsMobile } from "@/hooks/use-mobile";
+import WorkshopMobileLayout from "@/components/mobile/WorkshopMobileLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import
@@ -25,10 +27,17 @@ interface LayoutProps {
   children: ReactNode;
 }
 
+// Workshop routes that get the mobile shell treatment
+const workshopMobileRoutes = [
+  "/job-cards", "/inspections", "/maintenance-scheduling",
+  "/tyre-management", "/inspections/tyre",
+];
+
 const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   // Real-time geofence notifications
   useGeofenceNotifications();
@@ -47,6 +56,7 @@ const Layout = ({ children }: LayoutProps) => {
 
   const isWorkshopRoute = workshopPaths.includes(location.pathname);
   const isOperationsRoute = operationsPaths.includes(location.pathname);
+  const isWorkshopMobileRoute = workshopMobileRoutes.includes(location.pathname);
 
   const [isWorkshopOpen, setIsWorkshopOpen] = useState(isWorkshopRoute);
   const [isOperationsOpen, setIsOperationsOpen] = useState(isOperationsRoute);
@@ -62,6 +72,11 @@ const Layout = ({ children }: LayoutProps) => {
     toast({
       title: "Logged out successfully",
     });
+  };
+
+  // On mobile, workshop routes get the dedicated mobile layout
+  if (isMobile && isWorkshopMobileRoute) {
+    return <WorkshopMobileLayout>{children}</WorkshopMobileLayout>;
   };
 
   const workshopItems = [

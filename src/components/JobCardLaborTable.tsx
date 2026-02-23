@@ -172,7 +172,8 @@ const JobCardLaborTable = ({ jobCardId, laborEntries, onRefresh }: JobCardLaborT
           </div>
         ) : (
           <>
-            <Table>
+            <div className="overflow-x-auto">
+            <Table className="min-w-[650px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Technician</TableHead>
@@ -226,6 +227,7 @@ const JobCardLaborTable = ({ jobCardId, laborEntries, onRefresh }: JobCardLaborT
                 </TableRow>
               </TableBody>
             </Table>
+            </div>
           </>
         )}
 
