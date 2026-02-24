@@ -478,35 +478,51 @@ const DriverManagementSection = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-4 gap-4 mb-6">
-          <div className="bg-muted/50 rounded-lg p-4">
-            <p className="text-sm text-muted-foreground">Total Drivers</p>
-            <p className="text-2xl font-bold">{drivers.length}</p>
-          </div>
-          <div className="bg-green-50 rounded-lg p-4">
-            <p className="text-sm text-green-700">Active</p>
-            <p className="text-2xl font-bold text-green-700">
-              {drivers.filter(d => d.status === 'active').length}
-            </p>
-          </div>
-          <div className="bg-amber-50 rounded-lg p-4">
-            <p className="text-sm text-amber-700">Inactive/Suspended</p>
-            <p className="text-2xl font-bold text-amber-700">
-              {drivers.filter(d => d.status === 'inactive' || d.status === 'suspended').length}
-            </p>
-          </div>
-          <div className="bg-red-50 rounded-lg p-4">
-            <p className="text-sm text-red-700">License Expiring</p>
-            <p className="text-2xl font-bold text-red-700">
-              {drivers.filter(d => {
-                if (!d.license_expiry) return false;
-                const expiry = new Date(d.license_expiry);
-                const today = new Date();
-                const daysUntilExpiry = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-                return daysUntilExpiry <= 30;
-              }).length}
-            </p>
-          </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Drivers</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-semibold">{drivers.length}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Active</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-semibold">
+                {drivers.filter(d => d.status === 'active').length}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Inactive/Suspended</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-semibold">
+                {drivers.filter(d => d.status === 'inactive' || d.status === 'suspended').length}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">License Expiring</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-semibold">
+                {drivers.filter(d => {
+                  if (!d.license_expiry) return false;
+                  const expiry = new Date(d.license_expiry);
+                  const today = new Date();
+                  const daysUntilExpiry = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                  return daysUntilExpiry <= 30;
+                }).length}
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Table */}

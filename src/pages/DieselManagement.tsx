@@ -1004,7 +1004,7 @@ const DieselManagement = () => {
               <CardTitle className="text-sm font-medium">Total Records</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{totalRecords}</div>
+              <div className="text-2xl font-semibold">{totalRecords}</div>
             </CardContent>
           </Card>
 
@@ -1013,7 +1013,7 @@ const DieselManagement = () => {
               <CardTitle className="text-sm font-medium">Total Litres</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatNumber(totalLitres)} L</div>
+              <div className="text-2xl font-semibold">{formatNumber(totalLitres)} L</div>
             </CardContent>
           </Card>
 
@@ -1022,7 +1022,7 @@ const DieselManagement = () => {
               <CardTitle className="text-sm font-medium">Total Cost</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(totalCostZAR, 'ZAR')}</div>
+              <div className="text-2xl font-semibold">{formatCurrency(totalCostZAR, 'ZAR')}</div>
               {totalCostUSD > 0 && (
                 <p className="text-sm text-muted-foreground mt-1">
                   {formatCurrency(totalCostUSD, 'USD')}
@@ -1036,7 +1036,7 @@ const DieselManagement = () => {
               <CardTitle className="text-sm font-medium">Average km/L</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatNumber(averageKmPerLitre, 2)}</div>
+              <div className="text-2xl font-semibold">{formatNumber(averageKmPerLitre, 2)}</div>
             </CardContent>
           </Card>
 
@@ -1045,7 +1045,7 @@ const DieselManagement = () => {
               <CardTitle className="text-sm font-medium">Requires Debrief</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-destructive">{debriefStats.pending}</div>
+              <div className="text-2xl font-semibold">{debriefStats.pending}</div>
               <p className="text-xs text-muted-foreground mt-1">
                 {debriefStats.completed} completed
               </p>

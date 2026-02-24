@@ -77,7 +77,7 @@ export default function MaintenanceScheduling() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
             <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Maintenance Scheduling</h1>
-            <p className="text-muted-foreground text-sm">
+            <p className="text-muted-foreground">
               Manage and track vehicle maintenance schedules
             </p>
           </div>
@@ -94,7 +94,7 @@ export default function MaintenanceScheduling() {
               <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats?.total || 0}</div>
+              <div className="text-2xl font-semibold">{stats?.total || 0}</div>
               <p className="text-xs text-muted-foreground">Active schedules</p>
             </CardContent>
           </Card>
@@ -105,7 +105,7 @@ export default function MaintenanceScheduling() {
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats?.dueToday || 0}</div>
+              <div className="text-2xl font-semibold">{stats?.dueToday || 0}</div>
               <p className="text-xs text-muted-foreground">Tasks due today</p>
             </CardContent>
           </Card>
@@ -113,10 +113,10 @@ export default function MaintenanceScheduling() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Overdue</CardTitle>
-              <AlertCircle className="h-4 w-4 text-destructive" />
+              <AlertCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-destructive">{stats?.overdue || 0}</div>
+              <div className="text-2xl font-semibold">{stats?.overdue || 0}</div>
               <p className="text-xs text-muted-foreground">Require attention</p>
             </CardContent>
           </Card>
@@ -127,7 +127,7 @@ export default function MaintenanceScheduling() {
               <CheckCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats?.completedThisMonth || 0}</div>
+              <div className="text-2xl font-semibold">{stats?.completedThisMonth || 0}</div>
               <p className="text-xs text-muted-foreground">This month</p>
             </CardContent>
           </Card>

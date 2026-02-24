@@ -11,7 +11,7 @@ import { RealTimeKPIMonitor } from '@/components/loads/RealTimeKPIMonitor';
 import { RecurringScheduleManager } from "@/components/loads/RecurringScheduleManager";
 import RoutePlanner from "@/components/loads/RoutePlanner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
@@ -284,28 +284,21 @@ const LoadManagement = () => {
             label="Total Loads"
             value={stats?.total || 0}
             icon={Package}
-            iconClass="text-gray-400"
           />
           <StatsCard
             label="Pending"
             value={stats?.pending || 0}
             icon={Clock}
-            iconClass="text-yellow-400"
-            valueClass="text-yellow-600"
           />
           <StatsCard
             label="In Transit"
             value={stats?.in_transit || 0}
             icon={TrendingUp}
-            iconClass="text-blue-400"
-            valueClass="text-blue-600"
           />
           <StatsCard
             label="Value (ZAR)"
             value={`R${((stats?.total_value_zar || 0) / 1000).toFixed(0)}k`}
             icon={DollarSign}
-            iconClass="text-green-400"
-            valueClass="text-green-600"
           />
         </div>
 
@@ -438,20 +431,16 @@ interface StatsCardProps {
   label: string;
   value: string | number;
   icon: React.ComponentType<{ className?: string }>;
-  iconClass?: string;
-  valueClass?: string;
 }
 
-const StatsCard = ({ label, value, icon: Icon, iconClass, valueClass }: StatsCardProps) => (
+const StatsCard = ({ label, value, icon: Icon }: StatsCardProps) => (
   <Card>
-    <CardContent className="p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm text-gray-500">{label}</p>
-          <p className={`text-2xl font-bold ${valueClass || ""}`}>{value}</p>
-        </div>
-        <Icon className={`h-8 w-8 ${iconClass}`} />
-      </div>
+    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <CardTitle className="text-sm font-medium">{label}</CardTitle>
+      <Icon className="h-4 w-4 text-muted-foreground" />
+    </CardHeader>
+    <CardContent>
+      <div className="text-2xl font-semibold">{value}</div>
     </CardContent>
   </Card>
 );

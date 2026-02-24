@@ -436,73 +436,73 @@ const DriverRecruitmentSection = () => {
     <div className="space-y-6">
       {/* Statistics Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-blue-600" />
-              <span className="text-sm font-medium text-blue-700">Total</span>
-            </div>
-            <p className="text-2xl font-bold text-blue-900 mt-1">{stats.total}</p>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-semibold">{stats.total}</div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-cyan-50 to-cyan-100 border-cyan-200">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <UserPlus className="w-5 h-5 text-cyan-600" />
-              <span className="text-sm font-medium text-cyan-700">New</span>
-            </div>
-            <p className="text-2xl font-bold text-cyan-900 mt-1">{stats.new}</p>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">New</CardTitle>
+            <UserPlus className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-semibold">{stats.new}</div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <ClipboardCheck className="w-5 h-5 text-purple-600" />
-              <span className="text-sm font-medium text-purple-700">Interview</span>
-            </div>
-            <p className="text-2xl font-bold text-purple-900 mt-1">{stats.atInterview}</p>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Interview</CardTitle>
+            <ClipboardCheck className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-semibold">{stats.atInterview}</div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Truck className="w-5 h-5 text-amber-600" />
-              <span className="text-sm font-medium text-amber-700">Yard Test</span>
-            </div>
-            <p className="text-2xl font-bold text-amber-900 mt-1">{stats.atYardTest}</p>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Yard Test</CardTitle>
+            <Truck className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-semibold">{stats.atYardTest}</div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Route className="w-5 h-5 text-orange-600" />
-              <span className="text-sm font-medium text-orange-700">Road Test</span>
-            </div>
-            <p className="text-2xl font-bold text-orange-900 mt-1">{stats.atRoadTest}</p>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Road Test</CardTitle>
+            <Route className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-semibold">{stats.atRoadTest}</div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <UserCheck className="w-5 h-5 text-green-600" />
-              <span className="text-sm font-medium text-green-700">Hired</span>
-            </div>
-            <p className="text-2xl font-bold text-green-900 mt-1">{stats.hired}</p>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Hired</CardTitle>
+            <UserCheck className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-semibold">{stats.hired}</div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <XCircle className="w-5 h-5 text-red-600" />
-              <span className="text-sm font-medium text-red-700">Rejected</span>
-            </div>
-            <p className="text-2xl font-bold text-red-900 mt-1">{stats.rejected}</p>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Rejected</CardTitle>
+            <XCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-semibold">{stats.rejected}</div>
           </CardContent>
         </Card>
       </div>

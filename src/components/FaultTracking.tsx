@@ -218,7 +218,7 @@ const FaultTracking = () => {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Fault Tracking</h1>
-            <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">Monitor and resolve vehicle faults</p>
+            <p className="text-muted-foreground">Monitor and resolve vehicle faults</p>
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
             <Button
@@ -240,35 +240,43 @@ const FaultTracking = () => {
         </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="shadow-card">
-          <CardHeader className="pb-3">
-            <CardDescription>Total Faults</CardDescription>
-            <CardTitle className="text-3xl">{faults.length}</CardTitle>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Faults</CardTitle>
           </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-semibold">{faults.length}</div>
+          </CardContent>
         </Card>
-        <Card className="shadow-card">
-          <CardHeader className="pb-3">
-            <CardDescription>Identified</CardDescription>
-            <CardTitle className="text-3xl text-destructive">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Identified</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-semibold">
               {faults.filter((f) => f.status === "identified").length}
-            </CardTitle>
-          </CardHeader>
+            </div>
+          </CardContent>
         </Card>
-        <Card className="shadow-card">
-          <CardHeader className="pb-3">
-            <CardDescription>Acknowledged</CardDescription>
-            <CardTitle className="text-3xl text-warning">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Acknowledged</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-semibold">
               {faults.filter((f) => f.status === "acknowledged").length}
-            </CardTitle>
-          </CardHeader>
+            </div>
+          </CardContent>
         </Card>
-        <Card className="shadow-card">
-          <CardHeader className="pb-3">
-            <CardDescription>Resolved</CardDescription>
-            <CardTitle className="text-3xl text-success">
-              {faults.filter((f) => f.status === "resolved").length}
-            </CardTitle>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Resolved</CardTitle>
           </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-semibold">
+              {faults.filter((f) => f.status === "resolved").length}
+            </div>
+          </CardContent>
         </Card>
       </div>
 

@@ -299,16 +299,18 @@ const IncidentManagement = () => {
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
               {[
                 { label: "Total", value: stats.total },
-                { label: "Open", value: stats.open, color: "text-destructive" },
-                { label: "Processing", value: stats.processing, color: "text-yellow-600" },
+                { label: "Open", value: stats.open },
+                { label: "Processing", value: stats.processing },
                 { label: "Closed", value: stats.closed },
-                { label: "Claimed", value: stats.claimed, color: "text-green-600" },
+                { label: "Claimed", value: stats.claimed },
               ].map(s => (
                 <Card key={s.label}>
-                  <CardHeader className="pb-3">
-                    <CardDescription>{s.label}</CardDescription>
-                    <CardTitle className={`text-3xl ${s.color || ""}`}>{s.value}</CardTitle>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">{s.label}</CardTitle>
                   </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-semibold">{s.value}</div>
+                  </CardContent>
                 </Card>
               ))}
             </div>

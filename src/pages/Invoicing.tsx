@@ -236,25 +236,25 @@ const Invoicing = () => {
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card>
-            <CardHeader className="pb-3">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Outstanding</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-1">
-                <div className="text-2xl font-bold">{formatCurrency(statistics.totalOutstanding.ZAR, "ZAR")}</div>
-                <div className="text-lg text-muted-foreground">{formatCurrency(statistics.totalOutstanding.USD, "USD")}</div>
+                <div className="text-2xl font-semibold">{formatCurrency(statistics.totalOutstanding.ZAR, "ZAR")}</div>
+                <div className="text-xs text-muted-foreground">{formatCurrency(statistics.totalOutstanding.USD, "USD")}</div>
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className="pb-3">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Overdue Invoices</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-1">
-                <div className="text-2xl font-bold text-destructive">{statistics.overdueCount}</div>
-                <div className="text-lg text-muted-foreground">
+                <div className="text-2xl font-semibold">{statistics.overdueCount}</div>
+                <div className="text-xs text-muted-foreground">
                   {formatCurrency(statistics.overdueAmount.ZAR, "ZAR")}
                 </div>
               </div>
@@ -262,12 +262,12 @@ const Invoicing = () => {
           </Card>
 
           <Card>
-            <CardHeader className="pb-3">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Collection Rate</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-1">
-                <div className="text-2xl font-bold">{statistics.collectionRate.toFixed(1)}%</div>
+                <div className="text-2xl font-semibold">{statistics.collectionRate.toFixed(1)}%</div>
                 <div className="flex items-center text-sm">
                   {statistics.collectionRate >= 80 ? (
                     <TrendingUp className="h-4 w-4 text-green-600 mr-1" />
@@ -283,13 +283,13 @@ const Invoicing = () => {
           </Card>
 
           <Card>
-            <CardHeader className="pb-3">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Collected</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-1">
-                <div className="text-2xl font-bold text-green-600">{formatCurrency(statistics.totalPaid.ZAR, "ZAR")}</div>
-                <div className="text-lg text-muted-foreground">{formatCurrency(statistics.totalPaid.USD, "USD")}</div>
+                <div className="text-2xl font-semibold">{formatCurrency(statistics.totalPaid.ZAR, "ZAR")}</div>
+                <div className="text-xs text-muted-foreground">{formatCurrency(statistics.totalPaid.USD, "USD")}</div>
               </div>
             </CardContent>
           </Card>

@@ -551,79 +551,63 @@ const FuelBunkerManagement = () => {
           </Button>
         </div>
 
-        {/* Stats Cards - Modern Design */}
+        {/* Stats Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-200/50">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-400">Total Inventory</CardTitle>
-              <div className="h-10 w-10 rounded-full bg-blue-500/20 flex items-center justify-center">
-                <Droplets className="h-5 w-5 text-blue-600" />
-              </div>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Inventory</CardTitle>
+              <Droplets className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-800 dark:text-blue-300">{totalFuel.toLocaleString()} L</div>
-              <p className="text-xs text-blue-600/80 dark:text-blue-400/80 mt-1">
+              <div className="text-2xl font-semibold">{totalFuel.toLocaleString()} L</div>
+              <p className="text-xs text-muted-foreground mt-1">
                 of {totalCapacity.toLocaleString()} L total capacity
               </p>
-              <Progress
-                value={(totalFuel / totalCapacity) * 100}
-                className="mt-3 h-2 bg-blue-200 dark:bg-blue-800"
-              />
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border-green-200/50">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-green-700 dark:text-green-400">Active Tanks</CardTitle>
-              <div className="h-10 w-10 rounded-full bg-green-500/20 flex items-center justify-center">
-                <Fuel className="h-5 w-5 text-green-600" />
-              </div>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Active Tanks</CardTitle>
+              <Fuel className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-800 dark:text-green-300">{activeBunkers.length}</div>
-              <p className="text-xs text-green-600/80 dark:text-green-400/80 mt-1">
+              <div className="text-2xl font-semibold">{activeBunkers.length}</div>
+              <p className="text-xs text-muted-foreground mt-1">
                 {bunkers.length} total tanks registered
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-950/20 dark:to-violet-950/20 border-purple-200/50">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-purple-700 dark:text-purple-400">Today&apos;s Activity</CardTitle>
-              <div className="h-10 w-10 rounded-full bg-purple-500/20 flex items-center justify-center">
-                <History className="h-5 w-5 text-purple-600" />
-              </div>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Today's Activity</CardTitle>
+              <History className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-purple-800 dark:text-purple-300">
+              <div className="text-2xl font-semibold">
                 {
                   transactions.filter(
                     (t) => new Date(t.transaction_date).toDateString() === new Date().toDateString()
                   ).length
                 }
               </div>
-              <p className="text-xs text-purple-600/80 dark:text-purple-400/80 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 {transactions.length} total transactions
               </p>
             </CardContent>
           </Card>
 
-          <Card className={`bg-gradient-to-br ${lowLevelBunkers.length > 0
-            ? "from-red-50 to-rose-50 dark:from-red-950/20 dark:to-rose-950/20 border-red-300"
-            : "from-gray-50 to-slate-50 dark:from-gray-950/20 dark:to-slate-950/20 border-gray-200/50"}`}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className={`text-sm font-medium ${lowLevelBunkers.length > 0 ? "text-red-700 dark:text-red-400" : "text-gray-700 dark:text-gray-400"}`}>
-                Low Level Alerts
-              </CardTitle>
-              <div className={`h-10 w-10 rounded-full flex items-center justify-center ${lowLevelBunkers.length > 0 ? "bg-red-500/20" : "bg-gray-500/20"}`}>
-                <AlertTriangle className={`h-5 w-5 ${lowLevelBunkers.length > 0 ? "text-red-600 animate-pulse" : "text-gray-500"}`} />
-              </div>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Low Level Alerts</CardTitle>
+              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className={`text-2xl font-bold ${lowLevelBunkers.length > 0 ? "text-red-800 dark:text-red-300" : "text-gray-800 dark:text-gray-300"}`}>
+              <div className="text-2xl font-semibold">
                 {lowLevelBunkers.length}
               </div>
-              <p className={`text-xs mt-1 ${lowLevelBunkers.length > 0 ? "text-red-600/80 dark:text-red-400/80" : "text-gray-600/80 dark:text-gray-400/80"}`}>
+              <p className="text-xs text-muted-foreground mt-1">
                 {lowLevelBunkers.length > 0 ? "tanks require immediate refilling" : "all tanks at healthy levels"}
               </p>
             </CardContent>

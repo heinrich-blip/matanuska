@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ClientSelect } from '@/components/ui/client-select';
 import { Input } from '@/components/ui/input';
@@ -254,64 +255,50 @@ const MissedLoadsTracker = ({
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="bg-card/80 backdrop-blur-sm border border-border/60 rounded-xl p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Total Missed Loads</p>
-              <p className="text-2xl font-bold text-destructive tabular-nums">{totalMissedLoads}</p>
-              <p className="text-xs text-muted-foreground">{resolvedLoads} resolved</p>
-            </div>
-            <div className="h-10 w-10 rounded-xl bg-destructive/10 flex items-center justify-center">
-              <TrendingDown className="w-5 h-5 text-destructive" />
-            </div>
-          </div>
-        </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Missed Loads</CardTitle>
+            <TrendingDown className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-semibold">{totalMissedLoads}</div>
+            <p className="text-xs text-muted-foreground mt-1">{resolvedLoads} resolved</p>
+          </CardContent>
+        </Card>
 
-        <div className="bg-card/80 backdrop-blur-sm border border-border/60 rounded-xl p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Revenue Lost</p>
-              <div className="space-y-0.5">
-                <p className="text-base font-bold text-destructive tabular-nums">
-                  {formatCurrency(revenueLostZAR, 'ZAR')}
-                </p>
-                <p className="text-base font-bold text-destructive tabular-nums">
-                  {formatCurrency(revenueLostUSD, 'USD')}
-                </p>
-              </div>
-            </div>
-            <div className="h-10 w-10 rounded-xl bg-rose-500/10 flex items-center justify-center">
-              <DollarSign className="w-5 h-5 text-rose-600" />
-            </div>
-          </div>
-        </div>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Revenue Lost</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-semibold">{formatCurrency(revenueLostZAR, 'ZAR')}</div>
+            <p className="text-xs text-muted-foreground mt-1">{formatCurrency(revenueLostUSD, 'USD')}</p>
+          </CardContent>
+        </Card>
 
-        <div className="bg-card/80 backdrop-blur-sm border border-border/60 rounded-xl p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Resolved</p>
-              <p className="text-2xl font-bold text-emerald-600 tabular-nums">{resolvedLoads}</p>
-              <p className="text-xs text-muted-foreground">Successfully handled</p>
-            </div>
-            <div className="h-10 w-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-              <CheckCircle className="w-5 h-5 text-emerald-600" />
-            </div>
-          </div>
-        </div>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Resolved</CardTitle>
+            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-semibold">{resolvedLoads}</div>
+            <p className="text-xs text-muted-foreground mt-1">Successfully handled</p>
+          </CardContent>
+        </Card>
 
-        <div className="bg-card/80 backdrop-blur-sm border border-border/60 rounded-xl p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Competitor Wins</p>
-              <p className="text-2xl font-bold text-destructive tabular-nums">{competitorWins}</p>
-              <p className="text-xs text-muted-foreground">High priority</p>
-            </div>
-            <div className="h-10 w-10 rounded-xl bg-destructive/10 flex items-center justify-center">
-              <AlertTriangle className="w-5 h-5 text-destructive" />
-            </div>
-          </div>
-        </div>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Competitor Wins</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-semibold">{competitorWins}</div>
+            <p className="text-xs text-muted-foreground mt-1">High priority</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Missed Loads List */}

@@ -3,7 +3,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useRealtimeTyres } from "@/hooks/useRealtimeTyres";
 import { useRealtimeVehicles } from "@/hooks/useRealtimeVehicles";
 import { supabase } from "@/integrations/supabase/client";
-import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import {
   AlertCircle,
@@ -19,10 +18,10 @@ import {
   Package,
   Play,
   Settings,
-  TrendingDown,
-  TrendingUp,
   Truck,
-  Wrench
+  Wrench,
+  TrendingUp,
+  TrendingDown as _TrendingDown  // Prefix with underscore
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -41,8 +40,6 @@ import AddJobCardDialog from "./dialogs/AddJobCardDialog";
 import RequestPartsDialog from "./dialogs/RequestPartsDialog";
 import StartInspectionDialog from "./dialogs/StartInspectionDialog";
 
-// Import CSS for dashboard styles
-import "./Dashboard.css";
 
 // Type definitions for dashboard data
 interface DashboardStat {
@@ -625,28 +622,16 @@ const Dashboard = () => {
     }
   };
 
-  const TrendIndicator = ({ trend }: { trend?: 'up' | 'down' | 'neutral' }) => {
-    if (trend === "up") return <TrendingUp className="h-4 w-4 text-success" />;
-    if (trend === "down") return <TrendingDown className="h-4 w-4 text-destructive" />;
-    return null;
-  };
-
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
-            Workshop Dashboard
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Real-time overview of workshop operations
-          </p>
-        </div>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground bg-secondary/30 px-4 py-2 rounded-lg">
-          <Calendar className="h-4 w-4" />
-          <span>{new Date().toLocaleDateString("en-ZA", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</span>
-        </div>
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
+          Workshop Dashboard
+        </h1>
+        <p className="text-muted-foreground">
+          Real-time overview of workshop operations
+        </p>
       </div>
 
       {/* Primary Stats Grid */}
@@ -656,46 +641,18 @@ const Dashboard = () => {
           return (
             <Card
               key={stat.title}
-              className={cn(
-                "relative overflow-hidden cursor-pointer transition-all duration-200",
-                "hover:shadow-lg hover:scale-[1.02] hover:border-primary/30",
-                "bg-gradient-to-br from-card to-card/80"
-              )}
+              className="cursor-pointer transition-all duration-200 hover:shadow-md hover:border-primary/20"
               onClick={stat.onClick}
             >
-              <div className={cn(
-                "stat-indicator",
-                stat.color === "info" && "stat-info",
-                stat.color === "success" && "stat-success",
-                stat.color === "warning" && "stat-warning",
-                stat.color === "destructive" && "stat-destructive",
-              )} />
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
+                <CardTitle className="text-sm font-medium">
                   {stat.title}
                 </CardTitle>
-                <div className={cn(
-                  "stat-icon-wrapper",
-                  stat.color === "info" && "stat-icon-info",
-                  stat.color === "success" && "stat-icon-success",
-                  stat.color === "warning" && "stat-icon-warning",
-                  stat.color === "destructive" && "stat-icon-destructive",
-                )}>
-                  <Icon className={cn(
-                    "stat-icon",
-                    stat.color === "info" && "text-info",
-                    stat.color === "success" && "text-success",
-                    stat.color === "warning" && "text-warning",
-                    stat.color === "destructive" && "text-destructive",
-                  )} />
-                </div>
+                <Icon className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="flex items-center gap-2">
-                  <div className="text-3xl font-bold tracking-tight">{stat.value}</div>
-                  <TrendIndicator trend={stat.trend} />
-                </div>
-                <p className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1">
+                <div className="text-2xl font-semibold">{stat.value}</div>
+                <p className="text-xs text-muted-foreground mt-1">
                   {stat.change}
                 </p>
               </CardContent>
@@ -705,40 +662,22 @@ const Dashboard = () => {
       </div>
 
       {/* Secondary Metrics */}
-      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         {secondaryStats.map((stat) => {
           const Icon = stat.icon;
           return (
             <Card
               key={stat.title}
-              className="cursor-pointer hover:shadow-md transition-all duration-200 hover:border-primary/20"
+              className="cursor-pointer transition-all duration-200 hover:shadow-md hover:border-primary/20"
               onClick={stat.onClick}
             >
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className={cn(
-                    "stat-icon-wrapper-sm",
-                    stat.color === "success" && "stat-icon-success",
-                    stat.color === "warning" && "stat-icon-warning",
-                    stat.color === "destructive" && "stat-icon-destructive",
-                    stat.color === "info" && "stat-icon-info",
-                  )}>
-                    <Icon className={cn(
-                      "stat-icon-sm",
-                      stat.color === "success" && "text-success",
-                      stat.color === "warning" && "text-warning",
-                      stat.color === "destructive" && "text-destructive",
-                      stat.color === "info" && "text-info",
-                    )} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-muted-foreground truncate">{stat.title}</p>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-xl font-bold">{stat.value}</span>
-                      <span className="text-xs text-muted-foreground">{stat.detail}</span>
-                    </div>
-                  </div>
-                </div>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
+                <Icon className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-semibold">{stat.value}</div>
+                <p className="text-xs text-muted-foreground">{stat.detail}</p>
               </CardContent>
             </Card>
           );

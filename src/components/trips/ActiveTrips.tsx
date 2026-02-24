@@ -1,6 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   DropdownMenu,
@@ -37,7 +37,6 @@ import {
   Truck, 
   Upload, 
   User, 
-  Users, 
   X,
   Trash2 // <-- Added missing import
 } from 'lucide-react';
@@ -313,100 +312,70 @@ const ActiveTrips = ({
     <TooltipProvider>
       <div className="space-y-6">
         {/* Enhanced Header with Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-          {/* Needs Attention Card - Show prominently when there are issues */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {stats.tripsNeedingAttention > 0 && (
-            <Card className="p-5 bg-gradient-to-br from-amber-500/10 to-amber-500/20 border-amber-400/40 animate-pulse-subtle">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-medium text-amber-700 mb-1">Needs Attention</p>
-                  <span className="text-2xl font-bold text-amber-600">{stats.tripsNeedingAttention}</span>
-                  <div className="flex flex-col gap-0.5 mt-1 text-xs text-amber-600/80">
-                    {stats.tripsWithFlaggedCosts > 0 && (
-                      <span>{stats.tripsWithFlaggedCosts} flagged costs</span>
-                    )}
-                    {stats.tripsWithNoCosts > 0 && (
-                      <span>{stats.tripsWithNoCosts} missing costs</span>
-                    )}
-                    {stats.tripsWithPendingCosts > 0 && (
-                      <span>{stats.tripsWithPendingCosts} pending review</span>
-                    )}
-                  </div>
-                </div>
-                <div className="h-10 w-10 rounded-lg bg-amber-500/30 flex items-center justify-center">
-                  <AlertTriangle className="h-5 w-5 text-amber-600" />
-                </div>
-              </div>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Needs Attention</CardTitle>
+                <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-semibold">{stats.tripsNeedingAttention}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {stats.tripsWithFlaggedCosts > 0 && `${stats.tripsWithFlaggedCosts} flagged`}
+                  {stats.tripsWithNoCosts > 0 && ` ${stats.tripsWithNoCosts} missing`}
+                </p>
+              </CardContent>
             </Card>
           )}
 
-          <Card className={`${stats.tripsNeedingAttention > 0 ? 'col-span-1' : 'col-span-1 md:col-span-2'} p-5 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20`}>
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Total Trips</p>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-bold">{stats.totalTrips}</span>
-                  <span className="text-sm text-muted-foreground">active</span>
-                </div>
-                <div className="flex items-center gap-3 mt-2 text-xs">
-                  <span className="flex items-center gap-1">
-                    <Truck className="h-3.5 w-3.5 text-muted-foreground" />
-                    {filterOptions.fleets.length} fleets
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Users className="h-3.5 w-3.5 text-muted-foreground" />
-                    {filterOptions.drivers.length} drivers
-                  </span>
-                </div>
-              </div>
-              <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center">
-                <RouteIcon className="h-6 w-6 text-primary" />
-              </div>
-            </div>
+          <Card className={stats.tripsNeedingAttention > 0 ? '' : 'md:col-span-2'}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Trips</CardTitle>
+              <RouteIcon className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-semibold">{stats.totalTrips}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {filterOptions.fleets.length} fleets, {filterOptions.drivers.length} drivers
+              </p>
+            </CardContent>
           </Card>
 
-          <Card className="p-5 bg-gradient-to-br from-emerald-500/5 to-emerald-500/10 border-emerald-500/20">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Total Revenue</p>
-                <span className="text-2xl font-bold text-emerald-600">{formatCurrency(stats.totalRevenue)}</span>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Avg {formatCurrency(stats.avgRevenuePerTrip)} per trip
-                </p>
-              </div>
-              <div className="h-10 w-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-                <DollarSign className="h-5 w-5 text-emerald-600" />
-              </div>
-            </div>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-semibold">{formatCurrency(stats.totalRevenue)}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Avg {formatCurrency(stats.avgRevenuePerTrip)} per trip
+              </p>
+            </CardContent>
           </Card>
 
-          <Card className="p-5 bg-gradient-to-br from-rose-500/5 to-rose-500/10 border-rose-500/20">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Total Expenses</p>
-                <span className="text-2xl font-bold text-rose-600">{formatCurrency(stats.totalExpenses)}</span>
-              </div>
-              <div className="h-10 w-10 rounded-lg bg-rose-500/20 flex items-center justify-center">
-                <DollarSign className="h-5 w-5 text-rose-600" />
-              </div>
-            </div>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-semibold">{formatCurrency(stats.totalExpenses)}</div>
+            </CardContent>
           </Card>
 
-          <Card className="p-5 bg-gradient-to-br from-blue-500/5 to-blue-500/10 border-blue-500/20">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Net Profit</p>
-                <span className={`text-2xl font-bold ${stats.netProfit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                  {formatCurrency(stats.netProfit)}
-                </span>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {stats.totalDistance.toLocaleString()} total km
-                </p>
-              </div>
-              <div className="h-10 w-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                <Gauge className="h-5 w-5 text-blue-600" />
-              </div>
-            </div>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Net Profit</CardTitle>
+              <Gauge className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-semibold">{formatCurrency(stats.netProfit)}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {stats.totalDistance.toLocaleString()} total km
+              </p>
+            </CardContent>
           </Card>
         </div>
 

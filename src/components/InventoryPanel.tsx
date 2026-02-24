@@ -356,51 +356,51 @@ const InventoryPanel = () => {
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
-        <Card className="shadow-card">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Items</CardTitle>
-            <Package className="h-5 w-5 text-muted-foreground" />
+            <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{filteredInventory.length}</div>
+            <div className="text-2xl font-semibold">{filteredInventory.length}</div>
             <p className="text-xs text-muted-foreground mt-1">Active part numbers</p>
           </CardContent>
         </Card>
 
-        <Card className="shadow-card">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Low Stock Items</CardTitle>
-            <AlertTriangle className="h-5 w-5 text-warning" />
+            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-warning">{lowStockCount}</div>
+            <div className="text-2xl font-semibold">{lowStockCount}</div>
             <p className="text-xs text-muted-foreground mt-1">Require reordering</p>
           </CardContent>
         </Card>
 
-        <Card className="shadow-card">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Value</CardTitle>
-            <TrendingUp className="h-5 w-5 text-success" />
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalValue.toFixed(2)}</div>
+            <div className="text-2xl font-semibold">${totalValue.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground mt-1">Current stock value</p>
           </CardContent>
         </Card>
 
-        <Card className="shadow-card">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Requested Parts/Services</CardTitle>
-            <ShoppingCart className="h-5 w-5 text-blue-500" />
+            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{requestedPartsServices.length}</div>
+            <div className="text-2xl font-semibold">{requestedPartsServices.length}</div>
             <div className="flex gap-2 text-xs mt-1">
               {pendingRequestedCount > 0 && (
-                <span className="text-orange-600">{pendingRequestedCount} pending</span>
+                <span className="text-xs text-muted-foreground">{pendingRequestedCount} pending</span>
               )}
-              <span className="text-muted-foreground">external + service</span>
+              <span className="text-xs text-muted-foreground">external + service</span>
             </div>
           </CardContent>
         </Card>

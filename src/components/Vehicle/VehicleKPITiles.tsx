@@ -1,15 +1,12 @@
 // src/components/Vehicle/VehicleKPITiles.tsx
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { AlertCircle, CheckCircle2, Factory, Layers, Tag, Truck } from "lucide-react";
+
 
 interface KPITile {
   label: string;
   value: number;
-  icon: React.ReactNode;
-  colorClass: string;
-  bgClass: string;
 }
 
 export default function VehicleKPITiles() {
@@ -48,66 +45,25 @@ export default function VehicleKPITiles() {
   const types = new Set(vehicles.map((v) => v.vehicle_type).filter(Boolean)).size;
 
   const tiles: KPITile[] = [
-    {
-      label: "Total Vehicles",
-      value: total,
-      icon: <Truck className="h-5 w-5" />,
-      colorClass: "text-blue-600",
-      bgClass: "bg-blue-50 border-blue-200",
-    },
-    {
-      label: "Active",
-      value: active,
-      icon: <CheckCircle2 className="h-5 w-5" />,
-      colorClass: "text-green-600",
-      bgClass: "bg-green-50 border-green-200",
-    },
-    {
-      label: "Inactive",
-      value: inactive,
-      icon: <AlertCircle className="h-5 w-5" />,
-      colorClass: "text-amber-600",
-      bgClass: "bg-amber-50 border-amber-200",
-    },
-    {
-      label: "Unique Makes",
-      value: makes,
-      icon: <Factory className="h-5 w-5" />,
-      colorClass: "text-indigo-600",
-      bgClass: "bg-indigo-50 border-indigo-200",
-    },
-    {
-      label: "Unique Models",
-      value: models,
-      icon: <Tag className="h-5 w-5" />,
-      colorClass: "text-cyan-600",
-      bgClass: "bg-cyan-50 border-cyan-200",
-    },
-    {
-      label: "Vehicle Types",
-      value: types,
-      icon: <Layers className="h-5 w-5" />,
-      colorClass: "text-teal-600",
-      bgClass: "bg-teal-50 border-teal-200",
-    },
+    { label: "Total Vehicles", value: total },
+    { label: "Active", value: active },
+    { label: "Inactive", value: inactive },
+    { label: "Unique Makes", value: makes },
+    { label: "Unique Models", value: models },
+    { label: "Vehicle Types", value: types },
   ];
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
       {tiles.map((tile, i) => (
-        <Card key={i} className={`border ${tile.bgClass}`}>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  {tile.label}
-                </p>
-                <p className="text-2xl font-bold mt-1">{tile.value.toLocaleString()}</p>
-              </div>
-              <div className={`p-2 rounded-full ${tile.bgClass} ${tile.colorClass}`}>
-                {tile.icon}
-              </div>
-            </div>
+        <Card key={i}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              {tile.label}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-semibold">{tile.value.toLocaleString()}</div>
           </CardContent>
         </Card>
       ))}

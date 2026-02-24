@@ -1,7 +1,7 @@
 import Layout from '@/components/Layout';
 import ActionItemDetails from '@/components/operations/ActionItemDetails';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DatePicker } from '@/components/ui/date-picker';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
@@ -509,56 +509,48 @@ const ActionLog = () => {
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Items</p>
-                  <p className="text-2xl font-bold">{summary.total}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {summary.completionRate.toFixed(0)}% completion
-                  </p>
-                </div>
-                <ClipboardList className="w-8 h-8 text-primary" />
-              </div>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Items</CardTitle>
+              <ClipboardList className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-semibold">{summary.total}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {summary.completionRate.toFixed(0)}% completion
+              </p>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Overdue</p>
-                  <p className="text-2xl font-bold text-destructive">{summary.overdue}</p>
-                  <p className="text-xs text-muted-foreground">require attention</p>
-                </div>
-                <AlertTriangle className="w-8 h-8 text-destructive" />
-              </div>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Overdue</CardTitle>
+              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-semibold">{summary.overdue}</div>
+              <p className="text-xs text-muted-foreground mt-1">require attention</p>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">In Progress</p>
-                  <p className="text-2xl font-bold text-primary">{summary.inProgress}</p>
-                  <p className="text-xs text-muted-foreground">{summary.open} open</p>
-                </div>
-                <Clock className="w-8 h-8 text-primary" />
-              </div>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">In Progress</CardTitle>
+              <Clock className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-semibold">{summary.inProgress}</div>
+              <p className="text-xs text-muted-foreground mt-1">{summary.open} open</p>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Completed</p>
-                  <p className="text-2xl font-bold text-success">{summary.completed}</p>
-                  <p className="text-xs text-muted-foreground">tasks finished</p>
-                </div>
-                <CheckCircle className="w-8 h-8 text-success" />
-              </div>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Completed</CardTitle>
+              <CheckCircle className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-semibold">{summary.completed}</div>
+              <p className="text-xs text-muted-foreground mt-1">tasks finished</p>
             </CardContent>
           </Card>
         </div>
