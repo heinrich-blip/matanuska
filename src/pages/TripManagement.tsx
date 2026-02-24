@@ -249,6 +249,11 @@ const TripManagement = () => {
   return (
     <Layout>
       <div className="space-y-5">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Trip Management</h1>
+          <p className="text-muted-foreground mt-1">Plan, track, and manage fleet trips and expenses</p>
+        </div>
+
         <Tabs defaultValue="active" className="space-y-5">
           <div className="bg-card/80 backdrop-blur-sm border border-border/60 rounded-xl p-1.5 shadow-sm">
             <TabsList className="inline-flex w-full bg-transparent gap-1 h-auto p-0 flex-wrap">
@@ -257,32 +262,32 @@ const TripManagement = () => {
                 Active
                 {activeTrips.length > 0 && <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-bold rounded-full">{activeTrips.length}</Badge>}
               </TabsTrigger>
-              <TabsTrigger value="completed" className="rounded-lg px-3.5 py-2 text-sm font-medium gap-2 data-[state=active]:bg-emerald-500/10 data-[state=active]:text-emerald-700 data-[state=active]:shadow-sm transition-all duration-200">
+              <TabsTrigger value="completed" className="rounded-lg px-3.5 py-2 text-sm font-medium gap-2 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all duration-200">
                 <CheckCircle2 className="h-3.5 w-3.5" />
                 Completed
                 {completedTrips.length > 0 && <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-bold rounded-full">{completedTrips.length}</Badge>}
               </TabsTrigger>
-              <TabsTrigger value="expenses" className="rounded-lg px-3.5 py-2 text-sm font-medium gap-2 data-[state=active]:bg-rose-500/10 data-[state=active]:text-rose-700 data-[state=active]:shadow-sm transition-all duration-200">
+              <TabsTrigger value="expenses" className="rounded-lg px-3.5 py-2 text-sm font-medium gap-2 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all duration-200">
                 <Receipt className="h-3.5 w-3.5" />
                 Expenses
               </TabsTrigger>
-              <TabsTrigger value="reports" className="rounded-lg px-3.5 py-2 text-sm font-medium gap-2 data-[state=active]:bg-violet-500/10 data-[state=active]:text-violet-700 data-[state=active]:shadow-sm transition-all duration-200">
+              <TabsTrigger value="reports" className="rounded-lg px-3.5 py-2 text-sm font-medium gap-2 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all duration-200">
                 <BarChart3 className="h-3.5 w-3.5" />
                 Reports
               </TabsTrigger>
-              <TabsTrigger value="invoices" className="rounded-lg px-3.5 py-2 text-sm font-medium gap-2 data-[state=active]:bg-amber-500/10 data-[state=active]:text-amber-700 data-[state=active]:shadow-sm transition-all duration-200">
+              <TabsTrigger value="invoices" className="rounded-lg px-3.5 py-2 text-sm font-medium gap-2 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all duration-200">
                 <FileText className="h-3.5 w-3.5" />
                 Invoices
               </TabsTrigger>
-              <TabsTrigger value="analytics" className="rounded-lg px-3.5 py-2 text-sm font-medium gap-2 data-[state=active]:bg-cyan-500/10 data-[state=active]:text-cyan-700 data-[state=active]:shadow-sm transition-all duration-200">
+              <TabsTrigger value="analytics" className="rounded-lg px-3.5 py-2 text-sm font-medium gap-2 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all duration-200">
                 <LineChart className="h-3.5 w-3.5" />
                 Analytics
               </TabsTrigger>
-              <TabsTrigger value="ytd" className="rounded-lg px-3.5 py-2 text-sm font-medium gap-2 data-[state=active]:bg-indigo-500/10 data-[state=active]:text-indigo-700 data-[state=active]:shadow-sm transition-all duration-200">
+              <TabsTrigger value="ytd" className="rounded-lg px-3.5 py-2 text-sm font-medium gap-2 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all duration-200">
                 <CreditCard className="h-3.5 w-3.5" />
                 YTD
               </TabsTrigger>
-              <TabsTrigger value="missed-loads" className="rounded-lg px-3.5 py-2 text-sm font-medium gap-2 data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-700 data-[state=active]:shadow-sm transition-all duration-200">
+              <TabsTrigger value="missed-loads" className="rounded-lg px-3.5 py-2 text-sm font-medium gap-2 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all duration-200">
                 <AlertCircle className="h-3.5 w-3.5" />
                 Missed
               </TabsTrigger>

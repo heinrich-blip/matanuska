@@ -101,9 +101,9 @@ const DriverBehaviorCard = ({ event, onViewDetails, onStartDebrief, onExportPDF 
               {getInitials(event.driver_name)}
             </div>
             <div>
-              <h3 className="font-bold text-lg text-gray-900">{event.driver_name}</h3>
+              <h3 className="font-bold text-lg text-foreground">{event.driver_name}</h3>
               {event.fleet_number && (
-                <p className="text-sm text-gray-600 flex items-center gap-1 mt-0.5">
+                <p className="text-sm text-muted-foreground flex items-center gap-1 mt-0.5">
                   <Car className="w-3.5 h-3.5" />
                   Fleet #{event.fleet_number}
                 </p>
@@ -135,21 +135,21 @@ const DriverBehaviorCard = ({ event, onViewDetails, onStartDebrief, onExportPDF 
 
         {/* Meta Info */}
         <div className="space-y-2 text-sm">
-          <div className="flex items-center gap-2 text-gray-700">
-            <Calendar className="w-4 h-4 text-gray-500" />
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Calendar className="w-4 h-4 text-muted-foreground" />
             <span className="font-medium">
               {format(new Date(event.event_date), "MMM dd, yyyy")}
             </span>
             {event.event_time && (
               <>
-                <Clock className="w-4 h-4 ml-2 text-gray-500" />
+                <Clock className="w-4 h-4 ml-2 text-muted-foreground" />
                 <span className="font-medium">{event.event_time}</span>
               </>
             )}
           </div>
 
           {event.location && (
-            <div className="flex items-center gap-2 text-gray-600">
+            <div className="flex items-center gap-2 text-muted-foreground">
               <MapPin className="w-4 h-4" />
               <span className="truncate max-w-[180px]">{event.location}</span>
             </div>
@@ -164,7 +164,7 @@ const DriverBehaviorCard = ({ event, onViewDetails, onStartDebrief, onExportPDF 
         </div>
 
         {/* Description */}
-        <p className="text-sm text-gray-700 line-clamp-2 leading-relaxed">
+        <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
           {event.description}
         </p>
 

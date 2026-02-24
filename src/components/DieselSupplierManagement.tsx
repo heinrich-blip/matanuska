@@ -331,7 +331,7 @@ const DieselSupplierManagement = () => {
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Diesel Supplier Management</h1>
+          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Diesel Supplier Management</h1>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
               <Upload className="h-4 w-4 mr-2" />
@@ -570,81 +570,76 @@ const DieselSupplierManagement = () => {
 const StatisticsCards = ({ statistics }: { statistics: NonNullable<ReturnType<typeof usePriceStatistics>["data"]> }) => (
   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
     {/* Total Suppliers Card */}
-    <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg">
-      <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-8 -mt-8" />
+    <Card className="relative overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200/60 shadow-sm">
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-blue-100 flex items-center gap-2">
-          <Building2 className="h-4 w-4" />
+        <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+          <Building2 className="h-4 w-4 text-blue-600" />
           Total Suppliers
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="text-3xl font-bold">{statistics.totalSuppliers}</div>
-        <p className="text-xs text-blue-100 mt-1">Active suppliers</p>
+        <div className="text-3xl font-bold text-foreground">{statistics.totalSuppliers}</div>
+        <p className="text-xs text-muted-foreground mt-1">Active suppliers</p>
       </CardContent>
     </Card>
 
     {/* Average Price Card */}
-    <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-slate-600 to-slate-700 text-white shadow-lg">
-      <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-8 -mt-8" />
+    <Card className="relative overflow-hidden bg-gradient-to-br from-slate-50 to-gray-100 border-slate-200/60 shadow-sm">
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-slate-200 flex items-center gap-2">
-          <Calculator className="h-4 w-4" />
+        <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+          <Calculator className="h-4 w-4 text-slate-600" />
           Average Price
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="text-3xl font-bold">R{statistics.avgPrice.toFixed(2)}</div>
-        <p className="text-xs text-slate-200 mt-1">per liter</p>
+        <div className="text-3xl font-bold text-foreground">R{statistics.avgPrice.toFixed(2)}</div>
+        <p className="text-xs text-muted-foreground mt-1">per liter</p>
       </CardContent>
     </Card>
 
     {/* Lowest Price Card */}
-    <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-emerald-500 to-green-500 text-white shadow-lg">
-      <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-8 -mt-8" />
+    <Card className="relative overflow-hidden bg-gradient-to-br from-emerald-50 to-green-50 border-emerald-200/60 shadow-sm">
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-emerald-100 flex items-center gap-2">
-          <TrendingDown className="h-4 w-4" />
+        <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+          <TrendingDown className="h-4 w-4 text-emerald-600" />
           Lowest Price
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="text-3xl font-bold">R{statistics.minPrice.toFixed(2)}</div>
-        <p className="text-xs text-emerald-100 mt-1">
+        <div className="text-3xl font-bold text-foreground">R{statistics.minPrice.toFixed(2)}</div>
+        <p className="text-xs text-muted-foreground mt-1">
           Save R{(statistics.avgPrice - statistics.minPrice).toFixed(2)}/L vs avg
         </p>
       </CardContent>
     </Card>
 
     {/* Highest Price Card */}
-    <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-red-500 to-rose-600 text-white shadow-lg">
-      <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-8 -mt-8" />
+    <Card className="relative overflow-hidden bg-gradient-to-br from-red-50 to-rose-50 border-red-200/60 shadow-sm">
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-red-100 flex items-center gap-2">
-          <TrendingUp className="h-4 w-4" />
+        <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+          <TrendingUp className="h-4 w-4 text-red-600" />
           Highest Price
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="text-3xl font-bold">R{statistics.maxPrice.toFixed(2)}</div>
-        <p className="text-xs text-red-100 mt-1">
+        <div className="text-3xl font-bold text-foreground">R{statistics.maxPrice.toFixed(2)}</div>
+        <p className="text-xs text-muted-foreground mt-1">
           +R{(statistics.maxPrice - statistics.avgPrice).toFixed(2)}/L above avg
         </p>
       </CardContent>
     </Card>
 
     {/* Price Range Card */}
-    <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-purple-500 to-violet-600 text-white shadow-lg">
-      <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-8 -mt-8" />
+    <Card className="relative overflow-hidden bg-gradient-to-br from-purple-50 to-violet-50 border-purple-200/60 shadow-sm">
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-purple-100 flex items-center gap-2">
-          <ArrowRight className="h-4 w-4" />
+        <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+          <ArrowRight className="h-4 w-4 text-purple-600" />
           Price Range
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="text-3xl font-bold">R{statistics.priceRange.toFixed(2)}</div>
-        <p className="text-xs text-purple-100 mt-1">min to max spread</p>
+        <div className="text-3xl font-bold text-foreground">R{statistics.priceRange.toFixed(2)}</div>
+        <p className="text-xs text-muted-foreground mt-1">min to max spread</p>
       </CardContent>
     </Card>
   </div>
@@ -810,7 +805,7 @@ const SuppliersTable = ({
               Manage all diesel suppliers and their current prices
             </CardDescription>
           </div>
-          <Badge className="text-lg px-4 py-1.5 bg-gradient-to-r from-blue-500 to-cyan-400 text-white shadow-sm">
+          <Badge className="text-lg px-4 py-1.5 bg-blue-50 text-blue-700 border border-blue-200">
             {suppliers.length} Suppliers
           </Badge>
         </div>
@@ -925,8 +920,8 @@ const SuppliersTable = ({
                           <Badge
                             className={`transition-all duration-200 ${
                               priceDiff.diff < 0
-                                ? "bg-gradient-to-r from-emerald-500 to-green-400 text-white shadow-sm"
-                                : "bg-gradient-to-r from-red-500 to-rose-400 text-white shadow-sm"
+                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                : "bg-red-50 text-red-700 border border-red-200"
                             }`}
                           >
                             {priceDiff.diff > 0 ? (
@@ -940,12 +935,12 @@ const SuppliersTable = ({
                       </TableCell>
                       <TableCell className="text-center py-3.5">
                         {supplier.is_avoided ? (
-                          <Badge className="bg-gradient-to-r from-red-600 to-rose-500 text-white shadow-sm animate-pulse">
+                          <Badge className="bg-red-50 text-red-700 border border-red-200 animate-pulse">
                             <Ban className="h-3 w-3 mr-1" />
                             Avoided
                           </Badge>
                         ) : supplier.is_preferred ? (
-                          <Badge className="bg-gradient-to-r from-yellow-500 to-amber-400 text-white shadow-sm">
+                          <Badge className="bg-amber-50 text-amber-700 border border-amber-200">
                             <Star className="h-3 w-3 mr-1 fill-white" />
                             Preferred
                           </Badge>
@@ -1074,7 +1069,7 @@ const CheapestSuppliersCard = ({
               </div>
             </div>
             <div className="text-right">
-              <div className="text-2xl font-bold bg-gradient-to-r from-emerald-500 to-green-400 bg-clip-text text-transparent">
+              <div className="text-2xl font-bold text-emerald-600 font-bold">
                 R{supplier.current_price_per_liter.toFixed(2)}
               </div>
               {statistics && (
@@ -1128,7 +1123,7 @@ const PreferredSuppliersCard = ({
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold bg-gradient-to-r from-yellow-500 to-amber-500 bg-clip-text text-transparent">
+                <div className="text-2xl font-bold text-amber-600 font-bold">
                   R{supplier.current_price_per_liter.toFixed(2)}
                   <span className="text-sm font-normal text-muted-foreground">/L</span>
                 </div>
@@ -1353,8 +1348,8 @@ const AnalyticsTab = ({
                         <Badge
                           className={
                             diff < 0
-                              ? "bg-gradient-to-r from-emerald-500 to-green-400 text-white shadow-sm"
-                              : "bg-gradient-to-r from-red-500 to-rose-400 text-white shadow-sm"
+                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                              : "bg-red-50 text-red-700 border border-red-200"
                           }
                         >
                           {diff > 0 ? <ArrowUp className="h-3 w-3 mr-1" /> : <ArrowDown className="h-3 w-3 mr-1" />}
@@ -1612,7 +1607,7 @@ const FavoriteRoutesCard = ({
                       {route.total_distance_km?.toLocaleString()} km
                     </Badge>
                     {fuelEstimate && (
-                      <span className="font-bold bg-gradient-to-r from-emerald-500 to-green-400 bg-clip-text text-transparent">
+                      <span className="font-bold text-emerald-600 font-bold">
                         ~R{fuelEstimate.cost.toFixed(0)}
                       </span>
                     )}

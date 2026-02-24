@@ -962,7 +962,7 @@ const DieselManagement = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Diesel Management</h1>
+            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Diesel Management</h1>
             <p className="text-muted-foreground">
               Track and manage fuel consumption across the fleet
             </p>

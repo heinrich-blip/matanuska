@@ -6,6 +6,10 @@
    Design System Tokens - Soft Color Edition
    ========================================================================== */
 @layer base {
+  body {
+    @apply font-sans antialiased;
+  }
+
   :root {
     /* Core Colors - Very soft neutrals */
     --background: 210 20% 98%;

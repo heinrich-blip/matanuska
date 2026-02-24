@@ -76,7 +76,7 @@ export default function MaintenanceScheduling() {
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold">Maintenance Scheduling</h1>
+            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Maintenance Scheduling</h1>
             <p className="text-muted-foreground text-sm">
               Manage and track vehicle maintenance schedules
             </p>

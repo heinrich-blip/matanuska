@@ -21,7 +21,8 @@ interface LocationState {
     fleetNumber: string;
     registration: string;
     fullCode: string;
-  };
+  } | null;
+  odometerReading: number | null;
 }
 
 const InspectionTypeSelector = () => {
@@ -44,7 +45,8 @@ const InspectionTypeSelector = () => {
         inspectorId,
         inspectorName,
         scannedVehicleData,
-        initiatedVia: "qr_scan",
+        initiatedVia: "mobile_app",
+        odometerReading: state.odometerReading || null,
       },
     });
   };
@@ -78,7 +80,7 @@ const InspectionTypeSelector = () => {
           template_id: template.id,
           status: "in_progress",
           inspection_date: new Date().toISOString(),
-          initiated_via: "qr_scan",
+          initiated_via: "mobile_app",
         })
         .select()
         .single();
@@ -99,7 +101,8 @@ const InspectionTypeSelector = () => {
           inspectorId,
           inspectorName,
           scannedVehicleData,
-          initiatedVia: "qr_scan",
+          initiatedVia: "mobile_app",
+          odometerReading: state.odometerReading || null,
         },
       });
 

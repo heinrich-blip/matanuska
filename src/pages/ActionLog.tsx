@@ -477,7 +477,7 @@ const ActionLog = () => {
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-2xl font-bold">Action Log</h2>
+            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Action Log</h1>
             <p className="text-muted-foreground">Track and manage action items and tasks</p>
           </div>
           <div className="flex gap-2">

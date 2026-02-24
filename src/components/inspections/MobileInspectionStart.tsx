@@ -5,87 +5,96 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Camera, QrCode, ArrowRight, Truck, AlertCircle } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { QrCode, Truck, Gauge, ClipboardCheck, FileText, Loader2 } from "lucide-react";
 import PositionQRScanner, { ScanResult } from "@/components/tyres/PositionQRScanner";
 import InspectorProfileSelector from "./InspectorProfileSelector";
-import LoadingSpinner from "@/components/ui/loading-spinner";
 import { getFleetConfig } from "@/constants/fleetTyreConfig";
 import { toast } from "@/hooks/use-toast";
-
-interface ScannedVehicleData {
-  fleetNumber: string;
-  registration: string;
-  fullCode: string;
-}
 
 const MobileInspectionStart = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [showScanner, setShowScanner] = useState(false);
-  const [scannedVehicle, setScannedVehicle] = useState<ScannedVehicleData | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [selectedVehicleId, setSelectedVehicleId] = useState("");
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
+  const [inspectionType, setInspectionType] = useState("");
+  const [odometerReading, setOdometerReading] = useState("");
+  const [notes, setNotes] = useState("");
   const [inspectorId, setInspectorId] = useState("");
   const [inspectorName, setInspectorName] = useState("");
 
-  // Parse URL parameters for deep link support
+  // Fetch all active vehicles for dropdown
+  const { data: vehicles = [] } = useQuery({
+    queryKey: ["vehicles-inspection-start"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("vehicles")
+        .select("id, registration_number, make, model, fleet_number")
+        .eq("active", true)
+        .order("fleet_number");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Fetch active inspection templates
+  const { data: templates = [] } = useQuery({
+    queryKey: ["inspection_templates"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("inspection_templates")
+        .select("id, name, template_code, description")
+        .eq("is_active", true)
+        .order("name");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const selectedVehicle = vehicles.find(v => v.id === selectedVehicleId) || null;
+
+  // Parse URL parameters for deep link / QR support
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const vehicleParam = searchParams.get('vehicle');
 
-    if (vehicleParam && !scannedVehicle) {
-      // Parse vehicle code from URL (format: FLEET-REG)
-      const parts = vehicleParam.split('-');
-      if (parts.length >= 2) {
-        const fleetNumber = parts[0];
-        const registration = parts.slice(1).join('-');
-        setScannedVehicle({
-          fleetNumber,
-          registration,
-          fullCode: vehicleParam
-        });
+    if (vehicleParam && !selectedVehicleId) {
+      const match = vehicles.find(v => v.registration_number === vehicleParam);
+      if (match) {
+        setSelectedVehicleId(match.id);
         toast({
           title: "Vehicle Loaded",
           description: `${vehicleParam} loaded from QR code`,
         });
       }
     }
-  }, [location.search, scannedVehicle]);
-
-  // Fetch vehicle details when scanned
-  const { data: vehicleData, isLoading: isLoadingVehicle, isError: vehicleError } = useQuery({
-    queryKey: ["vehicle", scannedVehicle?.fullCode],
-    enabled: !!scannedVehicle,
-    queryFn: async () => {
-      if (!scannedVehicle) return null;
-
-      const fullRegistration = `${scannedVehicle.fleetNumber}-${scannedVehicle.registration}`;
-      const { data, error } = await supabase
-        .from("vehicles")
-        .select("*")
-        .eq("registration_number", fullRegistration)
-        .single();
-
-      if (error) {
-        console.error("Vehicle not found:", error);
-        toast({
-          title: "Vehicle Not Found",
-          description: "The scanned vehicle was not found in the database",
-          variant: "destructive",
-        });
-        return null;
-      }
-      return data;
-    },
-  });
+  }, [location.search, selectedVehicleId, vehicles]);
 
   const handleScanSuccess = (result: ScanResult) => {
     if (result.type === "vehicle") {
-      const vehicleData = result.data as { fleetNumber: string; registration: string; fullCode: string };
-      setScannedVehicle(vehicleData);
+      const scanned = result.data as { fleetNumber: string; registration: string; fullCode: string };
+      const fullReg = `${scanned.fleetNumber}-${scanned.registration}`;
+      const match = vehicles.find(v => v.registration_number === fullReg);
       setShowScanner(false);
-      toast({
-        title: "Vehicle Scanned",
-        description: `${vehicleData.fleetNumber}-${vehicleData.registration}`,
-      });
+
+      if (match) {
+        setSelectedVehicleId(match.id);
+        toast({
+          title: "Vehicle Scanned",
+          description: `${fullReg} selected`,
+        });
+      } else {
+        toast({
+          title: "Vehicle Not Found",
+          description: `${fullReg} is not in the fleet database`,
+          variant: "destructive",
+        });
+      }
     } else {
       toast({
         title: "Invalid QR Code",
@@ -95,29 +104,77 @@ const MobileInspectionStart = () => {
     }
   };
 
-  const handleStartInspection = () => {
-    if (!vehicleData || !inspectorId || !inspectorName) {
+  const handleVehicleSelect = (vehicleId: string) => {
+    setSelectedVehicleId(vehicleId);
+    setOdometerReading("");
+  };
+
+  const handleTemplateSelect = (templateId: string) => {
+    setSelectedTemplateId(templateId);
+    const template = templates.find(t => t.id === templateId);
+    if (template) {
+      setInspectionType(template.name);
+    }
+  };
+
+  const handleStartInspection = async () => {
+    if (!selectedVehicle || !inspectorName || !selectedTemplateId) {
       toast({
         title: "Missing Information",
-        description: "Please scan a vehicle and select an inspector",
+        description: "Please select a vehicle, inspector, and inspection template",
         variant: "destructive",
       });
       return;
     }
 
-    // Navigate to inspection type selector
-    navigate("/inspections/type-selector", {
-      state: {
-        vehicleData,
-        inspectorId,
-        inspectorName,
-        scannedVehicleData: scannedVehicle,
-      },
-    });
+    setLoading(true);
+    try {
+      const inspectionNumber = `INS-${Date.now()}`;
+      const { data, error } = await supabase
+        .from("vehicle_inspections")
+        .insert({
+          inspection_number: inspectionNumber,
+          inspection_type: inspectionType || "routine",
+          template_id: selectedTemplateId,
+          inspection_date: new Date().toISOString().split('T')[0],
+          vehicle_id: selectedVehicle.id,
+          vehicle_registration: selectedVehicle.registration_number,
+          vehicle_make: selectedVehicle.make || null,
+          vehicle_model: selectedVehicle.model || null,
+          inspector_name: inspectorName,
+          inspector_profile_id: inspectorId || null,
+          odometer_reading: odometerReading ? parseInt(odometerReading) : null,
+          notes: notes || null,
+          status: "in_progress",
+          initiated_via: "mobile_app",
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast({
+        title: "Inspection Started",
+        description: `${inspectionType || "Inspection"} created successfully`,
+      });
+
+      // Navigate to the inspection details page
+      navigate(`/inspections/${data.id}`);
+    } catch (error) {
+      console.error("Error starting inspection:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to start inspection";
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const fleetConfig = scannedVehicle
-    ? getFleetConfig(`${scannedVehicle.fleetNumber}-${scannedVehicle.registration}`)
+  const fleetConfig = selectedVehicle
+    ? getFleetConfig(selectedVehicle.registration_number)
     : null;
 
   return (
@@ -125,178 +182,217 @@ const MobileInspectionStart = () => {
       {/* Sticky Header */}
       <div className="sticky top-0 z-10 bg-background border-b shadow-sm">
         <div className="text-center space-y-1 py-4 px-4">
-          <h1 className="text-2xl font-bold">Mobile Vehicle Inspection</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">New Vehicle Inspection</h1>
           <p className="text-sm text-muted-foreground">
-            Scan vehicle QR code to start
+            Fill in the details below to start an inspection
           </p>
         </div>
       </div>
 
-      <div className="p-4 space-y-4 pb-20">
-        {/* Scanner or Scanned Vehicle */}
-        {!scannedVehicle && !showScanner && (
+      <div className="p-4 space-y-4 pb-24 max-w-2xl mx-auto">
+        {/* QR Scanner Modal */}
+        {showScanner && (
+          <PositionQRScanner
+            onScanSuccess={handleScanSuccess}
+            onClose={() => setShowScanner(false)}
+          />
+        )}
+
+        {/* Step 1: Select Vehicle */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <QrCode className="w-5 h-5" />
-              Step 1: Scan Vehicle
+              <Truck className="w-5 h-5" />
+              Step 1: Select Vehicle *
             </CardTitle>
-            <CardDescription>
-              Point your camera at the vehicle's QR code
-            </CardDescription>
+            <CardDescription>Choose a fleet vehicle or scan a QR code</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-3">
+            <Select value={selectedVehicleId || undefined} onValueChange={handleVehicleSelect}>
+              <SelectTrigger className="h-12">
+                <SelectValue placeholder="Select a vehicle..." />
+              </SelectTrigger>
+              <SelectContent>
+                {vehicles.map((vehicle) => (
+                  <SelectItem key={vehicle.id} value={vehicle.id}>
+                    <div className="flex items-center gap-2">
+                      {vehicle.fleet_number && (
+                        <Badge variant="secondary" className="font-mono text-xs">
+                          {vehicle.fleet_number}
+                        </Badge>
+                      )}
+                      <span className="font-medium">{vehicle.registration_number}</span>
+                      <span className="text-muted-foreground text-sm">
+                        {vehicle.make} {vehicle.model}
+                      </span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">or</span>
+              </div>
+            </div>
+
             <Button
+              variant="outline"
               onClick={() => setShowScanner(true)}
-              className="w-full"
-              size="lg"
+              className="w-full h-11"
             >
-              <Camera className="w-5 h-5 mr-2" />
-              Open Camera Scanner
-            </Button>
-            <Button
-              variant="link"
-              className="w-full mt-2"
-              onClick={() => navigate("/inspections")}
-            >
-              Or use manual entry
+              <QrCode className="w-4 h-4 mr-2" />
+              Scan Vehicle QR Code
             </Button>
           </CardContent>
         </Card>
-      )}
 
-      {showScanner && (
-        <PositionQRScanner
-          onScanSuccess={handleScanSuccess}
-          onClose={() => setShowScanner(false)}
-        />
-      )}
-
-      {scannedVehicle && (
-        <>
-          {isLoadingVehicle && (
-            <Card>
-              <CardContent className="py-8">
-                <LoadingSpinner text="Loading vehicle details..." />
-              </CardContent>
-            </Card>
-          )}
-
-          {vehicleError && !isLoadingVehicle && (
-            <Card className="border-destructive">
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="w-5 h-5 text-destructive" />
-                  <CardTitle className="text-destructive">Vehicle Not Found</CardTitle>
-                </div>
-                <CardDescription>
-                  The scanned vehicle could not be found in the system
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setScannedVehicle(null);
-                    setShowScanner(true);
-                  }}
-                  className="w-full h-12"
-                >
-                  Scan Again
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-
-          {!isLoadingVehicle && !vehicleError && vehicleData && (
-            <>
-              {/* Scanned Vehicle Card */}
-              <Card className="border-primary">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Truck className="w-5 h-5" />
-                  Vehicle Scanned
-                </div>
-                <Badge variant="default">Ready</Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
+        {/* Selected Vehicle Info */}
+        {selectedVehicle && (
+          <Card className="border-primary">
+            <CardContent className="pt-6 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Registration:</span>
-                <span className="font-semibold">
-                  {scannedVehicle.fleetNumber}-{scannedVehicle.registration}
-                </span>
+                <span className="font-semibold">{selectedVehicle.registration_number}</span>
               </div>
+              {selectedVehicle.fleet_number && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Fleet:</span>
+                  <Badge variant="secondary">{selectedVehicle.fleet_number}</Badge>
+                </div>
+              )}
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Fleet:</span>
-                <Badge variant="secondary">{scannedVehicle.fleetNumber}</Badge>
+                <span className="text-sm text-muted-foreground">Vehicle:</span>
+                <span className="font-medium">{selectedVehicle.make} {selectedVehicle.model}</span>
               </div>
               {fleetConfig && (
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Positions:</span>
+                  <span className="text-sm text-muted-foreground">Tyre Positions:</span>
                   <Badge variant="outline">{fleetConfig.positions.length} tyres</Badge>
                 </div>
               )}
-              {vehicleData && (
-                <>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Make:</span>
-                    <span className="font-medium">{vehicleData.make}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Model:</span>
-                    <span className="font-medium">{vehicleData.model}</span>
-                  </div>
-                </>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full"
-                onClick={() => {
-                  setScannedVehicle(null);
-                  setShowScanner(true);
-                }}
-              >
-                Scan Different Vehicle
-              </Button>
             </CardContent>
           </Card>
+        )}
 
-          {/* Inspector Selection */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Step 2: Select Inspector</CardTitle>
-              <CardDescription>Who is conducting this inspection?</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <InspectorProfileSelector
-                value={inspectorId}
-                onChange={(id: string, name: string) => {
-                  setInspectorId(id);
-                  setInspectorName(name);
-                }}
+        {/* Step 2: Inspector Selection */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Step 2: Select Inspector *</CardTitle>
+            <CardDescription>Who is conducting this inspection?</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <InspectorProfileSelector
+              value={inspectorId}
+              onChange={(id: string, name: string) => {
+                setInspectorId(id);
+                setInspectorName(name);
+              }}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Step 3: Select Inspection Template */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ClipboardCheck className="w-5 h-5" />
+              Step 3: Inspection Template *
+            </CardTitle>
+            <CardDescription>Choose the type of inspection to perform</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Select value={selectedTemplateId || undefined} onValueChange={handleTemplateSelect}>
+              <SelectTrigger className="h-12">
+                <SelectValue placeholder="Select inspection template..." />
+              </SelectTrigger>
+              <SelectContent>
+                {templates.map((template) => (
+                  <SelectItem key={template.id} value={template.id}>
+                    <div className="flex flex-col">
+                      <span className="font-medium">{template.name}</span>
+                      {template.description && (
+                        <span className="text-xs text-muted-foreground">
+                          {template.description}
+                        </span>
+                      )}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+
+        {/* Step 4: Odometer / KM Reading */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Gauge className="w-5 h-5" />
+              Step 4: Current KM
+            </CardTitle>
+            <CardDescription>Enter the vehicle's current odometer reading</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <Label htmlFor="odometer">Odometer Reading (km)</Label>
+              <Input
+                id="odometer"
+                type="number"
+                inputMode="numeric"
+                placeholder="e.g. 125000"
+                value={odometerReading}
+                onChange={(e) => setOdometerReading(e.target.value)}
+                className="h-12 text-lg"
               />
-            </CardContent>
-          </Card>
+            </div>
+          </CardContent>
+        </Card>
 
-          {/* Start Inspection Button - Sticky at bottom */}
-          <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t shadow-lg">
+        {/* Step 5: Notes */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              Step 5: Initial Notes
+            </CardTitle>
+            <CardDescription>Any preliminary observations (optional)</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Textarea
+              placeholder="Any preliminary observations..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+              className="text-base"
+            />
+          </CardContent>
+        </Card>
+
+        {/* Start Inspection Button - Sticky at bottom */}
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t shadow-lg z-10">
+          <div className="max-w-2xl mx-auto">
             <Button
               onClick={handleStartInspection}
-              disabled={!vehicleData || !inspectorId}
+              disabled={!selectedVehicle || !inspectorName || !selectedTemplateId || loading}
               className="w-full h-14 text-lg"
               size="lg"
             >
-              Choose Inspection Type
-              <ArrowRight className="w-5 h-5 ml-2" />
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Starting...
+                </>
+              ) : (
+                "Start Inspection"
+              )}
             </Button>
           </div>
-            </>
-          )}
-        </>
-      )}
+        </div>
       </div>
     </div>
   );

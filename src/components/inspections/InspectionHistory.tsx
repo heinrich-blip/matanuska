@@ -328,7 +328,7 @@ export function InspectionHistory() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Inspection History</h1>
+        <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Inspection History</h1>
         <Button onClick={() => setShowStartDialog(true)} className="w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-2" />
           Start New Inspection

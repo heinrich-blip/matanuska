@@ -623,7 +623,7 @@ const JobCards = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold">Job Cards</h1>
+            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Job Cards</h1>
             <p className="text-muted-foreground mt-1">Manage and track maintenance jobs</p>
             {isLoading && <p className="text-sm text-blue-500">Loading job cards...</p>}
             {queryError && <p className="text-sm text-red-500">Error: {String(queryError)}</p>}

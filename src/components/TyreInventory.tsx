@@ -287,12 +287,12 @@ const TyreInventory = () => {
 
   const getTyreBadge = (type: string) => {
     const colors: Record<string, string> = {
-      steer: "bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-sm shadow-blue-500/30",
-      Steer: "bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-sm shadow-blue-500/30",
-      drive: "bg-gradient-to-r from-purple-600 to-purple-500 text-white shadow-sm shadow-purple-500/30",
-      Drive: "bg-gradient-to-r from-purple-600 to-purple-500 text-white shadow-sm shadow-purple-500/30",
-      trailer: "bg-gradient-to-r from-slate-600 to-slate-500 text-white shadow-sm shadow-slate-500/30",
-      Trailer: "bg-gradient-to-r from-slate-600 to-slate-500 text-white shadow-sm shadow-slate-500/30",
+      steer: "bg-blue-50 text-blue-700 border border-blue-200",
+      Steer: "bg-blue-50 text-blue-700 border border-blue-200",
+      drive: "bg-purple-50 text-purple-700 border border-purple-200",
+      Drive: "bg-purple-50 text-purple-700 border border-purple-200",
+      trailer: "bg-slate-50 text-slate-700 border border-slate-200",
+      Trailer: "bg-slate-50 text-slate-700 border border-slate-200",
     };
     return (
       <Badge className={`${colors[type] || "bg-muted"} transition-all duration-200 hover:scale-105 hover:shadow-md`}>
@@ -303,11 +303,11 @@ const TyreInventory = () => {
 
   const _getStatusBadge = (status: string) => {
     const statusStyles: Record<string, string> = {
-      new: "bg-gradient-to-r from-emerald-500 to-green-400 text-white shadow-sm shadow-emerald-500/30",
-      used: "bg-gradient-to-r from-slate-500 to-gray-400 text-white shadow-sm shadow-slate-500/30",
-      refurbished: "bg-gradient-to-r from-amber-500 to-yellow-400 text-white shadow-sm shadow-amber-500/30",
-      scrap: "bg-gradient-to-r from-red-600 to-rose-500 text-white shadow-sm shadow-red-500/30",
-      "in-service": "bg-gradient-to-r from-blue-500 to-cyan-400 text-white shadow-sm shadow-blue-500/30",
+      new: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+      used: "bg-slate-50 text-slate-700 border border-slate-200",
+      refurbished: "bg-amber-50 text-amber-700 border border-amber-200",
+      scrap: "bg-red-50 text-red-700 border border-red-200",
+      "in-service": "bg-blue-50 text-blue-700 border border-blue-200",
     };
     return (
       <Badge className={`${statusStyles[status] || "bg-muted"} capitalize transition-all duration-200 hover:scale-105`}>
@@ -319,16 +319,16 @@ const TyreInventory = () => {
   const _getStockStatus = (tyre: TyreStock) => {
     if (tyre.quantity < tyre.minQuantity) {
       return (
-        <Badge className="bg-gradient-to-r from-red-600 to-rose-500 text-white shadow-sm shadow-red-500/30 animate-pulse">
+        <Badge className="bg-red-50 text-red-700 border border-red-200 animate-pulse">
           <span className="flex items-center gap-1">
-            <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping" />
+            <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping" />
             Low Stock
           </span>
         </Badge>
       );
     }
     return (
-      <Badge className="bg-gradient-to-r from-emerald-500 to-green-400 text-white shadow-sm shadow-emerald-500/30">
+      <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200">
         In Stock
       </Badge>
     );
@@ -336,9 +336,9 @@ const TyreInventory = () => {
 
   const _getActionBadge = (action: string) => {
     const actionStyles: Record<string, string> = {
-      installed: "bg-gradient-to-r from-emerald-500 to-green-400 text-white shadow-sm shadow-emerald-500/30",
-      removed: "bg-gradient-to-r from-amber-500 to-orange-400 text-white shadow-sm shadow-amber-500/30",
-      rotated: "bg-gradient-to-r from-blue-500 to-cyan-400 text-white shadow-sm shadow-blue-500/30",
+      installed: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+      removed: "bg-amber-50 text-amber-700 border border-amber-200",
+      rotated: "bg-blue-50 text-blue-700 border border-blue-200",
     };
     return (
       <Badge className={`${actionStyles[action] || "bg-muted"} capitalize transition-all duration-200`}>

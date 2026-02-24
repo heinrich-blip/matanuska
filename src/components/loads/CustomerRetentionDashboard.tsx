@@ -236,7 +236,7 @@ export const CustomerRetentionDashboard = ({
       case "high":
         return "text-red-600 bg-red-50 border-red-200";
       default:
-        return "text-gray-600 bg-gray-50 border-gray-200";
+        return "text-muted-foreground bg-gray-50 border-gray-200";
     }
   };
 
@@ -253,10 +253,10 @@ export const CustomerRetentionDashboard = ({
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">
+          <h2 className="text-2xl font-bold text-foreground">
             Customer Retention & Service Dashboard
           </h2>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             Monitor customer relationships, payment patterns, and service frequency for loads
           </p>
         </div>
@@ -272,8 +272,8 @@ export const CustomerRetentionDashboard = ({
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">Total Customers</p>
-                <p className="text-2xl font-bold text-gray-900">{summary.total}</p>
+                <p className="text-sm text-muted-foreground">Total Customers</p>
+                <p className="text-2xl font-bold text-foreground">{summary.total}</p>
               </div>
               <Users className="w-8 h-8 text-blue-500" />
             </div>
@@ -284,7 +284,7 @@ export const CustomerRetentionDashboard = ({
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">At Risk Customers</p>
+                <p className="text-sm text-muted-foreground">At Risk Customers</p>
                 <p className="text-2xl font-bold text-red-600">{summary.atRisk}</p>
                 <p className="text-xs text-gray-400">
                   {summary.total > 0 ? ((summary.atRisk / summary.total) * 100).toFixed(1) : 0}% of
@@ -300,7 +300,7 @@ export const CustomerRetentionDashboard = ({
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">Top Clients</p>
+                <p className="text-sm text-muted-foreground">Top Clients</p>
                 <p className="text-2xl font-bold text-green-600">{summary.topClients}</p>
                 <p className="text-xs text-gray-400">High frequency</p>
               </div>
@@ -313,7 +313,7 @@ export const CustomerRetentionDashboard = ({
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">Avg Payment Days</p>
+                <p className="text-sm text-muted-foreground">Avg Payment Days</p>
                 <p className="text-2xl font-bold text-blue-600">
                   {summary.avgPaymentDays.toFixed(1)}
                 </p>
@@ -397,21 +397,21 @@ export const CustomerRetentionDashboard = ({
                     className="flex justify-between items-center p-3 bg-green-50 rounded-lg"
                   >
                     <div>
-                      <p className="font-medium text-gray-900">{customer.customerName}</p>
-                      <p className="text-sm text-gray-600">{customer.totalLoads} loads</p>
+                      <p className="font-medium text-foreground">{customer.customerName}</p>
+                      <p className="text-sm text-muted-foreground">{customer.totalLoads} loads</p>
                     </div>
                     <div className="text-right">
                       <p className="font-bold text-green-600">
                         {formatCurrency(customer.totalRevenue, customer.currency)}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-muted-foreground">
                         Score: {customer.paymentScore.toFixed(0)}
                       </p>
                     </div>
                   </div>
                 ))}
               {filteredCustomers.filter((c) => c.isProfitable).length === 0 && (
-                <p className="text-sm text-gray-500 text-center py-4">No profitable clients yet</p>
+                <p className="text-sm text-muted-foreground text-center py-4">No profitable clients yet</p>
               )}
             </div>
           </CardContent>
@@ -437,19 +437,19 @@ export const CustomerRetentionDashboard = ({
                     className="flex justify-between items-center p-3 bg-blue-50 rounded-lg"
                   >
                     <div>
-                      <p className="font-medium text-gray-900">{customer.customerName}</p>
-                      <p className="text-sm text-gray-600">
+                      <p className="font-medium text-foreground">{customer.customerName}</p>
+                      <p className="text-sm text-muted-foreground">
                         Last load: {new Date(customer.lastLoadDate).toLocaleDateString()}
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="font-bold text-blue-600">{customer.totalLoads}</p>
-                      <p className="text-xs text-gray-500">loads</p>
+                      <p className="text-xs text-muted-foreground">loads</p>
                     </div>
                   </div>
                 ))}
               {filteredCustomers.filter((c) => c.isTopClient).length === 0 && (
-                <p className="text-sm text-gray-500 text-center py-4">No top clients yet</p>
+                <p className="text-sm text-muted-foreground text-center py-4">No top clients yet</p>
               )}
             </div>
           </CardContent>
@@ -475,8 +475,8 @@ export const CustomerRetentionDashboard = ({
                     className="flex justify-between items-center p-3 bg-red-50 rounded-lg"
                   >
                     <div>
-                      <p className="font-medium text-gray-900">{customer.customerName}</p>
-                      <p className="text-sm text-gray-600">
+                      <p className="font-medium text-foreground">{customer.customerName}</p>
+                      <p className="text-sm text-muted-foreground">
                         {customer.daysSinceLastLoad} days since last load
                       </p>
                     </div>
@@ -491,7 +491,7 @@ export const CustomerRetentionDashboard = ({
                   </div>
                 ))}
               {filteredCustomers.filter((c) => c.isAtRisk).length === 0 && (
-                <p className="text-sm text-gray-500 text-center py-4">No at-risk clients</p>
+                <p className="text-sm text-muted-foreground text-center py-4">No at-risk clients</p>
               )}
             </div>
           </CardContent>
@@ -507,8 +507,8 @@ export const CustomerRetentionDashboard = ({
           {filteredCustomers.length === 0 ? (
             <div className="text-center py-8">
               <Users className="mx-auto h-10 w-10 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No customers found</h3>
-              <p className="mt-1 text-sm text-gray-500">
+              <h3 className="mt-2 text-sm font-medium text-foreground">No customers found</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
                 No customers match your current filters.
               </p>
             </div>
@@ -551,7 +551,7 @@ export const CustomerRetentionDashboard = ({
                         </TableCell>
                         <TableCell className="text-center">
                           <div>{new Date(customer.lastLoadDate).toLocaleDateString()}</div>
-                          <div className="text-xs text-gray-500">
+                          <div className="text-xs text-muted-foreground">
                             ({customer.daysSinceLastLoad} days ago)
                           </div>
                         </TableCell>

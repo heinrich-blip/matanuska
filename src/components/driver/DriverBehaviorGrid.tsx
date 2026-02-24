@@ -160,11 +160,11 @@ export default function DriverBehaviorGrid() {
         <div className="bg-blue-50 rounded-full p-8 mb-6">
           <Car className="w-16 h-16 text-blue-600" />
         </div>
-        <h3 className="text-2xl font-bold text-gray-900 mb-3">No Events Yet</h3>
-        <p className="text-lg text-gray-600 max-w-md">
+        <h3 className="text-2xl font-bold text-foreground mb-3">No Events Yet</h3>
+        <p className="text-lg text-muted-foreground max-w-md">
           Driver behavior events will appear here in real-time.
         </p>
-        <div className="mt-6 flex items-center gap-2 text-sm text-gray-500">
+        <div className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
           <span>Live monitoring active</span>
         </div>
@@ -247,8 +247,8 @@ export default function DriverBehaviorGrid() {
                 />
               )}
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">Pending Events</h2>
-                <p className="text-sm text-gray-600 mt-1">
+                <h2 className="text-2xl font-bold text-foreground">Pending Events</h2>
+                <p className="text-sm text-muted-foreground mt-1">
                   {filteredPending.length} of {pendingEvents.length} event{pendingEvents.length !== 1 ? 's' : ''}
                   {debounced && ` • Searching "${debounced}"`}
                 </p>
@@ -309,11 +309,11 @@ export default function DriverBehaviorGrid() {
                       <div className="flex-1 space-y-2">
                         <div className="flex items-center gap-3">
                           <div className="bg-gray-100 rounded-full p-2">
-                            <User className="w-5 h-5 text-gray-600" />
+                            <User className="w-5 h-5 text-muted-foreground" />
                           </div>
                           <div>
-                            <h3 className="font-bold text-lg text-gray-900">{event.driver_name}</h3>
-                            <p className="text-sm text-gray-600">Fleet #{event.fleet_number}</p>
+                            <h3 className="font-bold text-lg text-foreground">{event.driver_name}</h3>
+                            <p className="text-sm text-muted-foreground">Fleet #{event.fleet_number}</p>
                           </div>
                         </div>
 
@@ -325,11 +325,11 @@ export default function DriverBehaviorGrid() {
                           <Badge variant="secondary">{event.severity}</Badge>
                         </div>
 
-                        <p className="text-sm text-gray-700 line-clamp-2">
+                        <p className="text-sm text-muted-foreground line-clamp-2">
                           {event.description}
                         </p>
 
-                        <div className="flex flex-wrap gap-4 text-xs text-gray-500">
+                        <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
                           <div className="flex items-center gap-1">
                             <Calendar className="w-3 h-3" />
                             {format(new Date(event.event_date), "MMM dd, yyyy")}
@@ -395,8 +395,8 @@ export default function DriverBehaviorGrid() {
           {/* Header */}
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between mb-6">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">Debriefed Drivers</h2>
-              <p className="text-sm text-gray-600 mt-1">
+              <h2 className="text-2xl font-bold text-foreground">Debriefed Drivers</h2>
+              <p className="text-sm text-muted-foreground mt-1">
                 {filteredDebriefed.length} of {debriefedEvents.length} event{debriefedEvents.length !== 1 ? 's' : ''}
                 {debounced && ` • Searching "${debounced}"`}
               </p>
@@ -453,8 +453,8 @@ export default function DriverBehaviorGrid() {
                           <User className="w-5 h-5 text-green-600" />
                         </div>
                         <div>
-                          <h3 className="font-bold text-lg text-gray-900">{event.driver_name}</h3>
-                          <p className="text-sm text-gray-600">Fleet #{event.fleet_number}</p>
+                          <h3 className="font-bold text-lg text-foreground">{event.driver_name}</h3>
+                          <p className="text-sm text-muted-foreground">Fleet #{event.fleet_number}</p>
                         </div>
                         <Badge variant="outline" className="text-green-600 border-green-600">
                           <CheckCircle className="w-3 h-3 mr-1" />
@@ -467,11 +467,11 @@ export default function DriverBehaviorGrid() {
                         <Badge variant="secondary">{event.severity}</Badge>
                       </div>
 
-                      <p className="text-sm text-gray-700 line-clamp-2">
+                      <p className="text-sm text-muted-foreground line-clamp-2">
                         {event.description}
                       </p>
 
-                      <div className="flex flex-wrap gap-4 text-xs text-gray-500">
+                      <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
                           {format(new Date(event.event_date), "MMM dd, yyyy")}

@@ -140,8 +140,7 @@ const Vehicles = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center gap-3">
-              <Truck className="w-7 h-7 sm:w-8 sm:h-8 text-blue-600" />
+            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
               Fleet Management
             </h1>
             <p className="text-muted-foreground mt-2">

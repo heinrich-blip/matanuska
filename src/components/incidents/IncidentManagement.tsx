@@ -269,7 +269,7 @@ const IncidentManagement = () => {
         {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Incident Management</h1>
+            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Incident Management</h1>
             <p className="text-muted-foreground mt-1">Track and manage vehicle incidents, claims, and reports</p>
           </div>
           {activeMainTab === "incidents" && (

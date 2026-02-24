@@ -866,7 +866,7 @@ const Procurement = () => {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Procurement</h1>
+            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Procurement</h1>
             <p className="text-muted-foreground">
               Manage parts requests, vendor orders, and inventory replenishment
             </p>

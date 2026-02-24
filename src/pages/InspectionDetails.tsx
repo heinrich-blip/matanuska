@@ -276,7 +276,7 @@ const InspectionDetails = () => {
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-3xl font-bold">Inspection Details</h1>
+              <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Inspection Details</h1>
               <p className="text-muted-foreground">{inspection.inspection_number}</p>
             </div>
           </div>

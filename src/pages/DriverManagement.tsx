@@ -7,7 +7,7 @@ import DriverRecruitmentSection from "@/components/driver/DriverRecruitmentSecti
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertTriangle, Car, FileText, TrendingUp, UserPlus, Users } from "lucide-react";
+import { AlertTriangle, FileText, TrendingUp, UserPlus, Users } from "lucide-react";
 
 export default function DriverManagement() {
   return (
@@ -16,15 +16,14 @@ export default function DriverManagement() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
-              <Car className="w-8 h-8 text-blue-600" />
+            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
               Driver Management
             </h1>
             <p className="text-muted-foreground">
               Monitor performance, behavior, and corrective actions in real-time
             </p>
           </div>
-          <div className="flex items-center gap-2 text-sm text-gray-500">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
             <span>Live</span>
           </div>

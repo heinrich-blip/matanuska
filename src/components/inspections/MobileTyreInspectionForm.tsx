@@ -18,7 +18,7 @@ import { AlertTriangle, ArrowLeft, Camera, Check, CheckCircle2, ChevronLeft, Che
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
-type TyreCondition = "excellent" | "good" | "fair" | "poor" | "critical";
+type TyreCondition = "excellent" | "good" | "fair" | "poor" | "needs_replacement";
 
 // TypeScript interface for vehicle inspection record
 interface VehicleInspectionRecord {
@@ -32,6 +32,7 @@ interface VehicleInspectionRecord {
   scanned_vehicle_qr: string | null;
   vehicle_registration: string;
   notes: string;
+  odometer_reading?: number | null;
 }
 
 interface TyreData {
@@ -66,6 +67,7 @@ const MobileTyreInspectionForm = () => {
       fullCode: string;
     };
     initiatedVia?: string;
+    odometerReading?: number | null;
   } | null;
 
   const [currentPositionIndex, setCurrentPositionIndex] = useState(0);
@@ -73,6 +75,7 @@ const MobileTyreInspectionForm = () => {
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [odometerReading, setOdometerReading] = useState("");
   const cardRef = useRef<HTMLDivElement>(null);
 
   const vehicleId = locationState?.vehicleId || "";
@@ -91,6 +94,13 @@ const MobileTyreInspectionForm = () => {
     vehicleRegistration,
     fleetNumber: vehicleFleetNumber
   });
+
+  // Initialize odometer from location state
+  useEffect(() => {
+    if (locationState?.odometerReading) {
+      setOdometerReading(locationState.odometerReading.toString());
+    }
+  }, [locationState]);
 
   // Initialize tyre data with details from installed tyres
   useEffect(() => {
@@ -179,6 +189,10 @@ const MobileTyreInspectionForm = () => {
         throw new Error("Missing required information");
       }
 
+      if (!odometerReading) {
+        throw new Error("Please enter the current odometer reading");
+      }
+
       // Create overall vehicle inspection record
       const inspectionNumber = `TYRE-${Date.now()}`;
       const inspectionRecord: VehicleInspectionRecord = {
@@ -191,7 +205,8 @@ const MobileTyreInspectionForm = () => {
         initiated_via: locationState?.initiatedVia || 'manual',
         scanned_vehicle_qr: locationState?.scannedVehicleData?.fullCode || null,
         vehicle_registration: vehicleRegistration,
-        notes: `Mobile tyre inspection for ${vehicleRegistration} - ${tyreData.length} positions inspected`
+        notes: `Mobile tyre inspection for ${vehicleRegistration} - ${tyreData.length} positions inspected`,
+        odometer_reading: odometerReading ? parseInt(odometerReading) : null,
       };
 
       const { error: inspectionError } = await supabase
@@ -235,7 +250,7 @@ const MobileTyreInspectionForm = () => {
       good: "text-blue-600",
       fair: "text-yellow-600",
       poor: "text-orange-600",
-      critical: "text-red-600",
+      needs_replacement: "text-red-600",
     };
     return colors[condition];
   };
@@ -246,7 +261,7 @@ const MobileTyreInspectionForm = () => {
       good: CheckCircle2,
       fair: AlertTriangle,
       poor: AlertTriangle,
-      critical: XCircle,
+      needs_replacement: XCircle,
     };
     return icons[condition];
   };
@@ -300,15 +315,37 @@ const MobileTyreInspectionForm = () => {
         onTouchEnd={onTouchEnd}
       >
         <div className="p-4 space-y-4 pb-32">
+          {/* Current KM */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="space-y-2">
+                <Label className="text-base font-semibold">Current Odometer (km) *</Label>
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  value={odometerReading}
+                  onChange={(e) => setOdometerReading(e.target.value)}
+                  placeholder="Enter current km reading"
+                  className="h-12 text-base"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Condition Badge */}
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-center gap-3">
                 <ConditionIcon className={`w-8 h-8 ${getConditionColor(currentTyre.condition)}`} />
                 <span className={`text-lg font-semibold ${getConditionColor(currentTyre.condition)}`}>
-                  {currentTyre.condition.toUpperCase()}
+                  {currentTyre.condition.replace(/_/g, ' ').toUpperCase()}
                 </span>
               </div>
+              {currentTyre.pressure && (
+                <div className="text-sm text-muted-foreground text-center mt-1">
+                  PSI: <span className="font-semibold text-foreground">{currentTyre.pressure}</span>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -348,26 +385,34 @@ const MobileTyreInspectionForm = () => {
                 </div>
               )}
 
-              {/* Tyre Code with QR Scanner */}
+              {/* DOT Code — read-only if already set from installed tyre */}
               <div className="space-y-2">
-                <Label className="text-base">Tyre Code</Label>
-                <div className="flex gap-2">
+                <Label className="text-base">DOT Code</Label>
+                {currentTyre.dotCode ? (
                   <Input
-                    value={currentTyre.tyreCode || ""}
-                    onChange={(e) => updateCurrentTyre("tyreCode", e.target.value)}
-                    placeholder="Enter or scan code"
-                    className="h-12 text-base"
+                    value={currentTyre.dotCode}
+                    readOnly
+                    className="h-12 text-base bg-muted"
                   />
-                  <Button
-                    type="button"
-                    size="lg"
-                    variant="outline"
-                    onClick={() => setShowQRScanner(true)}
-                    className="h-12 w-12 p-0 shrink-0"
-                  >
-                    <Camera className="w-5 h-5" />
-                  </Button>
-                </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <Input
+                      value={currentTyre.dotCode || ""}
+                      onChange={(e) => updateCurrentTyre("dotCode", e.target.value)}
+                      placeholder="Enter DOT code"
+                      className="h-12 text-base"
+                    />
+                    <Button
+                      type="button"
+                      size="lg"
+                      variant="outline"
+                      onClick={() => setShowQRScanner(true)}
+                      className="h-12 w-12 p-0 shrink-0"
+                    >
+                      <Camera className="w-5 h-5" />
+                    </Button>
+                  </div>
+                )}
               </div>
 
               {/* Brand */}
@@ -433,7 +478,7 @@ const MobileTyreInspectionForm = () => {
                     <SelectItem value="good">Good</SelectItem>
                     <SelectItem value="fair">Fair</SelectItem>
                     <SelectItem value="poor">Poor</SelectItem>
-                    <SelectItem value="critical">Critical</SelectItem>
+                    <SelectItem value="needs_replacement">Needs Replacement</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -441,12 +486,24 @@ const MobileTyreInspectionForm = () => {
               {/* Wear Pattern */}
               <div className="space-y-2">
                 <Label className="text-base">Wear Pattern</Label>
-                <Input
-                  value={currentTyre.wearPattern}
-                  onChange={(e) => updateCurrentTyre("wearPattern", e.target.value)}
-                  placeholder="e.g., Even, Center, Edge"
-                  className="h-12 text-base"
-                />
+                <Select
+                  value={currentTyre.wearPattern || undefined}
+                  onValueChange={(value) => updateCurrentTyre("wearPattern", value)}
+                >
+                  <SelectTrigger className="h-12 text-base">
+                    <SelectValue placeholder="Select wear pattern" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="even">Even Wear</SelectItem>
+                    <SelectItem value="center">Center Wear</SelectItem>
+                    <SelectItem value="edge">Edge Wear (Both)</SelectItem>
+                    <SelectItem value="inner">Inner Edge Wear</SelectItem>
+                    <SelectItem value="outer">Outer Edge Wear</SelectItem>
+                    <SelectItem value="cupping">Cupping/Scalloping</SelectItem>
+                    <SelectItem value="flat_spot">Flat Spots</SelectItem>
+                    <SelectItem value="feathering">Feathering</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Notes */}

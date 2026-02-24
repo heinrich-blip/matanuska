@@ -257,11 +257,10 @@ const LoadManagement = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
-              <Package className="h-8 w-8" />
+            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
               Load Management
             </h1>
-            <p className="text-gray-500 mt-1">Manage cargo shipments and assignments</p>
+            <p className="text-muted-foreground mt-1">Manage cargo shipments and assignments</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => setShowRecurringSchedules(true)}>

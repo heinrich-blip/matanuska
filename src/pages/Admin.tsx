@@ -23,7 +23,7 @@ const Admin = () => {
     <Layout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Operation Dashboard</h1>
+          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Operation Dashboard</h1>
           <p className="text-muted-foreground">
             System administration and configuration
           </p>
