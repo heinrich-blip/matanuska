@@ -27,8 +27,12 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { generateInspectionPDF } from "@/lib/inspectionPdfExport";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowDownUp, LayoutList, Plus, Printer, Search, TriangleAlert } from "lucide-react";
-import { Fragment, useState } from "react";
+import { ArrowDownUp, Download, FileText, LayoutList, Plus, Printer, Search, TriangleAlert } from "lucide-react";
+import { Fragment, useCallback, useState } from "react";
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { useNavigate } from "react-router-dom";
 import CorrectiveActionDialog from "../dialogs/CorrectiveActionDialog";
 import { RootCauseAnalysisDialog } from "../dialogs/RootCauseAnalysisDialog";
@@ -324,6 +328,192 @@ export function InspectionHistory() {
     ? sortedInspections
     : sortedInspections;
 
+  const exportInspectionsToExcel = useCallback(async () => {
+    try {
+      const wb = new ExcelJS.Workbook();
+      wb.creator = 'Car Craft Co Fleet Management';
+      wb.created = new Date();
+
+      const hFill: ExcelJS.FillPattern = { type: 'pattern', pattern: 'solid', fgColor: { argb: '1F3864' } };
+      const hFont: Partial<ExcelJS.Font> = { bold: true, color: { argb: 'FFFFFF' }, size: 10, name: 'Calibri' };
+      const hAlign: Partial<ExcelJS.Alignment> = { vertical: 'middle', horizontal: 'center', wrapText: true };
+      const bdr: Partial<ExcelJS.Borders> = {
+        top: { style: 'thin', color: { argb: 'D9D9D9' } },
+        bottom: { style: 'thin', color: { argb: 'D9D9D9' } },
+        left: { style: 'thin', color: { argb: 'D9D9D9' } },
+        right: { style: 'thin', color: { argb: 'D9D9D9' } },
+      };
+      const zFill: ExcelJS.FillPattern = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F2F6FC' } };
+      const bodyFont: Partial<ExcelJS.Font> = { size: 9, name: 'Calibri' };
+
+      const styleHeader = (ws: ExcelJS.Worksheet, rowNum: number) => {
+        const r = ws.getRow(rowNum);
+        r.eachCell(c => { c.fill = hFill; c.font = hFont; c.alignment = hAlign; c.border = bdr; });
+        r.height = 28;
+      };
+      const autoWidth = (ws: ExcelJS.Worksheet) => {
+        ws.columns.forEach(col => {
+          let m = 12;
+          col.eachCell?.({ includeEmpty: false }, c => {
+            const l = c.value ? String(c.value).length + 2 : 0;
+            if (l > m) m = l;
+          });
+          col.width = Math.min(m, 40);
+        });
+      };
+
+      const ws = wb.addWorksheet('Inspections');
+      ws.mergeCells('A1:I1');
+      const tc = ws.getCell('A1');
+      tc.value = 'VEHICLE INSPECTIONS REPORT';
+      tc.font = { bold: true, size: 16, color: { argb: '1F3864' }, name: 'Calibri' };
+      ws.getRow(1).height = 32;
+
+      ws.mergeCells('A2:I2');
+      const sc = ws.getCell('A2');
+      sc.value = `Generated: ${new Date().toLocaleDateString('en-ZA', { day: '2-digit', month: 'long', year: 'numeric' })} \u2022 Car Craft Co Fleet Management`;
+      sc.font = { italic: true, size: 9, color: { argb: '666666' }, name: 'Calibri' };
+
+      const headers = ['Report #', 'Date', 'Vehicle Reg', 'Make', 'Model', 'Inspector', 'Faults', 'Corrective Action', 'Linked WO'];
+      ws.getRow(4).values = headers;
+      styleHeader(ws, 4);
+
+      filteredInspections.forEach((insp, i) => {
+        const row = ws.getRow(i + 5);
+        row.values = [
+          insp.inspection_number,
+          insp.inspection_date ? new Date(insp.inspection_date).toLocaleDateString('en-ZA') : '',
+          insp.vehicle_registration,
+          insp.vehicle_make || '',
+          insp.vehicle_model || '',
+          insp.inspector_name,
+          insp.fault_count,
+          insp.corrective_action_status,
+          insp.linked_work_order || '',
+        ];
+        row.eachCell(c => { c.border = bdr; c.font = bodyFont; c.alignment = { vertical: 'middle' }; });
+        if (i % 2 === 1) row.eachCell(c => { c.fill = zFill; });
+
+        const faultCell = row.getCell(7);
+        if (insp.fault_count > 0) {
+          faultCell.font = { ...bodyFont, color: { argb: 'DC2626' }, bold: true };
+        } else {
+          faultCell.font = { ...bodyFont, color: { argb: '16A34A' } };
+        }
+
+        const caCell = row.getCell(8);
+        const caStatus = insp.corrective_action_status?.toLowerCase();
+        if (caStatus === 'completed' || caStatus === 'resolved') {
+          caCell.font = { ...bodyFont, color: { argb: '16A34A' }, bold: true };
+        } else if (caStatus === 'pending' || caStatus === 'open') {
+          caCell.font = { ...bodyFont, color: { argb: 'D97706' }, bold: true };
+        } else if (caStatus === 'overdue') {
+          caCell.font = { ...bodyFont, color: { argb: 'DC2626' }, bold: true };
+        }
+      });
+
+      ws.autoFilter = { from: 'A4', to: `I${filteredInspections.length + 4}` };
+      ws.views = [{ state: 'frozen', ySplit: 4 }];
+      autoWidth(ws);
+
+      const sWs = wb.addWorksheet('Summary');
+      sWs.mergeCells('A1:B1');
+      sWs.getCell('A1').value = 'INSPECTION SUMMARY';
+      sWs.getCell('A1').font = { bold: true, size: 16, color: { argb: '1F3864' }, name: 'Calibri' };
+      sWs.getRow(1).height = 32;
+
+      sWs.getRow(3).values = ['Metric', 'Count'];
+      styleHeader(sWs, 3);
+
+      const totalFaults = filteredInspections.reduce((sum, i) => sum + (i.fault_count || 0), 0);
+      const summaryRows: [string, number][] = [
+        ['Total Inspections', filteredInspections.length],
+        ['With Faults', filteredInspections.filter(i => i.fault_count > 0).length],
+        ['No Faults', filteredInspections.filter(i => i.fault_count === 0).length],
+        ['Total Faults Found', totalFaults],
+        ['With Linked Work Order', filteredInspections.filter(i => i.linked_work_order).length],
+      ];
+
+      summaryRows.forEach((r, i) => {
+        const row = sWs.getRow(4 + i);
+        row.values = [r[0], r[1]];
+        row.getCell(1).font = { bold: true, size: 10, name: 'Calibri' };
+        row.getCell(2).font = { size: 10, name: 'Calibri' };
+        row.eachCell(c => { c.border = bdr; });
+        if (i % 2 === 1) row.eachCell(c => { c.fill = zFill; });
+      });
+      sWs.getColumn(1).width = 30;
+      sWs.getColumn(2).width = 15;
+
+      const buffer = await wb.xlsx.writeBuffer();
+      saveAs(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `Inspections_${new Date().toISOString().split('T')[0]}.xlsx`);
+      toast({ title: 'Export Successful', description: `${filteredInspections.length} inspections exported to Excel.` });
+    } catch (error) {
+      console.error('Export failed:', error);
+      toast({ title: 'Export Failed', description: 'Unable to export inspections.', variant: 'destructive' });
+    }
+  }, [filteredInspections, toast]);
+
+  const exportInspectionsToPDF = useCallback(() => {
+    try {
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const pageWidth = doc.internal.pageSize.getWidth();
+
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Vehicle Inspections Report', 14, 18);
+
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      const totalFaults = filteredInspections.reduce((sum, i) => sum + (i.fault_count || 0), 0);
+      doc.text(`Generated: ${new Date().toLocaleDateString('en-ZA', { day: '2-digit', month: 'long', year: 'numeric' })} | Total: ${filteredInspections.length} inspections | Faults: ${totalFaults}`, 14, 25);
+
+      autoTable(doc, {
+        startY: 32,
+        head: [['Report #', 'Date', 'Vehicle', 'Make/Model', 'Inspector', 'Faults', 'Corrective Action', 'Linked WO']],
+        body: filteredInspections.map(insp => [
+          insp.inspection_number,
+          insp.inspection_date ? new Date(insp.inspection_date).toLocaleDateString('en-ZA') : '-',
+          insp.vehicle_registration,
+          [insp.vehicle_make, insp.vehicle_model].filter(Boolean).join(' ') || '-',
+          insp.inspector_name,
+          insp.fault_count.toString(),
+          insp.corrective_action_status,
+          insp.linked_work_order || '-',
+        ]),
+        theme: 'striped',
+        headStyles: { fillColor: [31, 56, 100], fontSize: 8, font: 'helvetica' },
+        bodyStyles: { fontSize: 7 },
+        margin: { left: 14, right: 14 },
+        styles: { overflow: 'linebreak', cellWidth: 'wrap' },
+        columnStyles: {
+          0: { cellWidth: 28 },
+          1: { cellWidth: 22 },
+          2: { cellWidth: 28 },
+          3: { cellWidth: 35 },
+          4: { cellWidth: 30 },
+          5: { cellWidth: 16 },
+          6: { cellWidth: 30 },
+          7: { cellWidth: 25 },
+        },
+      });
+
+      const pageCount = doc.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Page ${i} of ${pageCount} | Car Craft Co Fleet Management`, pageWidth / 2, doc.internal.pageSize.getHeight() - 8, { align: 'center' });
+      }
+
+      doc.save(`Inspections_${new Date().toISOString().split('T')[0]}.pdf`);
+      toast({ title: 'PDF Generated', description: `${filteredInspections.length} inspections exported as PDF.` });
+    } catch (error) {
+      console.error('PDF export failed:', error);
+      toast({ title: 'Export Failed', description: 'Unable to generate PDF.', variant: 'destructive' });
+    }
+  }, [filteredInspections, toast]);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -332,10 +522,20 @@ export function InspectionHistory() {
           <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Inspection History</h1>
           <p className="text-muted-foreground">View and manage vehicle inspection records</p>
         </div>
-        <Button onClick={() => setShowStartDialog(true)} className="w-full sm:w-auto">
-          <Plus className="h-4 w-4 mr-2" />
-          Start New Inspection
-        </Button>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Button variant="outline" size="sm" onClick={exportInspectionsToExcel} className="h-9 gap-1.5 text-xs">
+            <Download className="w-3.5 h-3.5" />
+            Excel
+          </Button>
+          <Button variant="outline" size="sm" onClick={exportInspectionsToPDF} className="h-9 gap-1.5 text-xs">
+            <FileText className="w-3.5 h-3.5" />
+            PDF
+          </Button>
+          <Button onClick={() => setShowStartDialog(true)} className="w-full sm:w-auto">
+            <Plus className="h-4 w-4 mr-2" />
+            Start New Inspection
+          </Button>
+        </div>
       </div>
 
       {/* Search and Filters */}
