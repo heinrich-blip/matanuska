@@ -53,6 +53,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { CostEntry, Trip } from '@/types/operations';
 import { extractFleetNumber } from '@/utils/fleetUtils';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { format, parseISO } from 'date-fns';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import
   {
     AlertTriangle,
@@ -60,8 +63,10 @@ import
     ChevronDown,
     ChevronRight,
     DollarSign,
+    Download,
     Edit,
     Eye,
+    FileText,
     FileWarning,
     Flag,
     RotateCcw,
@@ -69,7 +74,9 @@ import
     Trash2,
     Truck
   } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 import FlagResolutionModal from './FlagResolutionModal';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -476,7 +483,7 @@ const TripExpensesSection = ({ trips, onViewTrip }: TripExpensesSectionProps) =>
     };
   }, [expenses]);
 
-  const formatCurrency = (amount: number, currency: string = 'USD') => {
+  const fmtCurrency = (amount: number, currency: string = 'USD') => {
     const symbol = currency === 'USD' ? '$' : 'R';
     return `${symbol}${amount.toLocaleString('en-ZA', {
       minimumFractionDigits: 2,
@@ -484,9 +491,328 @@ const TripExpensesSection = ({ trips, onViewTrip }: TripExpensesSectionProps) =>
     })}`;
   };
 
+  // Keep original name for JSX usage
+  const formatCurrency = fmtCurrency;
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-ZA');
   };
+
+  // Export filtered expenses to Excel (professionally styled)
+  const exportExpensesToExcel = useCallback(async () => {
+    try {
+      const wb = new ExcelJS.Workbook();
+      wb.creator = 'Car Craft Co Fleet Management';
+      wb.created = new Date();
+
+      // ── Shared style helpers ──
+      const headerFill: ExcelJS.FillPattern = { type: 'pattern', pattern: 'solid', fgColor: { argb: '1F3864' } };
+      const headerFont: Partial<ExcelJS.Font> = { bold: true, color: { argb: 'FFFFFF' }, size: 10, name: 'Calibri' };
+      const headerAlignment: Partial<ExcelJS.Alignment> = { vertical: 'middle', horizontal: 'center', wrapText: true };
+      const currencyFmt = '#,##0.00';
+      const thinBorder: Partial<ExcelJS.Borders> = {
+        top: { style: 'thin', color: { argb: 'D9D9D9' } },
+        bottom: { style: 'thin', color: { argb: 'D9D9D9' } },
+        left: { style: 'thin', color: { argb: 'D9D9D9' } },
+        right: { style: 'thin', color: { argb: 'D9D9D9' } },
+      };
+      const zebraFill: ExcelJS.FillPattern = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F2F6FC' } };
+
+      const applyHeaderRow = (ws: ExcelJS.Worksheet, rowNum: number) => {
+        const row = ws.getRow(rowNum);
+        row.eachCell(cell => {
+          cell.fill = headerFill;
+          cell.font = headerFont;
+          cell.alignment = headerAlignment;
+          cell.border = thinBorder;
+        });
+        row.height = 28;
+      };
+
+      const autoWidth = (ws: ExcelJS.Worksheet) => {
+        ws.columns.forEach(col => {
+          let max = 12;
+          col.eachCell?.({ includeEmpty: false }, cell => {
+            const len = cell.value ? String(cell.value).length + 2 : 0;
+            if (len > max) max = len;
+          });
+          col.width = Math.min(max, 40);
+        });
+      };
+
+      // ═══════════════════════════════════════
+      // 1. SUMMARY SHEET
+      // ═══════════════════════════════════════
+      const summaryWs = wb.addWorksheet('Summary');
+
+      // Title
+      summaryWs.mergeCells('A1:D1');
+      const titleCell = summaryWs.getCell('A1');
+      titleCell.value = 'EXPENSE REPORT';
+      titleCell.font = { bold: true, size: 16, color: { argb: '1F3864' }, name: 'Calibri' };
+      titleCell.alignment = { vertical: 'middle' };
+      summaryWs.getRow(1).height = 32;
+
+      // Subtitle
+      summaryWs.mergeCells('A2:D2');
+      const subCell = summaryWs.getCell('A2');
+      subCell.value = `Generated: ${format(new Date(), 'dd MMMM yyyy, HH:mm')} • Car Craft Co Fleet Management`;
+      subCell.font = { italic: true, size: 9, color: { argb: '666666' }, name: 'Calibri' };
+      summaryWs.getRow(2).height = 20;
+
+      // Summary data
+      const sRows: [string, string | number][] = [
+        ['Total Entries', filteredExpenses.length],
+        ['Total Expenses (ZAR)', stats.totalExpenses.ZAR],
+        ['Total Expenses (USD)', stats.totalExpenses.USD],
+        ['Flagged', stats.flaggedCount],
+        ['Unresolved', stats.unresolvedFlagCount],
+        ['Missing Slips', stats.missingSlipCount],
+      ];
+
+      // Section header
+      summaryWs.getRow(4).values = ['Metric', 'Value'];
+      applyHeaderRow(summaryWs, 4);
+
+      sRows.forEach((r, i) => {
+        const row = summaryWs.getRow(5 + i);
+        row.values = [r[0], r[1]];
+        row.getCell(1).font = { bold: true, size: 10, name: 'Calibri' };
+        row.getCell(2).font = { size: 10, name: 'Calibri' };
+        if (typeof r[1] === 'number' && (r[0].includes('ZAR') || r[0].includes('USD'))) {
+          row.getCell(2).numFmt = currencyFmt;
+        }
+        row.eachCell(cell => { cell.border = thinBorder; });
+        if (i % 2 === 1) row.eachCell(cell => { cell.fill = zebraFill; });
+      });
+
+      summaryWs.getColumn(1).width = 25;
+      summaryWs.getColumn(2).width = 20;
+
+      // ═══════════════════════════════════════
+      // 2. EXPENSES DETAIL SHEET
+      // ═══════════════════════════════════════
+      const detailWs = wb.addWorksheet('Expenses');
+      const detailHeaders = ['Date', 'Trip #', 'Fleet', 'Route', 'Category', 'Sub-Category', 'Amount', 'Currency', 'Reference', 'Notes', 'Flagged', 'Status', 'Missing Slip'];
+      detailWs.getRow(1).values = detailHeaders;
+      applyHeaderRow(detailWs, 1);
+
+      filteredExpenses.forEach((e, i) => {
+        const row = detailWs.getRow(i + 2);
+        row.values = [
+          e.date ? format(parseISO(e.date), 'yyyy-MM-dd') : '',
+          e.trip_number || '',
+          e.fleet_number || '',
+          e.trip_origin && e.trip_destination ? `${e.trip_origin} → ${e.trip_destination}` : '',
+          e.category || '',
+          e.sub_category || '',
+          Number(e.amount || 0),
+          e.currency || 'USD',
+          e.reference_number || '',
+          e.notes || '',
+          e.is_flagged ? 'Yes' : 'No',
+          e.investigation_status || 'N/A',
+          (!e.attachments || e.attachments.length === 0) ? 'Yes' : 'No',
+        ];
+        row.getCell(7).numFmt = currencyFmt;
+        row.eachCell(cell => {
+          cell.border = thinBorder;
+          cell.font = { size: 9, name: 'Calibri' };
+          cell.alignment = { vertical: 'middle' };
+        });
+        // Zebra striping
+        if (i % 2 === 1) {
+          row.eachCell(cell => { cell.fill = zebraFill; });
+        }
+        // Highlight flagged rows
+        if (e.is_flagged && e.investigation_status !== 'resolved') {
+          row.getCell(11).font = { size: 9, name: 'Calibri', bold: true, color: { argb: 'CC0000' } };
+        }
+        // Highlight missing slips
+        if (!e.attachments || e.attachments.length === 0) {
+          row.getCell(13).font = { size: 9, name: 'Calibri', bold: true, color: { argb: 'CC6600' } };
+        }
+      });
+
+      // Auto-filter
+      detailWs.autoFilter = { from: 'A1', to: `M${filteredExpenses.length + 1}` };
+      // Freeze header row
+      detailWs.views = [{ state: 'frozen', ySplit: 1 }];
+      autoWidth(detailWs);
+
+      // ═══════════════════════════════════════
+      // 3. BY TRIP SHEET
+      // ═══════════════════════════════════════
+      const tripWs = wb.addWorksheet('By Trip');
+      const tripHeaders = ['Trip #', 'Fleet', 'Route', 'Status', 'Entries', 'Total Amount', 'Flagged', 'Missing Slips'];
+      tripWs.getRow(1).values = tripHeaders;
+      applyHeaderRow(tripWs, 1);
+
+      expensesByTrip.forEach((g, i) => {
+        const row = tripWs.getRow(i + 2);
+        row.values = [
+          g.tripNumber,
+          g.fleetNumber || '',
+          g.origin && g.destination ? `${g.origin} → ${g.destination}` : '',
+          g.tripStatus || '',
+          g.expenses.length,
+          g.totalAmount,
+          g.flaggedCount,
+          g.missingSlipCount,
+        ];
+        row.getCell(6).numFmt = currencyFmt;
+        row.eachCell(cell => {
+          cell.border = thinBorder;
+          cell.font = { size: 9, name: 'Calibri' };
+          cell.alignment = { vertical: 'middle' };
+        });
+        if (i % 2 === 1) {
+          row.eachCell(cell => { cell.fill = zebraFill; });
+        }
+      });
+
+      // Totals row
+      const totalRow = tripWs.getRow(expensesByTrip.length + 2);
+      totalRow.values = [
+        'TOTAL', '', '', '',
+        expensesByTrip.reduce((s, g) => s + g.expenses.length, 0),
+        expensesByTrip.reduce((s, g) => s + g.totalAmount, 0),
+        expensesByTrip.reduce((s, g) => s + g.flaggedCount, 0),
+        expensesByTrip.reduce((s, g) => s + g.missingSlipCount, 0),
+      ];
+      totalRow.eachCell(cell => {
+        cell.font = { bold: true, size: 10, name: 'Calibri' };
+        cell.border = { top: { style: 'double', color: { argb: '1F3864' } }, bottom: { style: 'double', color: { argb: '1F3864' } }, left: thinBorder.left!, right: thinBorder.right! };
+      });
+      totalRow.getCell(6).numFmt = currencyFmt;
+
+      tripWs.autoFilter = { from: 'A1', to: `H${expensesByTrip.length + 1}` };
+      tripWs.views = [{ state: 'frozen', ySplit: 1 }];
+      autoWidth(tripWs);
+
+      // ── Save ──
+      const buffer = await wb.xlsx.writeBuffer();
+      saveAs(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `Expenses_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+      toast({
+        title: 'Export Successful',
+        description: `${filteredExpenses.length} expenses exported to Excel.`,
+      });
+    } catch (error) {
+      console.error('Export failed:', error);
+      toast({
+        title: 'Export Failed',
+        description: 'Unable to export expenses. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  }, [filteredExpenses, expensesByTrip, stats, toast]);
+
+  // Export filtered expenses to PDF
+  const exportExpensesToPDF = useCallback(() => {
+    try {
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const pageWidth = doc.internal.pageSize.getWidth();
+
+      // Title
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Expense Report', 14, 18);
+
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Generated: ${new Date().toLocaleDateString()} | ${filteredExpenses.length} entries`, 14, 25);
+
+      // Summary row
+      doc.setFontSize(10);
+      doc.text(
+        `Total: ${fmtCurrency(stats.totalExpenses.ZAR, 'ZAR')}${stats.totalExpenses.USD > 0 ? ` + ${fmtCurrency(stats.totalExpenses.USD, 'USD')}` : ''} | Flagged: ${stats.flaggedCount} | Missing Slips: ${stats.missingSlipCount}`,
+        14, 31
+      );
+
+      // By Trip summary table
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Summary by Trip', 14, 40);
+
+      autoTable(doc, {
+        startY: 43,
+        head: [['Trip #', 'Fleet', 'Route', 'Entries', 'Total', 'Flagged', 'Missing Slips']],
+        body: expensesByTrip.map(g => [
+          g.tripNumber,
+          g.fleetNumber || '-',
+          g.origin && g.destination ? `${g.origin} → ${g.destination}` : '-',
+          g.expenses.length.toString(),
+          fmtCurrency(g.totalAmount, 'USD'),
+          g.flaggedCount.toString(),
+          g.missingSlipCount.toString(),
+        ]),
+        theme: 'striped',
+        headStyles: { fillColor: [59, 130, 246], fontSize: 8 },
+        bodyStyles: { fontSize: 8 },
+        margin: { left: 14, right: 14 },
+      });
+
+      // Detailed expenses on new page
+      doc.addPage();
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Detailed Expenses', 14, 18);
+
+      autoTable(doc, {
+        startY: 23,
+        head: [['Date', 'Trip #', 'Fleet', 'Category', 'Sub-Cat', 'Amount', 'Curr', 'Ref', 'Flagged']],
+        body: filteredExpenses.map(e => [
+          e.date ? format(parseISO(e.date), 'yyyy-MM-dd') : '-',
+          e.trip_number || '-',
+          e.fleet_number || '-',
+          e.category || '-',
+          e.sub_category || '-',
+          Number(e.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+          e.currency || 'USD',
+          e.reference_number || '-',
+          e.is_flagged ? 'Yes' : 'No',
+        ]),
+        theme: 'striped',
+        headStyles: { fillColor: [59, 130, 246], fontSize: 7 },
+        bodyStyles: { fontSize: 7 },
+        margin: { left: 14, right: 14 },
+        styles: { overflow: 'linebreak', cellWidth: 'wrap' },
+        columnStyles: {
+          0: { cellWidth: 22 },
+          5: { halign: 'right' },
+        },
+      });
+
+      // Footer
+      const pageCount = doc.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.text(
+          `Page ${i} of ${pageCount} | Car Craft Co Fleet Management`,
+          pageWidth / 2,
+          doc.internal.pageSize.getHeight() - 8,
+          { align: 'center' }
+        );
+      }
+
+      doc.save(`Expenses_${new Date().toISOString().split('T')[0]}.pdf`);
+
+      toast({
+        title: 'PDF Generated',
+        description: `${filteredExpenses.length} expenses exported as PDF.`,
+      });
+    } catch (error) {
+      console.error('PDF export failed:', error);
+      toast({
+        title: 'Export Failed',
+        description: 'Unable to generate PDF. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  }, [filteredExpenses, expensesByTrip, stats, toast]);
 
   const handleEdit = (expense: CostEntry) => {
     setEditingCost(expense);
@@ -570,6 +896,14 @@ const TripExpensesSection = ({ trips, onViewTrip }: TripExpensesSectionProps) =>
           </span>
         </div>
         <div className="flex items-center gap-3 text-sm flex-wrap">
+          <Button variant="outline" size="sm" onClick={exportExpensesToExcel} className="h-8 gap-1.5 text-xs bg-background/80 border-border/50 rounded-lg hover:bg-accent/80 transition-colors">
+            <Download className="w-3.5 h-3.5" />
+            Excel
+          </Button>
+          <Button variant="outline" size="sm" onClick={exportExpensesToPDF} className="h-8 gap-1.5 text-xs bg-background/80 border-border/50 rounded-lg hover:bg-accent/80 transition-colors">
+            <FileText className="w-3.5 h-3.5" />
+            PDF
+          </Button>
           {stats.missingSlipCount > 0 && (
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-500/10 text-rose-700">
               <FileWarning className="h-3.5 w-3.5" />
