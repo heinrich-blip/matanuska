@@ -20,7 +20,7 @@ const MobileTyresTab = () => {
     queryFn: async () => {
       const [inventoryResult, installedResult] = await Promise.all([
         supabase.from("tyre_inventory").select("id, status").limit(1000),
-        supabase.from("vehicle_tyre_positions").select("id").limit(1000),
+        supabase.from("fleet_tyre_positions").select("id").limit(1000),
       ]);
 
       const inventory = inventoryResult.data || [];

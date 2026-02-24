@@ -2620,6 +2620,7 @@ export type Database = {
       drivers: {
         Row: {
           address: string | null
+          auth_user_id: string | null
           city: string | null
           created_at: string | null
           created_by: string | null
@@ -2643,6 +2644,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          auth_user_id?: string | null
           city?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -2666,6 +2668,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          auth_user_id?: string | null
           city?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -7813,6 +7816,144 @@ export type Database = {
         }
         Relationships: []
       }
+      trip_cycle_tracker: {
+        Row: {
+          created_at: string | null
+          current_phase: number | null
+          driver_id: string | null
+          id: string
+          is_completed: boolean | null
+          p1_inspection_end: string | null
+          p1_inspection_start: string | null
+          p1_reefer_start_temp: number | null
+          p1_reefer_start_time: string | null
+          p1_refuel_end: string | null
+          p1_refuel_start: string | null
+          p1_yard_departure: string | null
+          p2_delay_other_detail: string | null
+          p2_delay_reason: string[] | null
+          p2_farm_arrival: string | null
+          p2_farm_departure: string | null
+          p2_farm_supervisor: string | null
+          p2_loading_end: string | null
+          p2_loading_start: string | null
+          p4_depot_arrival: string | null
+          p4_offloading_end: string | null
+          p4_offloading_start: string | null
+          p4_reefer_arrival_temp: number | null
+          p5_bins_count: number | null
+          p5_crates_count: number | null
+          p5_damaged_details: string | null
+          p5_damaged_packaging: boolean | null
+          p5_depot_departure: string | null
+          p5_depot_supervisor: string | null
+          p6_road_comments: string | null
+          p6_unloading_end: string | null
+          p6_unloading_start: string | null
+          p6_yard_arrival: string | null
+          route: string | null
+          trip_id: string
+          truck_type: string | null
+          updated_at: string | null
+          vehicle_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_phase?: number | null
+          driver_id?: string | null
+          id?: string
+          is_completed?: boolean | null
+          p1_inspection_end?: string | null
+          p1_inspection_start?: string | null
+          p1_reefer_start_temp?: number | null
+          p1_reefer_start_time?: string | null
+          p1_refuel_end?: string | null
+          p1_refuel_start?: string | null
+          p1_yard_departure?: string | null
+          p2_delay_other_detail?: string | null
+          p2_delay_reason?: string[] | null
+          p2_farm_arrival?: string | null
+          p2_farm_departure?: string | null
+          p2_farm_supervisor?: string | null
+          p2_loading_end?: string | null
+          p2_loading_start?: string | null
+          p4_depot_arrival?: string | null
+          p4_offloading_end?: string | null
+          p4_offloading_start?: string | null
+          p4_reefer_arrival_temp?: number | null
+          p5_bins_count?: number | null
+          p5_crates_count?: number | null
+          p5_damaged_details?: string | null
+          p5_damaged_packaging?: boolean | null
+          p5_depot_departure?: string | null
+          p5_depot_supervisor?: string | null
+          p6_road_comments?: string | null
+          p6_unloading_end?: string | null
+          p6_unloading_start?: string | null
+          p6_yard_arrival?: string | null
+          route?: string | null
+          trip_id: string
+          truck_type?: string | null
+          updated_at?: string | null
+          vehicle_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          current_phase?: number | null
+          driver_id?: string | null
+          id?: string
+          is_completed?: boolean | null
+          p1_inspection_end?: string | null
+          p1_inspection_start?: string | null
+          p1_reefer_start_temp?: number | null
+          p1_reefer_start_time?: string | null
+          p1_refuel_end?: string | null
+          p1_refuel_start?: string | null
+          p1_yard_departure?: string | null
+          p2_delay_other_detail?: string | null
+          p2_delay_reason?: string[] | null
+          p2_farm_arrival?: string | null
+          p2_farm_departure?: string | null
+          p2_farm_supervisor?: string | null
+          p2_loading_end?: string | null
+          p2_loading_start?: string | null
+          p4_depot_arrival?: string | null
+          p4_offloading_end?: string | null
+          p4_offloading_start?: string | null
+          p4_reefer_arrival_temp?: number | null
+          p5_bins_count?: number | null
+          p5_crates_count?: number | null
+          p5_damaged_details?: string | null
+          p5_damaged_packaging?: boolean | null
+          p5_depot_departure?: string | null
+          p5_depot_supervisor?: string | null
+          p6_road_comments?: string | null
+          p6_unloading_end?: string | null
+          p6_unloading_start?: string | null
+          p6_yard_arrival?: string | null
+          route?: string | null
+          trip_id?: string
+          truck_type?: string | null
+          updated_at?: string | null
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_cycle_tracker_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: true
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_cycle_tracker_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: true
+            referencedRelation: "trips_validation_status"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trip_deletions: {
         Row: {
           confirmation_text: string
@@ -7848,6 +7989,50 @@ export type Database = {
           trip_number?: string
         }
         Relationships: []
+      }
+      trip_transit_stops: {
+        Row: {
+          created_at: string | null
+          duration_mins: number | null
+          id: string
+          location: string
+          reason: string
+          sort_order: number | null
+          time_in: string
+          time_out: string | null
+          tracker_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          duration_mins?: number | null
+          id?: string
+          location: string
+          reason: string
+          sort_order?: number | null
+          time_in: string
+          time_out?: string | null
+          tracker_id: string
+        }
+        Update: {
+          created_at?: string | null
+          duration_mins?: number | null
+          id?: string
+          location?: string
+          reason?: string
+          sort_order?: number | null
+          time_in?: string
+          time_out?: string | null
+          tracker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_transit_stops_tracker_id_fkey"
+            columns: ["tracker_id"]
+            isOneToOne: false
+            referencedRelation: "trip_cycle_tracker"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       trips: {
         Row: {
@@ -7917,6 +8102,9 @@ export type Database = {
           updated_at: string | null
           validation_notes: string | null
           vehicle_id: string | null
+          verified_no_costs: boolean | null
+          verified_no_costs_at: string | null
+          verified_no_costs_by: string | null
         }
         Insert: {
           actual_arrival_date?: string | null
@@ -7985,6 +8173,9 @@ export type Database = {
           updated_at?: string | null
           validation_notes?: string | null
           vehicle_id?: string | null
+          verified_no_costs?: boolean | null
+          verified_no_costs_at?: string | null
+          verified_no_costs_by?: string | null
         }
         Update: {
           actual_arrival_date?: string | null
@@ -8053,6 +8244,9 @@ export type Database = {
           updated_at?: string | null
           validation_notes?: string | null
           vehicle_id?: string | null
+          verified_no_costs?: boolean | null
+          verified_no_costs_at?: string | null
+          verified_no_costs_by?: string | null
         }
         Relationships: [
           {
@@ -8829,29 +9023,38 @@ export type Database = {
       }
       users: {
         Row: {
+          created_at: string | null
+          email: string | null
           name: string
           notification_email: string | null
           role_id: number
           shortcode: string
           status: string
+          updated_at: string | null
           user_id: number
           username: string
         }
         Insert: {
+          created_at?: string | null
+          email?: string | null
           name: string
           notification_email?: string | null
           role_id: number
           shortcode: string
           status: string
+          updated_at?: string | null
           user_id?: number
           username: string
         }
         Update: {
+          created_at?: string | null
+          email?: string | null
           name?: string
           notification_email?: string | null
           role_id?: number
           shortcode?: string
           status?: string
+          updated_at?: string | null
           user_id?: number
           username?: string
         }
@@ -9204,6 +9407,8 @@ export type Database = {
           completed_by: string | null
           created_at: string | null
           digital_signature: string | null
+          fault_resolved: boolean | null
+          has_fault: boolean | null
           id: string
           initiated_via: string | null
           inspection_date: string
@@ -9211,6 +9416,7 @@ export type Database = {
           inspection_type: string
           inspector_name: string
           inspector_profile_id: string | null
+          location: string | null
           notes: string | null
           odometer_reading: number | null
           root_cause_analysis: Json | null
@@ -9228,6 +9434,8 @@ export type Database = {
           completed_by?: string | null
           created_at?: string | null
           digital_signature?: string | null
+          fault_resolved?: boolean | null
+          has_fault?: boolean | null
           id?: string
           initiated_via?: string | null
           inspection_date?: string
@@ -9235,6 +9443,7 @@ export type Database = {
           inspection_type: string
           inspector_name: string
           inspector_profile_id?: string | null
+          location?: string | null
           notes?: string | null
           odometer_reading?: number | null
           root_cause_analysis?: Json | null
@@ -9252,6 +9461,8 @@ export type Database = {
           completed_by?: string | null
           created_at?: string | null
           digital_signature?: string | null
+          fault_resolved?: boolean | null
+          has_fault?: boolean | null
           id?: string
           initiated_via?: string | null
           inspection_date?: string
@@ -9259,6 +9470,7 @@ export type Database = {
           inspection_type?: string
           inspector_name?: string
           inspector_profile_id?: string | null
+          location?: string | null
           notes?: string | null
           odometer_reading?: number | null
           root_cause_analysis?: Json | null
