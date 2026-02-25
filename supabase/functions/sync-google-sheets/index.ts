@@ -78,12 +78,51 @@ async function getGoogleAccessToken(serviceAccountJson: string): Promise<string>
 }
 
 // Update Google Sheet
+async function ensureSheetExists(
+  accessToken: string,
+  spreadsheetId: string,
+  sheetName: string
+): Promise<void> {
+  try {
+    // Try to add the sheet tab; if it already exists, the API returns an error which we ignore
+    const res = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          requests: [{
+            addSheet: {
+              properties: { title: sheetName }
+            }
+          }]
+        }),
+      }
+    )
+    // 200 = created, 400 = already exists — both are fine
+    if (!res.ok) {
+      const body = await res.text()
+      if (!body.includes('already exists')) {
+        console.error(`Failed to ensure sheet "${sheetName}":`, body)
+      }
+    }
+  } catch (e) {
+    console.error(`Error ensuring sheet "${sheetName}":`, e)
+  }
+}
+
 async function updateSheet(
   accessToken: string,
   spreadsheetId: string,
   sheetName: string,
   data: any[][]
 ): Promise<void> {
+  // Ensure the sheet tab exists before writing
+  await ensureSheetExists(accessToken, spreadsheetId, sheetName)
+
   // Clear existing data
   await fetch(
     `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(sheetName)}:clear`,
@@ -154,7 +193,37 @@ async function syncDieselReports(
   let totalPendingDebriefs = 0
   let totalCompletedDebriefs = 0
 
-  const records = dieselRecords || []
+  const allDieselRecords = dieselRecords || []
+
+  // Helper to identify reefer fleets (fleet numbers ending in 'F')
+  const isReeferFleet = (fleet: string) => !!fleet && fleet.toUpperCase().trim().endsWith('F')
+
+  // Split: truck records only (exclude reefer fleets)
+  const records = allDieselRecords.filter((r: any) => !isReeferFleet(r.fleet_number || ''))
+
+  // Fetch reefer diesel records from dedicated table
+  let reeferQuery = supabase
+    .from('reefer_diesel_records')
+    .select('*')
+    .order('date', { ascending: false })
+
+  if (startDate) {
+    reeferQuery = reeferQuery.gte('date', startDate.toISOString().split('T')[0])
+  }
+
+  const { data: reeferDieselRecords, error: reeferError } = await reeferQuery
+  if (reeferError) console.error('Failed to fetch reefer records:', reeferError.message)
+
+  // Also include any legacy reefer records from diesel_records that haven't been migrated
+  const legacyReeferRecords = allDieselRecords.filter((r: any) => isReeferFleet(r.fleet_number || ''))
+  const reeferFromTable = reeferDieselRecords || []
+  
+  // Merge: reefer_diesel_records take precedence, then legacy
+  const reeferIdSet = new Set(reeferFromTable.map((r: any) => r.id))
+  const mergedReeferRecords = [
+    ...reeferFromTable,
+    ...legacyReeferRecords.filter((r: any) => !reeferIdSet.has(r.id))
+  ]
 
   records.forEach((record: any) => {
     const litres = record.litres_filled || 0
@@ -382,6 +451,178 @@ async function syncDieselReports(
     ])
   ]
 
+  // --- REEFER REPORTS ---
+  // Aggregate reefer data
+  const reeferFleetMap = new Map<string, any>()
+  const reeferDriverMap = new Map<string, any>()
+  const reeferStationMap = new Map<string, any>()
+  let reeferTotalLitres = 0
+  let reeferTotalCostZAR = 0
+  let reeferTotalCostUSD = 0
+  let reeferTotalHours = 0
+
+  mergedReeferRecords.forEach((record: any) => {
+    // Records from reefer_diesel_records use reefer_unit; legacy use fleet_number
+    const reeferUnit = (record.reefer_unit || record.fleet_number || '').toUpperCase().trim()
+    const litres = record.litres_filled || 0
+    const cost = record.total_cost || 0
+    const currency = record.currency || 'ZAR'
+    const driverName = record.driver_name || 'Unknown'
+    const station = record.fuel_station || 'Unknown'
+
+    // For legacy diesel_records, km_reading was actually operating_hours
+    const opHours = record.operating_hours ?? record.km_reading ?? null
+    const prevHours = record.previous_operating_hours ?? record.previous_km_reading ?? null
+    const hoursOp = record.hours_operated ?? (
+      (opHours != null && prevHours != null && opHours > prevHours) ? opHours - prevHours : (record.distance_travelled ?? null)
+    )
+    const lph = record.litres_per_hour ?? (
+      (hoursOp && hoursOp > 0 && litres > 0) ? litres / hoursOp : null
+    )
+
+    reeferTotalLitres += litres
+    if (currency === 'USD') reeferTotalCostUSD += cost
+    else reeferTotalCostZAR += cost
+    if (hoursOp && hoursOp > 0) reeferTotalHours += hoursOp
+
+    // Fleet aggregation
+    if (reeferUnit) {
+      const fleet = reeferFleetMap.get(reeferUnit) || {
+        fills: 0, litres: 0, cost_zar: 0, cost_usd: 0, total_hours: 0, lph_sum: 0, lph_count: 0
+      }
+      fleet.fills += 1
+      fleet.litres += litres
+      if (currency === 'USD') fleet.cost_usd += cost
+      else fleet.cost_zar += cost
+      if (hoursOp && hoursOp > 0) fleet.total_hours += hoursOp
+      if (lph && lph > 0) { fleet.lph_sum += lph; fleet.lph_count += 1 }
+      reeferFleetMap.set(reeferUnit, fleet)
+    }
+
+    // Driver aggregation
+    const driver = reeferDriverMap.get(driverName) || {
+      fills: 0, litres: 0, cost_zar: 0, cost_usd: 0, total_hours: 0, lph_sum: 0, lph_count: 0, fleets: new Set()
+    }
+    driver.fills += 1
+    driver.litres += litres
+    if (currency === 'USD') driver.cost_usd += cost
+    else driver.cost_zar += cost
+    if (hoursOp && hoursOp > 0) driver.total_hours += hoursOp
+    if (lph && lph > 0) { driver.lph_sum += lph; driver.lph_count += 1 }
+    if (reeferUnit) driver.fleets.add(reeferUnit)
+    reeferDriverMap.set(driverName, driver)
+
+    // Station aggregation
+    const stData = reeferStationMap.get(station) || {
+      fills: 0, litres: 0, cost_zar: 0, cost_usd: 0, fleets: new Set()
+    }
+    stData.fills += 1
+    stData.litres += litres
+    if (currency === 'USD') stData.cost_usd += cost
+    else stData.cost_zar += cost
+    if (reeferUnit) stData.fleets.add(reeferUnit)
+    reeferStationMap.set(station, stData)
+  })
+
+  // Reefer Summary sheet
+  const avgLph = reeferTotalHours > 0 ? (reeferTotalLitres / reeferTotalHours).toFixed(2) : 'N/A'
+  const reeferSummaryData = [
+    ['Reefer Diesel Report (L/hr)'],
+    ['Period', period],
+    ['Generated', new Date().toISOString()],
+    [''],
+    ['Overall Statistics'],
+    ['Total Reefer Fill Records', mergedReeferRecords.length],
+    ['Total Litres Filled', reeferTotalLitres.toFixed(2)],
+    ['Total Hours Operated', reeferTotalHours.toFixed(1)],
+    ['Average L/hr', avgLph],
+    [''],
+    ['Financial Summary'],
+    ['Total Cost (ZAR)', reeferTotalCostZAR.toFixed(2)],
+    ['Total Cost (USD)', reeferTotalCostUSD.toFixed(2)],
+    [''],
+    ['Unique Reefer Units', reeferFleetMap.size],
+    ['Unique Drivers', reeferDriverMap.size],
+    ['Unique Stations', reeferStationMap.size],
+  ]
+
+  // Reefer by Fleet sheet
+  const reeferFleetData = [
+    ['Reefer Unit', 'Fill Count', 'Litres', 'Hours Operated', 'Avg L/hr', 'Cost (ZAR)', 'Cost (USD)'],
+    ...Array.from(reeferFleetMap.entries())
+      .sort((a, b) => b[1].litres - a[1].litres)
+      .map(([fleet, d]) => [
+        fleet,
+        d.fills,
+        d.litres.toFixed(2),
+        d.total_hours.toFixed(1),
+        d.lph_count > 0 ? (d.lph_sum / d.lph_count).toFixed(2) : 'N/A',
+        d.cost_zar.toFixed(2),
+        d.cost_usd.toFixed(2),
+      ])
+  ]
+
+  // Reefer by Driver sheet
+  const reeferDriverData = [
+    ['Driver', 'Fill Count', 'Litres', 'Hours Operated', 'Avg L/hr', 'Cost (ZAR)', 'Cost (USD)', 'Reefer Units'],
+    ...Array.from(reeferDriverMap.entries())
+      .sort((a, b) => b[1].litres - a[1].litres)
+      .map(([driver, d]) => [
+        driver,
+        d.fills,
+        d.litres.toFixed(2),
+        d.total_hours.toFixed(1),
+        d.lph_count > 0 ? (d.lph_sum / d.lph_count).toFixed(2) : 'N/A',
+        d.cost_zar.toFixed(2),
+        d.cost_usd.toFixed(2),
+        Array.from(d.fleets).join(', ')
+      ])
+  ]
+
+  // Reefer by Station sheet
+  const reeferStationData = [
+    ['Station', 'Fill Count', 'Litres', 'Cost (ZAR)', 'Cost (USD)', 'Avg Cost/L', 'Reefer Units'],
+    ...Array.from(reeferStationMap.entries())
+      .sort((a, b) => b[1].litres - a[1].litres)
+      .map(([station, d]) => [
+        station,
+        d.fills,
+        d.litres.toFixed(2),
+        d.cost_zar.toFixed(2),
+        d.cost_usd.toFixed(2),
+        d.litres > 0 ? ((d.cost_zar + d.cost_usd) / d.litres).toFixed(2) : 'N/A',
+        Array.from(d.fleets).join(', ')
+      ])
+  ]
+
+  // Reefer Transactions (raw data) sheet
+  const reeferTransactionsData = [
+    ['Date', 'Reefer Unit', 'Driver', 'Station', 'Litres', 'Cost', 'Currency', 'Op Hours', 'Prev Hours', 'Hours Operated', 'L/hr'],
+    ...mergedReeferRecords.slice(0, 1000).map((r: any) => {
+      const opH = r.operating_hours ?? r.km_reading ?? ''
+      const prevH = r.previous_operating_hours ?? r.previous_km_reading ?? ''
+      const hrsOp = r.hours_operated ?? (
+        (opH && prevH && Number(opH) > Number(prevH)) ? (Number(opH) - Number(prevH)).toFixed(1) : ''
+      )
+      const computedLph = r.litres_per_hour ?? (
+        (hrsOp && Number(hrsOp) > 0 && r.litres_filled > 0) ? (r.litres_filled / Number(hrsOp)).toFixed(2) : ''
+      )
+      return [
+        r.date,
+        r.reefer_unit || r.fleet_number || '',
+        r.driver_name || '',
+        r.fuel_station || '',
+        r.litres_filled || 0,
+        r.total_cost || 0,
+        r.currency || 'ZAR',
+        opH,
+        prevH,
+        hrsOp,
+        computedLph
+      ]
+    })
+  ]
+
   // Update each diesel sheet
   await updateSheet(accessToken, spreadsheetId, 'Diesel Summary', summaryData)
   await updateSheet(accessToken, spreadsheetId, 'Diesel by Fleet', fleetData)
@@ -391,13 +632,26 @@ async function syncDieselReports(
   await updateSheet(accessToken, spreadsheetId, 'Diesel Monthly', monthlyData)
   await updateSheet(accessToken, spreadsheetId, 'Diesel Transactions', transactionsData)
 
+  // Update reefer sheets
+  await updateSheet(accessToken, spreadsheetId, 'Reefer Summary', reeferSummaryData)
+  await updateSheet(accessToken, spreadsheetId, 'Reefer by Fleet', reeferFleetData)
+  await updateSheet(accessToken, spreadsheetId, 'Reefer by Driver', reeferDriverData)
+  await updateSheet(accessToken, spreadsheetId, 'Reefer by Station', reeferStationData)
+  await updateSheet(accessToken, spreadsheetId, 'Reefer Transactions', reeferTransactionsData)
+
+  const allSheets = [
+    'Diesel Summary', 'Diesel by Fleet', 'Diesel by Driver', 'Diesel by Station', 'Diesel Weekly', 'Diesel Monthly', 'Diesel Transactions',
+    'Reefer Summary', 'Reefer by Fleet', 'Reefer by Driver', 'Reefer by Station', 'Reefer Transactions'
+  ]
+
   return new Response(JSON.stringify({
     success: true,
-    message: 'Diesel reports synced to Google Sheet successfully',
+    message: 'Diesel & Reefer reports synced to Google Sheet successfully',
     updated_at: new Date().toISOString(),
     period: period,
     records_processed: records.length,
-    sheets_updated: ['Diesel Summary', 'Diesel by Fleet', 'Diesel by Driver', 'Diesel by Station', 'Diesel Weekly', 'Diesel Monthly', 'Diesel Transactions'],
+    reefer_records_processed: mergedReeferRecords.length,
+    sheets_updated: allSheets,
   }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     status: 200,

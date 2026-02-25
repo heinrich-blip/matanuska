@@ -10,6 +10,7 @@ import {
     AlertCircle,
     Calendar,
     CheckCircle,
+    Clock,
     DollarSign,
     FileText,
     Fuel,
@@ -54,6 +55,24 @@ const DieselTransactionViewModal = ({
   onVerifyProbe,
 }: DieselTransactionViewModalProps) => {
   const { trips, dieselNorms } = useOperations();
+
+  // Detect reefer fleet (fleet numbers ending in F)
+  const isReefer = useMemo(() => {
+    return !!record?.fleet_number && record.fleet_number.toUpperCase().trim().endsWith('F');
+  }, [record?.fleet_number]);
+
+  // Access reefer-specific fields (carried through from reefer_diesel_records mapping)
+  const reeferData = useMemo(() => {
+    if (!isReefer || !record) return null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rec = record as any;
+    return {
+      operatingHours: rec.operating_hours as number | null,
+      previousOperatingHours: rec.previous_operating_hours as number | null,
+      hoursOperated: rec.hours_operated as number | null,
+      litresPerHour: rec.litres_per_hour as number | null,
+    };
+  }, [isReefer, record]);
 
   // Find linked trip
   const linkedTrip: Trip | undefined = useMemo(() => {
@@ -208,7 +227,45 @@ const DieselTransactionViewModal = ({
             </CardContent>
           </Card>
 
-          {/* Distance & Efficiency Card */}
+          {/* Distance & Efficiency Card (Trucks) OR Operating Hours & Efficiency Card (Reefers) */}
+          {isReefer ? (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                Operating Hours & Efficiency
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-muted-foreground">Operating Hours</p>
+                  <p className="font-medium">
+                    {reeferData?.operatingHours != null ? formatNumber(reeferData.operatingHours, 1) + ' hrs' : 'N/A'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Previous Hours</p>
+                  <p className="font-medium">
+                    {reeferData?.previousOperatingHours != null ? formatNumber(reeferData.previousOperatingHours, 1) + ' hrs' : 'N/A'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Hours Operated</p>
+                  <p className="font-medium">
+                    {reeferData?.hoursOperated != null ? formatNumber(reeferData.hoursOperated, 1) + ' hrs' : 'N/A'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Efficiency</p>
+                  <p className="font-bold text-cyan-600">
+                    {reeferData?.litresPerHour != null ? formatNumber(reeferData.litresPerHour, 2) + ' L/hr' : 'N/A'}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          ) : (
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
@@ -261,6 +318,7 @@ const DieselTransactionViewModal = ({
               )}
             </CardContent>
           </Card>
+          )}
         </div>
 
         {/* Linked Trip Section */}

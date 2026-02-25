@@ -7,9 +7,8 @@ import { Label } from '@/components/ui/label';
 import Modal from '@/components/ui/modal';
 import { REEFER_UNITS } from '@/constants/fleet';
 import { useDispenseFuel, useFuelBunkers } from '@/hooks/useFuelBunkers';
-import { useTruckDieselRecordsForLinking, type LinkedDieselRecordInfo } from '@/hooks/useReeferDiesel';
 import { supabase } from '@/integrations/supabase/client';
-import { AlertCircle, CheckCircle2, Link, Loader2, Search, Snowflake, Truck, Unlink, X } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Loader2, Snowflake } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 // Type definitions
@@ -55,13 +54,7 @@ const ReeferDieselEntryModal = ({
     driver_name: '',
     notes: '',
     currency: 'ZAR',
-    linked_diesel_record_id: '' as string,
   });
-
-  // Selected diesel record for display
-  const [selectedDieselRecord, setSelectedDieselRecord] = useState<LinkedDieselRecordInfo | null>(null);
-  const [dieselSearchQuery, setDieselSearchQuery] = useState('');
-  const [showDieselSearch, setShowDieselSearch] = useState(false);
 
   // Fuel source selection: 'station' or 'bunker'
   const [fuelSource, setFuelSource] = useState<'station' | 'bunker'>('station');
@@ -70,23 +63,6 @@ const ReeferDieselEntryModal = ({
   // Fetch fuel bunkers
   const { data: bunkers = [], isLoading: isLoadingBunkers } = useFuelBunkers(true);
   const dispenseFuelMutation = useDispenseFuel();
-
-  // Fetch truck diesel records for linking
-  const { data: truckDieselRecords = [], isLoading: isLoadingDieselRecords } = useTruckDieselRecordsForLinking({
-    startDate: formData.date ? new Date(new Date(formData.date).getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] : undefined,
-    endDate: formData.date,
-  });
-
-  // Filter diesel records based on search query
-  const filteredDieselRecords = truckDieselRecords.filter(record => {
-    if (!dieselSearchQuery) return true;
-    const query = dieselSearchQuery.toLowerCase();
-    return (
-      record.fleet_number.toLowerCase().includes(query) ||
-      record.driver_name?.toLowerCase().includes(query) ||
-      record.fuel_station.toLowerCase().includes(query)
-    );
-  });
 
   // Auto-fetched previous hour reading from database
   const [previousHourReading, setPreviousHourReading] = useState<number | null>(null);
@@ -153,20 +129,12 @@ const ReeferDieselEntryModal = ({
         driver_name: editRecord.driver_name || '',
         notes: editRecord.notes || '',
         currency: editRecord.currency || 'ZAR',
-        linked_diesel_record_id: editRecord.linked_diesel_record_id || '',
       });
       // When editing, use the stored previous_operating_hours
       setPreviousHourReading(editRecord.previous_operating_hours || null);
       setPreviousHourDate(null);
       setFuelSource('station');
       setSelectedBunkerId('');
-      // If editing with a linked diesel record, find and set it
-      if (editRecord.linked_diesel_record_id) {
-        const linkedRecord = truckDieselRecords.find(r => r.id === editRecord.linked_diesel_record_id);
-        setSelectedDieselRecord(linkedRecord || null);
-      } else {
-        setSelectedDieselRecord(null);
-      }
     } else if (isOpen) {
       setFormData({
         reefer_unit: '',
@@ -179,7 +147,6 @@ const ReeferDieselEntryModal = ({
         driver_name: '',
         notes: '',
         currency: 'ZAR',
-        linked_diesel_record_id: '',
       });
       setPreviousHourReading(null);
       setPreviousHourDate(null);
@@ -188,11 +155,8 @@ const ReeferDieselEntryModal = ({
       setOperationSuccess(false);
       setFuelSource('station');
       setSelectedBunkerId('');
-      setSelectedDieselRecord(null);
-      setDieselSearchQuery('');
-      setShowDieselSearch(false);
     }
-  }, [editRecord, isOpen, truckDieselRecords]);
+  }, [editRecord, isOpen]);
 
   // Auto-calculate total cost
   useEffect(() => {
@@ -307,7 +271,7 @@ const ReeferDieselEntryModal = ({
         previous_operating_hours: previousHourReading,
         hours_operated: hoursOperated,
         litres_per_hour: litresPerHour,
-        linked_diesel_record_id: formData.linked_diesel_record_id || null,
+        linked_diesel_record_id: null,
         driver_name: formData.driver_name,
         notes: fuelSource === 'bunker' && bunkerDispenseResult
           ? `${formData.notes ? formData.notes + ' | ' : ''}Bunker level after: ${bunkerDispenseResult.new_bunker_level?.toFixed(0)}L`
@@ -335,20 +299,6 @@ const ReeferDieselEntryModal = ({
     { label: 'ZAR', value: 'ZAR' },
     { label: 'USD', value: 'USD' },
   ];
-
-  // Handle selecting a diesel record
-  const handleSelectDieselRecord = (record: LinkedDieselRecordInfo) => {
-    setFormData(prev => ({ ...prev, linked_diesel_record_id: record.id }));
-    setSelectedDieselRecord(record);
-    setShowDieselSearch(false);
-    setDieselSearchQuery('');
-  };
-
-  // Handle clearing the diesel record link
-  const handleClearDieselLink = () => {
-    setFormData(prev => ({ ...prev, linked_diesel_record_id: '' }));
-    setSelectedDieselRecord(null);
-  };
 
   // Calculate consumption preview
   const consumptionPreview = (() => {
@@ -593,132 +543,6 @@ const ReeferDieselEntryModal = ({
             </div>
           )}
 
-          {/* Link to Truck Diesel Transaction Section */}
-          <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
-            <Label className="flex items-center gap-2">
-              {selectedDieselRecord ? (
-                <Link className="h-4 w-4 text-success" />
-              ) : (
-                <Unlink className="h-4 w-4 text-muted-foreground" />
-              )}
-              Link to Truck Diesel Transaction
-            </Label>
-
-            {selectedDieselRecord ? (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between p-3 bg-success/10 border border-success rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Truck className="h-5 w-5 text-success" />
-                    <div>
-                      <div className="font-medium text-success">
-                        Horse {selectedDieselRecord.fleet_number}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {new Date(selectedDieselRecord.date).toLocaleDateString()} • {selectedDieselRecord.litres_filled.toFixed(1)}L • {selectedDieselRecord.fuel_station}
-                      </div>
-                      {selectedDieselRecord.driver_name && (
-                        <div className="text-xs text-muted-foreground">
-                          Driver: {selectedDieselRecord.driver_name}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleClearDieselLink}
-                    disabled={isProcessing}
-                    className="h-8 w-8 p-0"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {!showDieselSearch ? (
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                    onClick={() => setShowDieselSearch(true)}
-                    disabled={isProcessing}
-                  >
-                    <Search className="h-4 w-4 mr-2" />
-                    Search for a truck diesel transaction...
-                  </Button>
-                ) : (
-                  <div className="space-y-2">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        type="text"
-                        placeholder="Search by fleet number, driver, or station..."
-                        value={dieselSearchQuery}
-                        onChange={(e) => setDieselSearchQuery(e.target.value)}
-                        className="pl-9"
-                        autoFocus
-                      />
-                    </div>
-                    <div className="max-h-48 overflow-y-auto border rounded-md divide-y">
-                      {isLoadingDieselRecords ? (
-                        <div className="flex items-center justify-center p-4">
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          Loading...
-                        </div>
-                      ) : filteredDieselRecords.length === 0 ? (
-                        <div className="p-4 text-center text-sm text-muted-foreground">
-                          No diesel records found in the last 7 days
-                        </div>
-                      ) : (
-                        filteredDieselRecords.map((record) => (
-                          <button
-                            key={record.id}
-                            className="w-full p-3 text-left hover:bg-muted/50 transition-colors"
-                            onClick={() => handleSelectDieselRecord(record)}
-                          >
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <div className="font-medium">Horse {record.fleet_number}</div>
-                                <div className="text-xs text-muted-foreground">
-                                  {new Date(record.date).toLocaleDateString()} • {record.litres_filled.toFixed(1)}L @ {record.fuel_station}
-                                </div>
-                                {record.driver_name && (
-                                  <div className="text-xs text-muted-foreground">
-                                    Driver: {record.driver_name}
-                                  </div>
-                                )}
-                              </div>
-                              <div className="text-right">
-                                <div className="text-sm font-medium">
-                                  R{record.total_cost.toLocaleString()}
-                                </div>
-                              </div>
-                            </div>
-                          </button>
-                        ))
-                      )}
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setShowDieselSearch(false);
-                        setDieselSearchQuery('');
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <p className="text-xs text-muted-foreground">
-              Link this reefer's diesel to a truck diesel transaction for combined cost reporting.
-              Shows transactions from the last 7 days relative to the selected date.
-            </p>
-          </div>
-
           <TextArea
             label="Notes"
             value={formData.notes}
@@ -741,4 +565,4 @@ const ReeferDieselEntryModal = ({
   );
 };
 
-export default ReeferDieselEntryModal;
+export default ReeferDieselEntryModal

@@ -4,7 +4,8 @@ import DieselNormsModal from '@/components/diesel/DieselNormsModal';
 import DieselTransactionViewModal from '@/components/diesel/DieselTransactionViewModal';
 import ManualDieselEntryModal from '@/components/diesel/ManualDieselEntryModal';
 import ProbeVerificationModal from '@/components/diesel/ProbeVerificationModal';
-import ReeferDieselTab from '@/components/diesel/ReeferDieselTab';
+import ReeferDieselEntryModal from '@/components/diesel/ReeferDieselEntryModal';
+import type { ReeferDieselRecord } from '@/components/diesel/ReeferDieselEntryModal';
 import ReeferLinkageModal from '@/components/diesel/ReeferLinkageModal';
 import TripLinkageModal from '@/components/diesel/TripLinkageModal';
 import Layout from '@/components/Layout';
@@ -15,7 +16,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useOperations } from '@/contexts/OperationsContext';
-import { useReeferDieselRecords, type ReeferDieselRecordRow } from '@/hooks/useReeferDiesel';
+import { useReeferConsumptionSummary, useReeferDieselRecords, type ReeferDieselRecordRow } from '@/hooks/useReeferDiesel';
 import { generateDieselDebriefPDF, generateFleetDebriefSummaryPDF, generateSelectedTransactionsPDF } from '@/lib/dieselDebriefExport';
 import { generateAllFleetsDieselExcel, generateAllFleetsDieselPDF, generateFleetDieselExcel, generateFleetDieselPDF, type DieselExportRecord } from '@/lib/dieselFleetExport';
 import { formatCurrency, formatDate, formatNumber } from '@/lib/formatters';
@@ -43,6 +44,8 @@ interface ReeferDriverReport {
   fillCount: number;
   lastFillDate: string;
   fleets: string[];
+  avgLitresPerHour: number;
+  totalHoursOperated: number;
 }
 
 interface FleetReport {
@@ -63,6 +66,8 @@ interface ReeferFleetReport {
   totalCostUSD: number;
   fillCount: number;
   drivers: string[];
+  avgLitresPerHour: number;
+  totalHoursOperated: number;
 }
 
 interface StationReport {
@@ -124,7 +129,7 @@ const DieselManagement = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [fleetFilter, _setFleetFilter] = useState<string>('');
   const [weekFilter, _setWeekFilter] = useState<string>('');
-  const [reportType, setReportType] = useState<'driver' | 'fleet' | 'station' | 'weekly'>('fleet');
+  const [reportType, setReportType] = useState<'driver' | 'fleet' | 'station' | 'weekly' | 'reefer'>('fleet');
   const {
     dieselRecords,
     trips,
@@ -139,14 +144,62 @@ const DieselManagement = () => {
     deleteDieselNorm,
   } = useOperations();
 
+  // Consolidated reefer diesel records hook (CRUD + records from reefer_diesel_records table)
+  const { records: allReeferRecords, createRecordAsync, updateRecordAsync } = useReeferDieselRecords({});
+
   const truckRecords = useMemo(
     () => dieselRecords.filter(record => !isReeferFleet(record.fleet_number)),
     [dieselRecords]
   );
-  const reeferRecords = useMemo(
-    () => dieselRecords.filter(record => isReeferFleet(record.fleet_number)),
-    [dieselRecords]
-  );
+  // Reefer records: merge from BOTH diesel_records table (legacy) AND reefer_diesel_records table (new)
+  const reeferRecords = useMemo(() => {
+    // 1. Legacy reefer records from diesel_records table
+    const legacyReefer = dieselRecords.filter(record => isReeferFleet(record.fleet_number));
+
+    // 2. New reefer records from reefer_diesel_records table (mapped to DieselConsumptionRecord format)
+    const newReefer = allReeferRecords.map((r) => ({
+      id: r.id,
+      fleet_number: r.reefer_unit,
+      driver_name: r.driver_name || undefined,
+      fuel_station: r.fuel_station,
+      litres_filled: r.litres_filled,
+      total_cost: r.total_cost,
+      cost_per_litre: r.cost_per_litre ?? undefined,
+      km_reading: 0,
+      date: r.date,
+      currency: r.currency,
+      notes: r.notes || undefined,
+      created_at: r.created_at,
+      updated_at: r.updated_at,
+      // Reefer-specific fields carried through for display
+      operating_hours: r.operating_hours,
+      previous_operating_hours: r.previous_operating_hours,
+      hours_operated: r.hours_operated,
+      litres_per_hour: r.litres_per_hour,
+    } as DieselConsumptionRecord));
+
+    // 3. Map legacy records: km_reading was actually hours, compute reefer fields
+    const mappedLegacy = legacyReefer.map((r) => {
+      const opHours = r.km_reading || null;
+      const prevHours = r.previous_km_reading || null;
+      const hoursOp = (opHours != null && prevHours != null && opHours > prevHours)
+        ? opHours - prevHours : (r.distance_travelled || null);
+      const lph = (hoursOp && hoursOp > 0 && r.litres_filled > 0)
+        ? r.litres_filled / hoursOp : null;
+      return {
+        ...r,
+        operating_hours: opHours,
+        previous_operating_hours: prevHours,
+        hours_operated: hoursOp,
+        litres_per_hour: lph,
+      } as DieselConsumptionRecord;
+    });
+
+    // 4. Merge, deduplicating by ID (reefer_diesel_records take precedence)
+    const reeferIds = new Set(newReefer.map(r => r.id));
+    const dedupedLegacy = mappedLegacy.filter(r => !reeferIds.has(r.id));
+    return [...newReefer, ...dedupedLegacy];
+  }, [dieselRecords, allReeferRecords]);
   const reeferFleetNumbers = useMemo(() => {
     const fleets = new Set(reeferRecords.map(r => r.fleet_number).filter(Boolean));
     return Array.from(fleets).sort();
@@ -161,9 +214,11 @@ const DieselManagement = () => {
   const [isNormsModalOpen, setIsNormsModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isReeferLinkageOpen, setIsReeferLinkageOpen] = useState(false);
+  const [isReeferEntryOpen, setIsReeferEntryOpen] = useState(false);
 
   // Selected records
   const [selectedRecord, setSelectedRecord] = useState<DieselConsumptionRecord | null>(null);
+  const [selectedReeferEditRecord, setSelectedReeferEditRecord] = useState<ReeferDieselRecord | null>(null);
   const [selectedNorm, setSelectedNorm] = useState<DieselNorms | null>(null);
 
   // UI state for expanded fleet/week sections
@@ -187,8 +242,22 @@ const DieselManagement = () => {
   // Linked reefer records for view modal
   const [linkedReeferRecords, setLinkedReeferRecords] = useState<ReeferDieselRecordRow[]>([]);
 
-  // Fetch reefer records linked to selected record (for view modal)
-  const { records: allReeferRecords } = useReeferDieselRecords({});
+  // allReeferRecords already fetched via consolidated hook above
+
+  // Fetch reefer consumption summary for L/hr data
+  const { data: reeferConsumptionSummary = [] } = useReeferConsumptionSummary();
+
+  // Create L/hr lookup map: reefer_unit -> { avgLitresPerHour, totalHoursOperated }
+  const reeferLhrMap = useMemo(() => {
+    const map = new Map<string, { avgLitresPerHour: number; totalHoursOperated: number }>();
+    reeferConsumptionSummary.forEach(s => {
+      map.set(s.reefer_unit, {
+        avgLitresPerHour: s.avg_litres_per_hour,
+        totalHoursOperated: s.total_hours_operated,
+      });
+    });
+    return map;
+  }, [reeferConsumptionSummary]);
 
   // Update linked reefer records when selected record changes
   useEffect(() => {
@@ -494,12 +563,50 @@ const DieselManagement = () => {
           fillCount: 1,
           lastFillDate: record.date,
           fleets: fleet ? [fleet] : [],
+          avgLitresPerHour: 0,
+          totalHoursOperated: 0,
         });
       }
     });
 
+    // Enrich with L/hr data: compute from per-record data, fall back to reefer consumption summary
+    driverMap.forEach((report) => {
+      let totalHrs = 0;
+      let totalLitresWithHours = 0;
+      report.fleets.forEach(fleet => {
+        const fleetRecs = reeferRecords.filter(r => r.fleet_number === fleet);
+        fleetRecs.forEach(r => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const hrs = (r as any).hours_operated as number | null;
+          if (hrs != null && hrs > 0) {
+            totalHrs += hrs;
+            totalLitresWithHours += r.litres_filled || 0;
+          }
+        });
+      });
+      if (totalHrs > 0) {
+        report.totalHoursOperated = totalHrs;
+        report.avgLitresPerHour = totalLitresWithHours / totalHrs;
+      } else {
+        // Fall back to consumption summary map
+        let totalLph = 0;
+        let lphCount = 0;
+        report.fleets.forEach(fleet => {
+          const lhrData = reeferLhrMap.get(fleet);
+          if (lhrData && lhrData.avgLitresPerHour > 0) {
+            totalLph += lhrData.avgLitresPerHour;
+            lphCount += 1;
+            report.totalHoursOperated += lhrData.totalHoursOperated;
+          }
+        });
+        if (lphCount > 0) {
+          report.avgLitresPerHour = totalLph / lphCount;
+        }
+      }
+    });
+
     return Array.from(driverMap.values()).sort((a, b) => b.totalLitres - a.totalLitres);
-  }, [reeferRecords]);
+  }, [reeferRecords, reeferLhrMap]);
 
   // Generate reports by fleet
   const fleetReports = useMemo((): FleetReport[] => {
@@ -561,12 +668,36 @@ const DieselManagement = () => {
           totalCostUSD: record.currency === 'USD' ? (record.total_cost || 0) : 0,
           fillCount: 1,
           drivers: [driver],
+          avgLitresPerHour: 0,
+          totalHoursOperated: 0,
         });
       }
     });
 
+    // Enrich with L/hr data: prefer per-record data, fall back to reefer consumption summary
+    fleetMap.forEach((report) => {
+      // Calculate from per-record hours_operated and litres
+      const fleetRecs = reeferRecords.filter(r => r.fleet_number === report.fleet);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const recsWithHours = fleetRecs.filter(r => (r as any).hours_operated != null && (r as any).hours_operated > 0);
+      if (recsWithHours.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const totalHrs = recsWithHours.reduce((sum, r) => sum + ((r as any).hours_operated || 0), 0);
+        const totalLitresWithHours = recsWithHours.reduce((sum, r) => sum + (r.litres_filled || 0), 0);
+        report.totalHoursOperated = totalHrs;
+        report.avgLitresPerHour = totalHrs > 0 ? totalLitresWithHours / totalHrs : 0;
+      } else {
+        // Fall back to consumption summary map
+        const lhrData = reeferLhrMap.get(report.fleet);
+        if (lhrData) {
+          report.avgLitresPerHour = lhrData.avgLitresPerHour;
+          report.totalHoursOperated = lhrData.totalHoursOperated;
+        }
+      }
+    });
+
     return Array.from(fleetMap.values()).sort((a, b) => b.totalLitres - a.totalLitres);
-  }, [reeferRecords]);
+  }, [reeferRecords, reeferLhrMap]);
 
   // Generate reports by filling station
   const stationReports = useMemo((): StationReport[] => {
@@ -768,7 +899,7 @@ const DieselManagement = () => {
     return reports;
   }, [dieselRecords, reeferFleetNumbers]);
 
-  // Export report to Excel
+  // Export report to Excel (trucks only)
   const exportReportToExcel = () => {
     let headers = '';
     let rows: string[] = [];
@@ -786,22 +917,6 @@ const DieselManagement = () => {
         r.fillCount.toString(),
         r.lastFillDate,
       ].join('\t'));
-      if (reeferDriverReports.length > 0) {
-        rows = rows.concat([
-          '',
-          'REEFER DRIVERS',
-          ['Driver', 'Total Litres', 'Total Cost (ZAR)', 'Total Cost (USD)', 'Fill Count', 'Last Fill Date', 'Fleets'].join('\t'),
-          ...reeferDriverReports.map(r => [
-            r.driver,
-            r.totalLitres.toFixed(2),
-            r.totalCostZAR.toFixed(2),
-            r.totalCostUSD.toFixed(2),
-            r.fillCount.toString(),
-            r.lastFillDate,
-            r.fleets.join(', '),
-          ].join('\t')),
-        ]);
-      }
       filename = `diesel_report_by_driver_${new Date().toISOString().split('T')[0]}.xls`;
     } else if (reportType === 'fleet') {
       headers = ['Fleet', 'Total Litres', 'Total Cost (ZAR)', 'Total Cost (USD)', 'Total Distance (km)', 'Avg km/L', 'Fill Count', 'Drivers'].join('\t');
@@ -815,21 +930,6 @@ const DieselManagement = () => {
         r.fillCount.toString(),
         r.drivers.join(', '),
       ].join('\t'));
-      if (reeferFleetReports.length > 0) {
-        rows = rows.concat([
-          '',
-          'REEFER FLEETS',
-          ['Fleet', 'Total Litres', 'Total Cost (ZAR)', 'Total Cost (USD)', 'Fill Count', 'Drivers'].join('\t'),
-          ...reeferFleetReports.map(r => [
-            r.fleet,
-            r.totalLitres.toFixed(2),
-            r.totalCostZAR.toFixed(2),
-            r.totalCostUSD.toFixed(2),
-            r.fillCount.toString(),
-            r.drivers.join(', '),
-          ].join('\t')),
-        ]);
-      }
       filename = `diesel_report_by_fleet_${new Date().toISOString().split('T')[0]}.xls`;
     } else {
       headers = ['Station', 'Total Litres', 'Total Cost (ZAR)', 'Total Cost (USD)', 'Avg Cost/L', 'Fill Count', 'Fleets Served'].join('\t');
@@ -842,22 +942,6 @@ const DieselManagement = () => {
         r.fillCount.toString(),
         r.fleetsServed.join(', '),
       ].join('\t'));
-      if (reeferStationReports.length > 0) {
-        rows = rows.concat([
-          '',
-          'REEFER STATIONS',
-          ['Station', 'Total Litres', 'Total Cost (ZAR)', 'Total Cost (USD)', 'Avg Cost/L', 'Fill Count', 'Fleets Served'].join('\t'),
-          ...reeferStationReports.map(r => [
-            r.station,
-            r.totalLitres.toFixed(2),
-            r.totalCostZAR.toFixed(2),
-            r.totalCostUSD.toFixed(2),
-            r.avgCostPerLitre.toFixed(2),
-            r.fillCount.toString(),
-            r.fleetsServed.join(', '),
-          ].join('\t')),
-        ]);
-      }
       filename = `diesel_report_by_station_${new Date().toISOString().split('T')[0]}.xls`;
     }
 
@@ -866,6 +950,73 @@ const DieselManagement = () => {
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = filename;
+    link.click();
+  };
+
+  // Export reefer report to Excel (separate from truck export)
+  const exportReeferReportToExcel = () => {
+    const rows: string[] = [];
+
+    // Fleet section
+    if (reeferFleetReports.length > 0) {
+      rows.push('REEFER FLEET REPORT');
+      rows.push(['Fleet', 'Total Litres', 'Total Cost (ZAR)', 'Total Cost (USD)', 'Avg L/hr', 'Hours Operated', 'Fill Count', 'Drivers'].join('\t'));
+      reeferFleetReports.forEach(r => {
+        rows.push([
+          r.fleet,
+          r.totalLitres.toFixed(2),
+          r.totalCostZAR.toFixed(2),
+          r.totalCostUSD.toFixed(2),
+          r.avgLitresPerHour > 0 ? r.avgLitresPerHour.toFixed(2) : '—',
+          r.totalHoursOperated > 0 ? r.totalHoursOperated.toFixed(1) : '—',
+          r.fillCount.toString(),
+          r.drivers.join(', '),
+        ].join('\t'));
+      });
+      rows.push('');
+    }
+
+    // Driver section
+    if (reeferDriverReports.length > 0) {
+      rows.push('REEFER DRIVER REPORT');
+      rows.push(['Driver', 'Total Litres', 'Total Cost (ZAR)', 'Total Cost (USD)', 'Avg L/hr', 'Fill Count', 'Last Fill Date', 'Fleets'].join('\t'));
+      reeferDriverReports.forEach(r => {
+        rows.push([
+          r.driver,
+          r.totalLitres.toFixed(2),
+          r.totalCostZAR.toFixed(2),
+          r.totalCostUSD.toFixed(2),
+          r.avgLitresPerHour > 0 ? r.avgLitresPerHour.toFixed(2) : '—',
+          r.fillCount.toString(),
+          r.lastFillDate,
+          r.fleets.join(', '),
+        ].join('\t'));
+      });
+      rows.push('');
+    }
+
+    // Station section
+    if (reeferStationReports.length > 0) {
+      rows.push('REEFER STATION REPORT');
+      rows.push(['Station', 'Total Litres', 'Total Cost (ZAR)', 'Total Cost (USD)', 'Avg Cost/L', 'Fill Count', 'Fleets Served'].join('\t'));
+      reeferStationReports.forEach(r => {
+        rows.push([
+          r.station,
+          r.totalLitres.toFixed(2),
+          r.totalCostZAR.toFixed(2),
+          r.totalCostUSD.toFixed(2),
+          r.avgCostPerLitre.toFixed(2),
+          r.fillCount.toString(),
+          r.fleetsServed.join(', '),
+        ].join('\t'));
+      });
+    }
+
+    const tsvContent = '\uFEFF' + rows.join('\n');
+    const blob = new Blob([tsvContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `reefer_diesel_report_${new Date().toISOString().split('T')[0]}.xls`;
     link.click();
   };
 
@@ -1012,10 +1163,58 @@ const DieselManagement = () => {
   // Handler functions
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleManualSave = async (record: any) => {
+    if (isReeferFleet(record.fleet_number)) {
+      // Reefer fleet selected in truck form - redirect to reefer save
+      const reeferRecord: ReeferDieselRecord = {
+        id: record.id,
+        reefer_unit: record.fleet_number,
+        date: record.date,
+        fuel_station: record.fuel_station,
+        litres_filled: record.litres_filled,
+        cost_per_litre: record.cost_per_litre ?? null,
+        total_cost: record.total_cost,
+        currency: record.currency || 'ZAR',
+        operating_hours: null,
+        previous_operating_hours: null,
+        hours_operated: null,
+        litres_per_hour: null,
+        linked_diesel_record_id: null,
+        driver_name: record.driver_name || '',
+        notes: record.notes || '',
+      };
+      await handleReeferSave(reeferRecord);
+      return;
+    }
     if (record.id) {
       await updateDieselRecord(record as unknown as DieselConsumptionRecord);
     } else {
       await addDieselRecord(record as unknown as Omit<DieselConsumptionRecord, 'id' | 'created_at' | 'updated_at'>);
+    }
+  };
+
+  // Reefer diesel save handler (createRecordAsync & updateRecordAsync from consolidated hook above)
+  const handleReeferSave = async (record: ReeferDieselRecord) => {
+    if (record.id) {
+      // Check if this ID actually exists in reefer_diesel_records table
+      // Records from diesel_records table have IDs that don't exist in reefer_diesel_records
+      const existsInReeferTable = allReeferRecords.some(r => r.id === record.id);
+      if (existsInReeferTable) {
+        await updateRecordAsync(record);
+      } else {
+        // ID is from diesel_records table - migrate: create in reefer_diesel_records, then delete old
+        const oldId = record.id;
+        const { id: _oldId, ...newRecord } = record;
+        await createRecordAsync(newRecord as ReeferDieselRecord);
+        // Remove old record from diesel_records so it doesn't show as duplicate
+        try {
+          await deleteDieselRecord(oldId!);
+        } catch {
+          // Non-fatal: the reefer record was saved, old diesel record cleanup failed
+          console.warn('Could not delete legacy diesel record', oldId);
+        }
+      }
+    } else {
+      await createRecordAsync(record);
     }
   };
 
@@ -1132,8 +1331,44 @@ const DieselManagement = () => {
   };
 
   const openEditRecord = (record: DieselConsumptionRecord) => {
-    setSelectedRecord(record);
-    setIsManualEntryOpen(true);
+    if (isReeferFleet(record.fleet_number)) {
+      // Reefer fleet - open reefer modal with L/hr fields
+      // Map diesel_records data to ReeferDieselRecord format
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rec = record as any;
+      // For legacy records (diesel_records), km_reading was actually operating hours
+      const opHours = rec.operating_hours ?? record.km_reading ?? null;
+      const prevHours = rec.previous_operating_hours ?? record.previous_km_reading ?? null;
+      const hoursOp = rec.hours_operated ?? (
+        (opHours != null && prevHours != null && opHours > prevHours)
+          ? opHours - prevHours : (record.distance_travelled ?? null)
+      );
+      const lph = rec.litres_per_hour ?? (
+        (hoursOp && hoursOp > 0 && record.litres_filled > 0)
+          ? record.litres_filled / hoursOp : null
+      );
+      setSelectedReeferEditRecord({
+        id: record.id,
+        reefer_unit: record.fleet_number,
+        date: record.date,
+        fuel_station: record.fuel_station,
+        litres_filled: record.litres_filled,
+        cost_per_litre: record.cost_per_litre ?? null,
+        total_cost: record.total_cost,
+        currency: record.currency || 'ZAR',
+        operating_hours: opHours,
+        previous_operating_hours: prevHours,
+        hours_operated: hoursOp,
+        litres_per_hour: lph,
+        linked_diesel_record_id: null,
+        driver_name: record.driver_name || '',
+        notes: record.notes || '',
+      });
+      setIsReeferEntryOpen(true);
+    } else {
+      setSelectedRecord(record);
+      setIsManualEntryOpen(true);
+    }
   };
 
   const openTripLinkage = (record: DieselConsumptionRecord) => {
@@ -1179,7 +1414,17 @@ const DieselManagement = () => {
               }}
             >
               <Plus className="h-4 w-4" />
-              Manual Entry
+              Add Truck Entry
+            </Button>
+            <Button
+              className="gap-2 bg-cyan-600 hover:bg-cyan-700"
+              onClick={() => {
+                setSelectedReeferEditRecord(null);
+                setIsReeferEntryOpen(true);
+              }}
+            >
+              <Snowflake className="h-4 w-4" />
+              Add Reefer Entry
             </Button>
             <Button
               variant="outline"
@@ -1276,10 +1521,6 @@ const DieselManagement = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList>
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-            <TabsTrigger value="reefer" className="flex items-center gap-1">
-              <Snowflake className="h-3 w-3" />
-              Reefer
-            </TabsTrigger>
             <TabsTrigger value="debrief">Debrief</TabsTrigger>
             <TabsTrigger value="reports">Reports</TabsTrigger>
             <TabsTrigger value="norms">Norms</TabsTrigger>
@@ -1297,7 +1538,17 @@ const DieselManagement = () => {
                 }}
               >
                 <Plus className="h-4 w-4" />
-                Add Record
+                Add Truck Record
+              </Button>
+              <Button
+                className="gap-2 bg-cyan-600 hover:bg-cyan-700"
+                onClick={() => {
+                  setSelectedReeferEditRecord(null);
+                  setIsReeferEntryOpen(true);
+                }}
+              >
+                <Snowflake className="h-4 w-4" />
+                Add Reefer Entry
               </Button>
               <Button
                 variant="outline"
@@ -1719,11 +1970,17 @@ const DieselManagement = () => {
                                                     <th className="text-left px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">Station</th>
                                                     <th className="text-right px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">Litres</th>
                                                     <th className="text-right px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">Cost</th>
+                                                    <th className="text-right px-4 py-3 font-semibold text-cyan-600 dark:text-cyan-400">L/hr</th>
                                                     <th className="text-center px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">Actions</th>
                                                   </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                                                  {weekRecords.map((record, idx) => (
+                                                  {weekRecords.map((record, idx) => {
+                                                    // Look up L/hr: prefer per-record value, fall back to fleet average
+                                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                                    const recordLph = (record as any).litres_per_hour as number | null;
+                                                    const fleetLhr = reeferLhrMap.get(record.fleet_number);
+                                                    return (
                                                     <tr
                                                       key={record.id}
                                                       className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${idx % 2 === 0 ? 'bg-white dark:bg-slate-900' : 'bg-slate-50/50 dark:bg-slate-800/30'}`}
@@ -1752,6 +2009,13 @@ const DieselManagement = () => {
                                                           {formatCurrency(record.total_cost, (record.currency || 'ZAR') as 'ZAR' | 'USD')}
                                                         </span>
                                                       </td>
+                                                      <td className="px-4 py-3 text-right font-mono">
+                                                        {(recordLph ?? fleetLhr?.avgLitresPerHour) ? (
+                                                          <span className="font-semibold text-cyan-600">{(recordLph ?? fleetLhr?.avgLitresPerHour ?? 0).toFixed(2)}</span>
+                                                        ) : (
+                                                          <span className="text-muted-foreground italic text-xs">-</span>
+                                                        )}
+                                                      </td>
                                                       <td className="px-4 py-3 text-center">
                                                         <DropdownMenu>
                                                           <DropdownMenuTrigger asChild>
@@ -1768,14 +2032,6 @@ const DieselManagement = () => {
                                                             <DropdownMenuItem onClick={() => openEditRecord(record)}>
                                                               <Edit className="h-4 w-4 mr-2" />
                                                               Edit Record
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem onClick={() => openTripLinkage(record)}>
-                                                              <Link className="h-4 w-4 mr-2" />
-                                                              {record.trip_id ? 'Change Trip' : 'Link to Trip'}
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem onClick={() => openReeferLinkage(record)}>
-                                                              <Snowflake className="h-4 w-4 mr-2" />
-                                                              Link Reefer
                                                             </DropdownMenuItem>
                                                             {!record.probe_verified && (
                                                               <DropdownMenuItem onClick={() => openProbeVerification(record)}>
@@ -1794,7 +2050,8 @@ const DieselManagement = () => {
                                                         </DropdownMenu>
                                                       </td>
                                                     </tr>
-                                                  ))}
+                                                    );
+                                                  })}
                                                 </tbody>
                                               </table>
                                             </div>
@@ -1814,11 +2071,7 @@ const DieselManagement = () => {
                 </CardContent>
               </Card>
             )}
-          </TabsContent>
 
-          {/* Reefer Diesel Tab - Separate tracking for reefer units (L/hr) */}
-          <TabsContent value="reefer">
-            <ReeferDieselTab />
           </TabsContent>
 
           <TabsContent value="debrief">
@@ -2099,6 +2352,14 @@ const DieselManagement = () => {
                       <BarChart3 className="h-4 w-4" />
                       Weekly Consumption
                     </Button>
+                    <Button
+                      variant={reportType === 'reefer' ? 'default' : 'outline'}
+                      onClick={() => setReportType('reefer')}
+                      className="gap-2 border-cyan-300 text-cyan-700 hover:bg-cyan-50 dark:border-cyan-700 dark:text-cyan-400 dark:hover:bg-cyan-950"
+                    >
+                      <Snowflake className="h-4 w-4" />
+                      Reefer (L/hr)
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -2318,7 +2579,10 @@ const DieselManagement = () => {
                               <td className="p-3">Total</td>
                               <td className="p-3 text-right">{formatNumber(fleetReports.reduce((s, r) => s + r.totalLitres, 0))} L</td>
                               <td className="p-3 text-right">
-                                {formatCurrency(fleetReports.reduce((s, r) => s + r.totalCostZAR, 0), 'ZAR')}
+                                <div>{formatCurrency(fleetReports.reduce((s, r) => s + r.totalCostZAR, 0), 'ZAR')}</div>
+                                {fleetReports.reduce((s, r) => s + r.totalCostUSD, 0) > 0 && (
+                                  <div className="text-xs text-muted-foreground">{formatCurrency(fleetReports.reduce((s, r) => s + r.totalCostUSD, 0), 'USD')}</div>
+                                )}
                               </td>
                               <td className="p-3 text-right">{formatNumber(fleetReports.reduce((s, r) => s + r.totalDistance, 0))}</td>
                               <td className="p-3 text-right">—</td>
@@ -2333,62 +2597,6 @@ const DieselManagement = () => {
                       <div className="text-center py-8">
                         <BarChart3 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                         <p className="text-muted-foreground">No diesel records to report</p>
-                      </div>
-                    )}
-
-                    {reeferFleetReports.length > 0 && (
-                      <div className="mt-8">
-                        <div className="flex items-center gap-2 mb-3">
-                          <Snowflake className="h-4 w-4 text-cyan-500" />
-                          <h4 className="font-semibold">Reefer Fleets (L/hr)</h4>
-                        </div>
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-sm">
-                            <thead>
-                              <tr className="border-b">
-                                <th className="text-left p-3 font-medium">Fleet</th>
-                                <th className="text-right p-3 font-medium">Total Litres</th>
-                                <th className="text-right p-3 font-medium">Total Cost</th>
-                                <th className="text-right p-3 font-medium">Fills</th>
-                                <th className="text-left p-3 font-medium">Drivers</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {reeferFleetReports.map((report) => (
-                                <tr key={report.fleet} className="border-b hover:bg-muted/50">
-                                  <td className="p-3 font-medium">{report.fleet}</td>
-                                  <td className="p-3 text-right">{formatNumber(report.totalLitres)} L</td>
-                                  <td className="p-3 text-right">
-                                    {report.totalCostZAR > 0 && <div>{formatCurrency(report.totalCostZAR, 'ZAR')}</div>}
-                                    {report.totalCostUSD > 0 && <div className="text-xs text-muted-foreground">{formatCurrency(report.totalCostUSD, 'USD')}</div>}
-                                  </td>
-                                  <td className="p-3 text-right">{report.fillCount}</td>
-                                  <td className="p-3">
-                                    <div className="flex flex-wrap gap-1">
-                                      {report.drivers.slice(0, 3).map(d => (
-                                        <Badge key={d} variant="secondary" className="text-xs">{d}</Badge>
-                                      ))}
-                                      {report.drivers.length > 3 && (
-                                        <Badge variant="outline" className="text-xs">+{report.drivers.length - 3}</Badge>
-                                      )}
-                                    </div>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                            <tfoot>
-                              <tr className="bg-muted/50 font-medium">
-                                <td className="p-3">Total</td>
-                                <td className="p-3 text-right">{formatNumber(reeferFleetReports.reduce((s, r) => s + r.totalLitres, 0))} L</td>
-                                <td className="p-3 text-right">
-                                  {formatCurrency(reeferFleetReports.reduce((s, r) => s + r.totalCostZAR, 0), 'ZAR')}
-                                </td>
-                                <td className="p-3 text-right">{reeferFleetReports.reduce((s, r) => s + r.fillCount, 0)}</td>
-                                <td className="p-3"></td>
-                              </tr>
-                            </tfoot>
-                          </table>
-                        </div>
                       </div>
                     )}
                   </CardContent>
@@ -2445,7 +2653,10 @@ const DieselManagement = () => {
                               <td className="p-3">Total</td>
                               <td className="p-3 text-right">{formatNumber(driverReports.reduce((s, r) => s + r.totalLitres, 0))} L</td>
                               <td className="p-3 text-right">
-                                {formatCurrency(driverReports.reduce((s, r) => s + r.totalCostZAR, 0), 'ZAR')}
+                                <div>{formatCurrency(driverReports.reduce((s, r) => s + r.totalCostZAR, 0), 'ZAR')}</div>
+                                {driverReports.reduce((s, r) => s + r.totalCostUSD, 0) > 0 && (
+                                  <div className="text-xs text-muted-foreground">{formatCurrency(driverReports.reduce((s, r) => s + r.totalCostUSD, 0), 'USD')}</div>
+                                )}
                               </td>
                               <td className="p-3 text-right">{formatNumber(driverReports.reduce((s, r) => s + r.totalDistance, 0))}</td>
                               <td className="p-3 text-right">—</td>
@@ -2459,65 +2670,6 @@ const DieselManagement = () => {
                       <div className="text-center py-8">
                         <BarChart3 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                         <p className="text-muted-foreground">No diesel records to report</p>
-                      </div>
-                    )}
-
-                    {reeferDriverReports.length > 0 && (
-                      <div className="mt-8">
-                        <div className="flex items-center gap-2 mb-3">
-                          <Snowflake className="h-4 w-4 text-cyan-500" />
-                          <h4 className="font-semibold">Reefer Drivers (L/hr)</h4>
-                        </div>
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-sm">
-                            <thead>
-                              <tr className="border-b">
-                                <th className="text-left p-3 font-medium">Driver</th>
-                                <th className="text-right p-3 font-medium">Total Litres</th>
-                                <th className="text-right p-3 font-medium">Total Cost</th>
-                                <th className="text-right p-3 font-medium">Fills</th>
-                                <th className="text-right p-3 font-medium">Last Fill</th>
-                                <th className="text-left p-3 font-medium">Fleets</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {reeferDriverReports.map((report) => (
-                                <tr key={report.driver} className="border-b hover:bg-muted/50">
-                                  <td className="p-3 font-medium">{report.driver}</td>
-                                  <td className="p-3 text-right">{formatNumber(report.totalLitres)} L</td>
-                                  <td className="p-3 text-right">
-                                    {report.totalCostZAR > 0 && <div>{formatCurrency(report.totalCostZAR, 'ZAR')}</div>}
-                                    {report.totalCostUSD > 0 && <div className="text-xs text-muted-foreground">{formatCurrency(report.totalCostUSD, 'USD')}</div>}
-                                  </td>
-                                  <td className="p-3 text-right">{report.fillCount}</td>
-                                  <td className="p-3 text-right text-muted-foreground">{formatDate(report.lastFillDate)}</td>
-                                  <td className="p-3">
-                                    <div className="flex flex-wrap gap-1">
-                                      {report.fleets.slice(0, 3).map(fleet => (
-                                        <Badge key={fleet} variant="secondary" className="text-xs">{fleet}</Badge>
-                                      ))}
-                                      {report.fleets.length > 3 && (
-                                        <Badge variant="outline" className="text-xs">+{report.fleets.length - 3}</Badge>
-                                      )}
-                                    </div>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                            <tfoot>
-                              <tr className="bg-muted/50 font-medium">
-                                <td className="p-3">Total</td>
-                                <td className="p-3 text-right">{formatNumber(reeferDriverReports.reduce((s, r) => s + r.totalLitres, 0))} L</td>
-                                <td className="p-3 text-right">
-                                  {formatCurrency(reeferDriverReports.reduce((s, r) => s + r.totalCostZAR, 0), 'ZAR')}
-                                </td>
-                                <td className="p-3 text-right">{reeferDriverReports.reduce((s, r) => s + r.fillCount, 0)}</td>
-                                <td className="p-3"></td>
-                                <td className="p-3"></td>
-                              </tr>
-                            </tfoot>
-                          </table>
-                        </div>
                       </div>
                     )}
                   </CardContent>
@@ -2581,7 +2733,10 @@ const DieselManagement = () => {
                               <td className="p-3">Total</td>
                               <td className="p-3 text-right">{formatNumber(stationReports.reduce((s, r) => s + r.totalLitres, 0))} L</td>
                               <td className="p-3 text-right">
-                                {formatCurrency(stationReports.reduce((s, r) => s + r.totalCostZAR, 0), 'ZAR')}
+                                <div>{formatCurrency(stationReports.reduce((s, r) => s + r.totalCostZAR, 0), 'ZAR')}</div>
+                                {stationReports.reduce((s, r) => s + r.totalCostUSD, 0) > 0 && (
+                                  <div className="text-xs text-muted-foreground">{formatCurrency(stationReports.reduce((s, r) => s + r.totalCostUSD, 0), 'USD')}</div>
+                                )}
                               </td>
                               <td className="p-3 text-right">—</td>
                               <td className="p-3 text-right">{stationReports.reduce((s, r) => s + r.fillCount, 0)}</td>
@@ -2596,17 +2751,194 @@ const DieselManagement = () => {
                         <p className="text-muted-foreground">No diesel records to report</p>
                       </div>
                     )}
+                  </CardContent>
+                </Card>
+              )}
 
-                    {reeferStationReports.length > 0 && (
-                      <div className="mt-8">
+              {/* Reefer Reports */}
+              {reportType === 'reefer' && (
+                <Card className="border-cyan-200/60 dark:border-cyan-900/60">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          <Snowflake className="h-5 w-5 text-cyan-500" />
+                          Reefer Reports (L/hr)
+                        </CardTitle>
+                        <CardDescription>
+                          Fleet, driver, and station reports for reefer units
+                        </CardDescription>
+                      </div>
+                      <Button onClick={exportReeferReportToExcel} variant="outline" className="gap-2">
+                        <FileSpreadsheet className="h-4 w-4" />
+                        Export Reefer Report
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-8">
+                    {/* Reefer Fleet Report */}
+                    {reeferFleetReports.length > 0 && (
+                      <div>
                         <div className="flex items-center gap-2 mb-3">
-                          <Snowflake className="h-4 w-4 text-cyan-500" />
-                          <h4 className="font-semibold">Reefer Stations (L/hr)</h4>
+                          <Truck className="h-4 w-4 text-cyan-500" />
+                          <h4 className="font-semibold text-lg">Reefer Fleet Report</h4>
                         </div>
                         <div className="overflow-x-auto">
                           <table className="w-full text-sm">
                             <thead>
-                              <tr className="border-b">
+                              <tr className="border-b bg-cyan-50/50 dark:bg-cyan-900/20">
+                                <th className="text-left p-3 font-medium">Fleet</th>
+                                <th className="text-right p-3 font-medium">Total Litres</th>
+                                <th className="text-right p-3 font-medium">Total Cost</th>
+                                <th className="text-right p-3 font-medium">Avg L/hr</th>
+                                <th className="text-right p-3 font-medium">Hours Operated</th>
+                                <th className="text-right p-3 font-medium">Fills</th>
+                                <th className="text-left p-3 font-medium">Drivers</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {reeferFleetReports.map((report) => (
+                                <tr key={report.fleet} className="border-b hover:bg-muted/50">
+                                  <td className="p-3 font-medium">{report.fleet}</td>
+                                  <td className="p-3 text-right">{formatNumber(report.totalLitres)} L</td>
+                                  <td className="p-3 text-right">
+                                    {report.totalCostZAR > 0 && <div>{formatCurrency(report.totalCostZAR, 'ZAR')}</div>}
+                                    {report.totalCostUSD > 0 && <div className="text-xs text-muted-foreground">{formatCurrency(report.totalCostUSD, 'USD')}</div>}
+                                  </td>
+                                  <td className="p-3 text-right">
+                                    {report.avgLitresPerHour > 0 ? (
+                                      <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20">
+                                        {formatNumber(report.avgLitresPerHour, 2)} L/hr
+                                      </Badge>
+                                    ) : (
+                                      <span className="text-muted-foreground">—</span>
+                                    )}
+                                  </td>
+                                  <td className="p-3 text-right">
+                                    {report.totalHoursOperated > 0 ? `${formatNumber(report.totalHoursOperated)} hrs` : '—'}
+                                  </td>
+                                  <td className="p-3 text-right">{report.fillCount}</td>
+                                  <td className="p-3">
+                                    <div className="flex flex-wrap gap-1">
+                                      {report.drivers.slice(0, 3).map(d => (
+                                        <Badge key={d} variant="secondary" className="text-xs">{d}</Badge>
+                                      ))}
+                                      {report.drivers.length > 3 && (
+                                        <Badge variant="outline" className="text-xs">+{report.drivers.length - 3}</Badge>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            <tfoot>
+                              <tr className="bg-muted/50 font-medium">
+                                <td className="p-3">Total</td>
+                                <td className="p-3 text-right">{formatNumber(reeferFleetReports.reduce((s, r) => s + r.totalLitres, 0))} L</td>
+                                <td className="p-3 text-right">
+                                  <div>{formatCurrency(reeferFleetReports.reduce((s, r) => s + r.totalCostZAR, 0), 'ZAR')}</div>
+                                  {reeferFleetReports.reduce((s, r) => s + r.totalCostUSD, 0) > 0 && (
+                                    <div className="text-xs text-muted-foreground">{formatCurrency(reeferFleetReports.reduce((s, r) => s + r.totalCostUSD, 0), 'USD')}</div>
+                                  )}
+                                </td>
+                                <td className="p-3 text-right">—</td>
+                                <td className="p-3 text-right">
+                                  {formatNumber(reeferFleetReports.reduce((s, r) => s + r.totalHoursOperated, 0))} hrs
+                                </td>
+                                <td className="p-3 text-right">{reeferFleetReports.reduce((s, r) => s + r.fillCount, 0)}</td>
+                                <td className="p-3"></td>
+                              </tr>
+                            </tfoot>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Reefer Driver Report */}
+                    {reeferDriverReports.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <User className="h-4 w-4 text-cyan-500" />
+                          <h4 className="font-semibold text-lg">Reefer Driver Report</h4>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b bg-cyan-50/50 dark:bg-cyan-900/20">
+                                <th className="text-left p-3 font-medium">Driver</th>
+                                <th className="text-right p-3 font-medium">Total Litres</th>
+                                <th className="text-right p-3 font-medium">Total Cost</th>
+                                <th className="text-right p-3 font-medium">Avg L/hr</th>
+                                <th className="text-right p-3 font-medium">Fills</th>
+                                <th className="text-right p-3 font-medium">Last Fill</th>
+                                <th className="text-left p-3 font-medium">Fleets</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {reeferDriverReports.map((report) => (
+                                <tr key={report.driver} className="border-b hover:bg-muted/50">
+                                  <td className="p-3 font-medium">{report.driver}</td>
+                                  <td className="p-3 text-right">{formatNumber(report.totalLitres)} L</td>
+                                  <td className="p-3 text-right">
+                                    {report.totalCostZAR > 0 && <div>{formatCurrency(report.totalCostZAR, 'ZAR')}</div>}
+                                    {report.totalCostUSD > 0 && <div className="text-xs text-muted-foreground">{formatCurrency(report.totalCostUSD, 'USD')}</div>}
+                                  </td>
+                                  <td className="p-3 text-right">
+                                    {report.avgLitresPerHour > 0 ? (
+                                      <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20">
+                                        {formatNumber(report.avgLitresPerHour, 2)} L/hr
+                                      </Badge>
+                                    ) : (
+                                      <span className="text-muted-foreground">—</span>
+                                    )}
+                                  </td>
+                                  <td className="p-3 text-right">{report.fillCount}</td>
+                                  <td className="p-3 text-right text-muted-foreground">{formatDate(report.lastFillDate)}</td>
+                                  <td className="p-3">
+                                    <div className="flex flex-wrap gap-1">
+                                      {report.fleets.slice(0, 3).map(fleet => (
+                                        <Badge key={fleet} variant="secondary" className="text-xs">{fleet}</Badge>
+                                      ))}
+                                      {report.fleets.length > 3 && (
+                                        <Badge variant="outline" className="text-xs">+{report.fleets.length - 3}</Badge>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            <tfoot>
+                              <tr className="bg-muted/50 font-medium">
+                                <td className="p-3">Total</td>
+                                <td className="p-3 text-right">{formatNumber(reeferDriverReports.reduce((s, r) => s + r.totalLitres, 0))} L</td>
+                                <td className="p-3 text-right">
+                                  <div>{formatCurrency(reeferDriverReports.reduce((s, r) => s + r.totalCostZAR, 0), 'ZAR')}</div>
+                                  {reeferDriverReports.reduce((s, r) => s + r.totalCostUSD, 0) > 0 && (
+                                    <div className="text-xs text-muted-foreground">{formatCurrency(reeferDriverReports.reduce((s, r) => s + r.totalCostUSD, 0), 'USD')}</div>
+                                  )}
+                                </td>
+                                <td className="p-3 text-right">—</td>
+                                <td className="p-3 text-right">{reeferDriverReports.reduce((s, r) => s + r.fillCount, 0)}</td>
+                                <td className="p-3"></td>
+                                <td className="p-3"></td>
+                              </tr>
+                            </tfoot>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Reefer Station Report */}
+                    {reeferStationReports.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <Fuel className="h-4 w-4 text-cyan-500" />
+                          <h4 className="font-semibold text-lg">Reefer Station Report</h4>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b bg-cyan-50/50 dark:bg-cyan-900/20">
                                 <th className="text-left p-3 font-medium">Station</th>
                                 <th className="text-right p-3 font-medium">Total Litres</th>
                                 <th className="text-right p-3 font-medium">Total Cost</th>
@@ -2646,7 +2978,10 @@ const DieselManagement = () => {
                                 <td className="p-3">Total</td>
                                 <td className="p-3 text-right">{formatNumber(reeferStationReports.reduce((s, r) => s + r.totalLitres, 0))} L</td>
                                 <td className="p-3 text-right">
-                                  {formatCurrency(reeferStationReports.reduce((s, r) => s + r.totalCostZAR, 0), 'ZAR')}
+                                  <div>{formatCurrency(reeferStationReports.reduce((s, r) => s + r.totalCostZAR, 0), 'ZAR')}</div>
+                                  {reeferStationReports.reduce((s, r) => s + r.totalCostUSD, 0) > 0 && (
+                                    <div className="text-xs text-muted-foreground">{formatCurrency(reeferStationReports.reduce((s, r) => s + r.totalCostUSD, 0), 'USD')}</div>
+                                  )}
                                 </td>
                                 <td className="p-3 text-right">—</td>
                                 <td className="p-3 text-right">{reeferStationReports.reduce((s, r) => s + r.fillCount, 0)}</td>
@@ -2918,6 +3253,16 @@ const DieselManagement = () => {
         }}
         onSave={handleManualSave}
         editRecord={selectedRecord as unknown as any}
+      />
+
+      <ReeferDieselEntryModal
+        isOpen={isReeferEntryOpen}
+        onClose={() => {
+          setIsReeferEntryOpen(false);
+          setSelectedReeferEditRecord(null);
+        }}
+        onSave={handleReeferSave}
+        editRecord={selectedReeferEditRecord}
       />
 
       <DieselImportModal
