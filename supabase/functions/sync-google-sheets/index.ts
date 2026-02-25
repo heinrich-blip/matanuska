@@ -457,6 +457,7 @@ async function syncDieselReports(
   const reeferDriverMap = new Map<string, any>()
   const reeferStationMap = new Map<string, any>()
   const reeferWeeklyMap = new Map<string, any>()
+  const reeferMonthlyMap = new Map<string, any>()
   let reeferTotalLitres = 0
   let reeferTotalCostZAR = 0
   let reeferTotalCostUSD = 0
@@ -515,12 +516,14 @@ async function syncDieselReports(
 
     // Station aggregation
     const stData = reeferStationMap.get(station) || {
-      fills: 0, litres: 0, cost_zar: 0, cost_usd: 0, fleets: new Set()
+      fills: 0, litres: 0, cost_zar: 0, cost_usd: 0, total_hours: 0, lph_sum: 0, lph_count: 0, fleets: new Set()
     }
     stData.fills += 1
     stData.litres += litres
     if (currency === 'USD') stData.cost_usd += cost
     else stData.cost_zar += cost
+    if (hoursOp && hoursOp > 0) stData.total_hours += hoursOp
+    if (lph && lph > 0) { stData.lph_sum += lph; stData.lph_count += 1 }
     if (reeferUnit) stData.fleets.add(reeferUnit)
     reeferStationMap.set(station, stData)
 
@@ -540,6 +543,19 @@ async function syncDieselReports(
       if (currency === 'USD') week.cost_usd += cost
       else week.cost_zar += cost
       reeferWeeklyMap.set(weekKey, week)
+
+      // Reefer monthly aggregation
+      const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+      const month = reeferMonthlyMap.get(monthKey) || {
+        month: monthNames[date.getMonth()], year: date.getFullYear(), fills: 0, litres: 0, total_hours: 0, cost_zar: 0, cost_usd: 0
+      }
+      month.fills += 1
+      month.litres += litres
+      if (hoursOp && hoursOp > 0) month.total_hours += hoursOp
+      if (currency === 'USD') month.cost_usd += cost
+      else month.cost_zar += cost
+      reeferMonthlyMap.set(monthKey, month)
     }
   })
 
@@ -600,23 +616,25 @@ async function syncDieselReports(
 
   // Reefer by Station sheet
   const reeferStationData = [
-    ['Station', 'Fill Count', 'Litres', 'Cost (ZAR)', 'Cost (USD)', 'Avg Cost/L', 'Reefer Units'],
+    ['Station', 'Fill Count', 'Litres', 'Hours Operated', 'Avg L/hr', 'Cost (ZAR)', 'Cost (USD)', 'Avg Cost/L (ZAR)', 'Reefer Units'],
     ...Array.from(reeferStationMap.entries())
       .sort((a, b) => b[1].litres - a[1].litres)
       .map(([station, d]) => [
         station,
         d.fills,
         d.litres.toFixed(2),
+        d.total_hours.toFixed(1),
+        d.lph_count > 0 ? (d.lph_sum / d.lph_count).toFixed(2) : 'N/A',
         d.cost_zar.toFixed(2),
         d.cost_usd.toFixed(2),
-        d.litres > 0 ? ((d.cost_zar + d.cost_usd) / d.litres).toFixed(2) : 'N/A',
+        d.litres > 0 && d.cost_zar > 0 ? (d.cost_zar / d.litres).toFixed(2) : 'N/A',
         Array.from(d.fleets).join(', ')
       ])
   ]
 
   // Reefer Transactions (raw data) sheet
   const reeferTransactionsData = [
-    ['Date', 'Reefer Unit', 'Driver', 'Station', 'Litres', 'Cost', 'Currency', 'Op Hours', 'Prev Hours', 'Hours Operated', 'L/hr'],
+    ['Date', 'Reefer Unit', 'Driver', 'Station', 'Litres', 'Cost', 'Currency', 'Cost/L', 'Op Hours', 'Prev Hours', 'Hours Operated', 'L/hr', 'Linked Horse', 'Notes'],
     ...mergedReeferRecords.slice(0, 1000).map((r: any) => {
       const opH = r.operating_hours ?? r.km_reading ?? ''
       const prevH = r.previous_operating_hours ?? r.previous_km_reading ?? ''
@@ -626,6 +644,9 @@ async function syncDieselReports(
       const computedLph = r.litres_per_hour ?? (
         (hrsOp && Number(hrsOp) > 0 && r.litres_filled > 0) ? (r.litres_filled / Number(hrsOp)).toFixed(2) : ''
       )
+      const costPerL = r.cost_per_litre ?? (
+        (r.litres_filled > 0 && r.total_cost > 0) ? (r.total_cost / r.litres_filled).toFixed(2) : ''
+      )
       return [
         r.date,
         r.reefer_unit || r.fleet_number || '',
@@ -634,10 +655,13 @@ async function syncDieselReports(
         r.litres_filled || 0,
         r.total_cost || 0,
         r.currency || 'ZAR',
+        costPerL,
         opH,
         prevH,
         hrsOp,
-        computedLph
+        computedLph,
+        r.linked_horse || '',
+        r.notes || ''
       ]
     })
   ]
@@ -649,6 +673,23 @@ async function syncDieselReports(
       .sort((a, b) => `${b.year}-${b.week}`.localeCompare(`${a.year}-${a.week}`))
       .map(d => [
         d.week,
+        d.year,
+        d.fills,
+        d.litres.toFixed(2),
+        d.total_hours.toFixed(1),
+        d.total_hours > 0 ? (d.litres / d.total_hours).toFixed(2) : 'N/A',
+        d.cost_zar.toFixed(2),
+        d.cost_usd.toFixed(2)
+      ])
+  ]
+
+  // Reefer Monthly sheet
+  const reeferMonthlyData = [
+    ['Month', 'Year', 'Fill Count', 'Litres', 'Hours Operated', 'L/hr', 'Cost (ZAR)', 'Cost (USD)'],
+    ...Array.from(reeferMonthlyMap.values())
+      .sort((a, b) => `${b.year}-${b.month}`.localeCompare(`${a.year}-${a.month}`))
+      .map(d => [
+        d.month,
         d.year,
         d.fills,
         d.litres.toFixed(2),
@@ -674,11 +715,12 @@ async function syncDieselReports(
   await updateSheet(accessToken, spreadsheetId, 'Reefer by Driver', reeferDriverData)
   await updateSheet(accessToken, spreadsheetId, 'Reefer by Station', reeferStationData)
   await updateSheet(accessToken, spreadsheetId, 'Reefer Weekly', reeferWeeklyData)
+  await updateSheet(accessToken, spreadsheetId, 'Reefer Monthly', reeferMonthlyData)
   await updateSheet(accessToken, spreadsheetId, 'Reefer Transactions', reeferTransactionsData)
 
   const allSheets = [
     'Diesel Summary', 'Diesel by Fleet', 'Diesel by Driver', 'Diesel by Station', 'Diesel Weekly', 'Diesel Monthly', 'Diesel Transactions',
-    'Reefer Summary', 'Reefer by Fleet', 'Reefer by Driver', 'Reefer by Station', 'Reefer Weekly', 'Reefer Transactions'
+    'Reefer Summary', 'Reefer by Fleet', 'Reefer by Driver', 'Reefer by Station', 'Reefer Weekly', 'Reefer Monthly', 'Reefer Transactions'
   ]
 
   return new Response(JSON.stringify({
