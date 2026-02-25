@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { extractRegistrationNumber, getFleetConfig } from "@/constants/fleetTyreConfig";
 import { useToast } from "@/hooks/use-toast";
+import { requestGoogleSheetsSync } from "@/hooks/useGoogleSheetsSync";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { AlertTriangle, ArrowRight, CheckCircle2, Package, Trash2 } from "lucide-react";
@@ -301,6 +302,7 @@ const RemoveTyreDialog = ({ open, onOpenChange, tyre, onRemovalComplete }: Remov
         title: "Tyre Removed Successfully",
         description: `${tyre.serial_number || tyre.id} has been removed and ${formData.nextDestination === "return-warehouse" ? "returned to warehouse" : "marked for disposal"}`,
       });
+      requestGoogleSheetsSync('tyres');
 
       onRemovalComplete();
       onOpenChange(false);

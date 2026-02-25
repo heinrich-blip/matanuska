@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useOperations } from "@/contexts/OperationsContext";
 import { useToast } from "@/hooks/use-toast";
+import { requestGoogleSheetsSync } from "@/hooks/useGoogleSheetsSync";
 import { supabase } from "@/integrations/supabase/client";
 import { Trip } from "@/types/operations";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -213,6 +214,7 @@ const TripManagement = () => {
         title: 'Success',
         description: 'Trip deleted successfully',
       });
+      requestGoogleSheetsSync('trips');
       queryClient.invalidateQueries({ queryKey: ['trips'] });
       queryClient.invalidateQueries({ queryKey: ['delivery-dashboard-summary'] });
       queryClient.invalidateQueries({ queryKey: ['recent-delivery-performance'] });

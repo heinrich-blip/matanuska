@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { requestGoogleSheetsSync } from "@/hooks/useGoogleSheetsSync";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { Plus } from "lucide-react";
@@ -103,6 +104,7 @@ const AddBayTyreDialog = ({ open, onOpenChange, bayType, onAdd }: AddBayTyreDial
         title: "Success",
         description: `Tyre added to ${bayType === "holding-bay" ? "Holding Bay" : "Retread Bay"} successfully`,
       });
+      requestGoogleSheetsSync('tyres');
 
       onAdd();
       onOpenChange(false);

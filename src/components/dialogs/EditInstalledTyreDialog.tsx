@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { extractRegistrationNumber, getFleetConfig } from "@/constants/fleetTyreConfig";
 import { useToast } from "@/hooks/use-toast";
+import { requestGoogleSheetsSync } from "@/hooks/useGoogleSheetsSync";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { useQuery } from "@tanstack/react-query";
@@ -225,6 +226,7 @@ const EditInstalledTyreDialog = ({ open, onOpenChange, tyre, onUpdate }: EditIns
         title: "Success",
         description: "Installed tyre updated successfully",
       });
+      requestGoogleSheetsSync('tyres');
 
       onUpdate();
       onOpenChange(false);

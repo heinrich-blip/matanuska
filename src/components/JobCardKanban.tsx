@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useToast } from "@/hooks/use-toast";
+import { requestGoogleSheetsSync } from "@/hooks/useGoogleSheetsSync";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { useQuery } from "@tanstack/react-query";
@@ -100,6 +101,7 @@ const JobCardKanban = () => {
         title: "Success",
         description: `Job card #${jobToDelete.job_number} has been deleted`,
       });
+      requestGoogleSheetsSync('workshop');
       refetch();
     } catch (error) {
       console.error("Error deleting job card:", error);

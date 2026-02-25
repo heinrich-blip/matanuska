@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { extractRegistrationNumber, getFleetConfig } from "@/constants/fleetTyreConfig";
 import { useToast } from "@/hooks/use-toast";
+import { requestGoogleSheetsSync } from "@/hooks/useGoogleSheetsSync";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { useQuery } from "@tanstack/react-query";
@@ -485,6 +486,7 @@ const InstallTyreDialog = ({
         title: "Tyre Installed Successfully",
         description: `${selectedTyre.brand} ${selectedTyre.model} has been installed on ${vehicle.registration_number} at position ${formData.position}`,
       });
+      requestGoogleSheetsSync('tyres');
 
       onInstallationComplete();
       onOpenChange(false);

@@ -28,6 +28,7 @@ import
   } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { requestGoogleSheetsSync } from "@/hooks/useGoogleSheetsSync";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
@@ -340,6 +341,7 @@ const TyreManagementDialog = ({
         title: "Tyre Installed",
         description: `${tyreForm.brand} ${tyreForm.model || ""} installed to ${positionLabel} successfully`,
       });
+      requestGoogleSheetsSync('tyres');
 
       queryClient.invalidateQueries({ queryKey: ["fleet_tyre_positions"] });
       queryClient.invalidateQueries({ queryKey: ["tyres"] });
@@ -407,6 +409,7 @@ const TyreManagementDialog = ({
         title: "Tyre Updated",
         description: `${tyreForm.brand} ${tyreForm.model || ""} updated successfully`,
       });
+      requestGoogleSheetsSync('tyres');
 
       queryClient.invalidateQueries({ queryKey: ["fleet_tyre_positions"] });
       queryClient.invalidateQueries({ queryKey: ["tyres"] });
@@ -486,6 +489,7 @@ const TyreManagementDialog = ({
         title: "Tyre Removed",
         description: `Tyre removed from ${positionLabel} and moved to ${getBayLabel(removeDestination)}`,
       });
+      requestGoogleSheetsSync('tyres');
 
       queryClient.invalidateQueries({ queryKey: ["fleet_tyre_positions"] });
       queryClient.invalidateQueries({ queryKey: ["tyres"] });

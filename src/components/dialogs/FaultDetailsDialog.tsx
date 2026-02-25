@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { requestGoogleSheetsSync } from "@/hooks/useGoogleSheetsSync";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { generateSingleFaultPDF, type FaultExportData } from "@/lib/faultExport";
@@ -302,6 +303,7 @@ const FaultDetailsDialog = ({ fault: faultProp, open, onOpenChange }: FaultDetai
         title: "Job Card Created",
         description: `Job Card ${jobNumber} has been created successfully.`,
       });
+      requestGoogleSheetsSync('workshop');
 
       queryClient.invalidateQueries({ queryKey: ["vehicle-faults"] });
       queryClient.invalidateQueries({ queryKey: ["job-cards"] });

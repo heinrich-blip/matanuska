@@ -13,6 +13,7 @@ import { Loader2, Plus } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { requestGoogleSheetsSync } from "@/hooks/useGoogleSheetsSync";
 import { TemplateManagerDialog } from "./TemplateManagerDialog";
 
 interface AddJobCardDialogProps {
@@ -172,6 +173,7 @@ const AddJobCardDialog = ({ open, onOpenChange }: AddJobCardDialogProps) => {
       }
 
       toast.success("Job card created successfully!");
+      requestGoogleSheetsSync('workshop');
       onOpenChange(false);
       setFormData({
         title: "",

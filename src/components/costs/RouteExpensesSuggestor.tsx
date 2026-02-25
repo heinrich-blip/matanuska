@@ -23,6 +23,7 @@ import
     RouteExpense
   } from '@/constants/routePredefinedExpenses';
 import { useToast } from '@/hooks/use-toast';
+import { requestGoogleSheetsSync } from '@/hooks/useGoogleSheetsSync';
 import { useRouteExpenses } from '@/hooks/useRouteExpenses';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
@@ -182,6 +183,7 @@ const RouteExpensesSuggestor = ({
         title: 'Expenses Added',
         description: `${expensesToAdd.length} expense(s) have been added to this trip`,
       });
+      requestGoogleSheetsSync('trips');
 
       setSelectedExpenses(new Set());
       onExpensesAdded();

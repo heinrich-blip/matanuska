@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
+import { requestGoogleSheetsSync } from '@/hooks/useGoogleSheetsSync';
 import { supabase } from '@/integrations/supabase/client';
 import type { EditHistoryRecord } from '@/types/forms';
 import { useQueryClient } from '@tanstack/react-query';
@@ -329,6 +330,7 @@ const CompletedTrips = ({ trips, onView, onRefresh, isLoading = false }: Complet
         title: 'Trip Updated',
         description: 'Changes have been saved and logged.',
       });
+      requestGoogleSheetsSync('trips');
 
       // Invalidate all queries in parallel (not sequential)
       queryClient.invalidateQueries({ queryKey: ['trips'] });
@@ -361,6 +363,7 @@ const CompletedTrips = ({ trips, onView, onRefresh, isLoading = false }: Complet
         title: 'Trip Reactivated',
         description: `POD #${trip.trip_number} has been moved back to active trips.`,
       });
+      requestGoogleSheetsSync('trips');
 
       // Invalidate all queries in parallel (not sequential)
       queryClient.invalidateQueries({ queryKey: ['trips'] });

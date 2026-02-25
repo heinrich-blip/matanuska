@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { requestGoogleSheetsSync } from "@/hooks/useGoogleSheetsSync";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface Note {
@@ -48,6 +49,7 @@ const JobCardNotes = ({ jobCardId, notes, onRefresh }: JobCardNotesProps) => {
       title: "Success",
       description: "Note added successfully",
     });
+    requestGoogleSheetsSync('workshop');
 
     setNewNote("");
     setIsAdding(false);

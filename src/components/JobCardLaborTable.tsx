@@ -18,6 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { UserSelect } from "@/components/ui/user-select";
 import { useToast } from "@/hooks/use-toast";
+import { requestGoogleSheetsSync } from "@/hooks/useGoogleSheetsSync";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -74,6 +75,7 @@ const JobCardLaborTable = ({ jobCardId, laborEntries, onRefresh }: JobCardLaborT
           title: "Success",
           description: "Labor entry deleted successfully",
         });
+        requestGoogleSheetsSync('workshop');
         onRefresh();
       }
     } finally {
@@ -109,6 +111,7 @@ const JobCardLaborTable = ({ jobCardId, laborEntries, onRefresh }: JobCardLaborT
           title: "Success",
           description: "Labor entry updated successfully",
         });
+        requestGoogleSheetsSync('workshop');
         onRefresh();
         setEditLabor(null);
       }
@@ -142,6 +145,7 @@ const JobCardLaborTable = ({ jobCardId, laborEntries, onRefresh }: JobCardLaborT
       title: "Success",
       description: "Labor entry added successfully",
     });
+    requestGoogleSheetsSync('workshop');
 
     setShowAddLabor(false);
     setFormData({

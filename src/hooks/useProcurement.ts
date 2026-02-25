@@ -1,5 +1,6 @@
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { requestGoogleSheetsSync } from "@/hooks/useGoogleSheetsSync";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 // Types
@@ -242,6 +243,7 @@ export const useCreateProcurementRequest = () => {
       queryClient.invalidateQueries({ queryKey: PROCUREMENT_KEYS.all });
       queryClient.invalidateQueries({ queryKey: PROCUREMENT_KEYS.pending });
       toast({ title: "Success", description: "Procurement request created" });
+      requestGoogleSheetsSync('workshop');
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -357,6 +359,7 @@ export const useAssignVendor = () => {
       queryClient.invalidateQueries({ queryKey: PROCUREMENT_KEYS.all });
       queryClient.invalidateQueries({ queryKey: PROCUREMENT_KEYS.pending });
       toast({ title: "Vendor Assigned", description: "Order placed with vendor" });
+      requestGoogleSheetsSync('workshop');
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -421,6 +424,7 @@ export const useReceiveOrder = () => {
       queryClient.invalidateQueries({ queryKey: PROCUREMENT_KEYS.lowStock });
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
       toast({ title: "Order Received", description: "Inventory updated" });
+      requestGoogleSheetsSync('workshop');
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -461,6 +465,7 @@ export const useCreateReplenishmentRequest = () => {
       queryClient.invalidateQueries({ queryKey: PROCUREMENT_KEYS.all });
       queryClient.invalidateQueries({ queryKey: PROCUREMENT_KEYS.pending });
       toast({ title: "Request Created", description: "Replenishment request submitted" });
+      requestGoogleSheetsSync('workshop');
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -591,6 +596,7 @@ export const useUpdateProcurementRequest = () => {
       queryClient.invalidateQueries({ queryKey: PROCUREMENT_KEYS.pending });
       queryClient.invalidateQueries({ queryKey: ["procurement-stats"] });
       toast({ title: "Success", description: "Request updated successfully" });
+      requestGoogleSheetsSync('workshop');
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -618,6 +624,7 @@ export const useDeleteProcurementRequest = () => {
       queryClient.invalidateQueries({ queryKey: PROCUREMENT_KEYS.pending });
       queryClient.invalidateQueries({ queryKey: ["procurement-stats"] });
       toast({ title: "Deleted", description: "Request deleted successfully" });
+      requestGoogleSheetsSync('workshop');
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -660,6 +667,7 @@ export const useUpdateSageRequisition = () => {
       queryClient.invalidateQueries({ queryKey: PROCUREMENT_KEYS.pending });
       queryClient.invalidateQueries({ queryKey: ["procurement-stats"] });
       toast({ title: "Sage Requisition Added", description: "Requisition number recorded" });
+      requestGoogleSheetsSync('workshop');
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -704,6 +712,7 @@ export const useUpdateCashManagerApproval = () => {
       queryClient.invalidateQueries({ queryKey: PROCUREMENT_KEYS.pending });
       queryClient.invalidateQueries({ queryKey: ["procurement-stats"] });
       toast({ title: "Cash Manager Approved", description: "Approval recorded" });
+      requestGoogleSheetsSync('workshop');
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -766,6 +775,7 @@ export const useMarkAsOrdered = () => {
       queryClient.invalidateQueries({ queryKey: PROCUREMENT_KEYS.pending });
       queryClient.invalidateQueries({ queryKey: ["procurement-stats"] });
       toast({ title: "Order Placed", description: "Order placed with vendor" });
+      requestGoogleSheetsSync('workshop');
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -861,6 +871,7 @@ export const useMarkAsReceived = () => {
       queryClient.invalidateQueries({ queryKey: PROCUREMENT_KEYS.cashManager });
       queryClient.invalidateQueries({ queryKey: PROCUREMENT_KEYS.openRequests });
       toast({ title: "Order Received", description: "Items received and inventory updated" });
+      requestGoogleSheetsSync('workshop');
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -964,6 +975,7 @@ export const useStartProcurement = () => {
       queryClient.invalidateQueries({ queryKey: PROCUREMENT_KEYS.cashManager });
       queryClient.invalidateQueries({ queryKey: ["procurement-stats"] });
       toast({ title: "Procurement Started", description: "IR created and moved to Cash Manager" });
+      requestGoogleSheetsSync('workshop');
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -1003,6 +1015,7 @@ export const useAllocateToJobCard = () => {
       queryClient.invalidateQueries({ queryKey: ["procurement-stats"] });
       queryClient.invalidateQueries({ queryKey: ["parts"] });
       toast({ title: "Allocated", description: "Item allocated to job card and marked as fulfilled" });
+      requestGoogleSheetsSync('workshop');
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -1072,6 +1085,7 @@ export const useCreateInventoryAndLink = () => {
       queryClient.invalidateQueries({ queryKey: PROCUREMENT_KEYS.all });
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
       toast({ title: "Success", description: "New inventory item created and linked" });
+      requestGoogleSheetsSync('workshop');
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });

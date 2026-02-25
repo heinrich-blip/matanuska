@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { requestGoogleSheetsSync } from "@/hooks/useGoogleSheetsSync";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { Save } from "lucide-react";
@@ -133,6 +134,7 @@ const EditBayTyreDialog = ({ open, onOpenChange, tyre, onUpdate }: EditBayTyreDi
         title: "Success",
         description: "Tyre updated successfully",
       });
+      requestGoogleSheetsSync('tyres');
 
       onUpdate();
       onOpenChange(false);

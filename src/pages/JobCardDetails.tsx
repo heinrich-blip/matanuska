@@ -10,6 +10,7 @@ import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { requestGoogleSheetsSync } from "@/hooks/useGoogleSheetsSync";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { generateJobCardPDF, type JobCardExportData } from "@/lib/jobCardExport";
@@ -169,6 +170,7 @@ const JobCardDetails = () => {
         title: "Success",
         description: "Job card updated successfully",
       });
+      requestGoogleSheetsSync('workshop');
       handleRefresh();
     }
   };

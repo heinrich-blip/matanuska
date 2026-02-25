@@ -21,6 +21,7 @@ import
   } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { requestGoogleSheetsSync } from "@/hooks/useGoogleSheetsSync";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { addMonths, format } from "date-fns";
@@ -198,6 +199,7 @@ const TyreInspectionDialog = ({
         title: "Inspection Saved",
         description: `Inspection for ${positionLabel} completed. Next inspection scheduled for ${format(nextInspectionDate, "dd MMM yyyy")}`,
       });
+      requestGoogleSheetsSync('tyres');
 
       // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: ["tyre_inspections"] });

@@ -37,7 +37,6 @@ interface DieselRecord {
   notes: string;
   currency: string;
   linked_trailers: string[] | null;
-  trailer_fuel_data: TrailerFuelData[] | null;
   vehicle_litres_only: number;
   trailer_litres_total: number;
   vehicle_fuel_cost: number;
@@ -329,9 +328,6 @@ const ManualDieselEntryModal = ({
         }
       }
 
-      // Calculate trailer fuel consumption
-      // Reefer fuel is now managed separately via ReeferDieselEntryModal
-
       // Determine fuel station name (bunker name if from bunker)
       let fuelStationName = formData.fuel_station;
       if (fuelSource === 'bunker' && selectedBunkerId) {
@@ -357,7 +353,6 @@ const ManualDieselEntryModal = ({
           : formData.notes,
         currency: formData.currency,
         linked_trailers: null,
-        trailer_fuel_data: null,
         vehicle_litres_only: litresFilled,
         trailer_litres_total: 0,
         vehicle_fuel_cost: parseFloat(formData.total_cost),

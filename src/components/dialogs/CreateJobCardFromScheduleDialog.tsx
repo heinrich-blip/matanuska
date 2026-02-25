@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { requestGoogleSheetsSync } from "@/hooks/useGoogleSheetsSync";
 import { supabase } from "@/integrations/supabase/client";
 import type { MaintenanceSchedule } from "@/types/maintenance";
 import { AlertTriangle, Calendar, Loader2 } from "lucide-react";
@@ -108,6 +109,7 @@ export function CreateJobCardFromScheduleDialog({
         title: "Success",
         description: "Job card created from maintenance schedule",
       });
+      requestGoogleSheetsSync('workshop');
 
       onSuccess?.();
       onOpenChange(false);

@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { extractRegistrationNumber } from "@/constants/fleetTyreConfig";
 import { supabase } from "@/integrations/supabase/client";
+import { requestGoogleSheetsSync } from "@/hooks/useGoogleSheetsSync";
 import { AlertCircle, CheckCircle2, Download, Upload } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -244,6 +245,7 @@ TYR004,385/65R22.5,Continental,Continental Direct,3200.00,Trailer,good,mounted,2
 
       if (successful > 0) {
         toast.success(`Successfully imported ${successful} tyres`);
+        requestGoogleSheetsSync('tyres');
         onImportComplete();
       }
 

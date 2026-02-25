@@ -1,4 +1,5 @@
 import { useToast } from "@/hooks/use-toast";
+import { requestGoogleSheetsSync } from "@/hooks/useGoogleSheetsSync";
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
 import { useCallback, useEffect, useMemo, useReducer } from "react";
@@ -498,6 +499,7 @@ export function useAddPartForm(
             ? `${state.sourceType === "service" ? "Service" : "Part"} added — item is short/out of stock and has been sent to procurement`
             : `${state.sourceType === "service" ? "Service" : "Part"} added successfully`,
         });
+        requestGoogleSheetsSync('workshop');
 
         onSuccess();
         onOpenChange(false);

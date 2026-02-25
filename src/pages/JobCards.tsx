@@ -39,6 +39,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { requestGoogleSheetsSync } from "@/hooks/useGoogleSheetsSync";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { useQuery } from "@tanstack/react-query";
@@ -526,6 +527,7 @@ const JobCards = () => {
         title: "Success",
         description: `Job card #${jobToDelete.job_number} has been deleted`,
       });
+      requestGoogleSheetsSync('workshop');
       refetch();
     } catch (error) {
       console.error("Error deleting job card:", error);

@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { requestGoogleSheetsSync } from "@/hooks/useGoogleSheetsSync";
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
 import { AlertTriangle, CheckCircle2, Package, Search } from "lucide-react";
@@ -172,6 +173,7 @@ export default function EnhancedRequestPartsDialog({
             ? "Parts request submitted and inventory reserved!"
             : "Parts request submitted successfully!",
       });
+      requestGoogleSheetsSync('workshop');
 
       onSuccess();
       onOpenChange(false);

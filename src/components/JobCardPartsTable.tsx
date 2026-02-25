@@ -19,6 +19,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
+import { requestGoogleSheetsSync } from "@/hooks/useGoogleSheetsSync";
 import { supabase } from "@/integrations/supabase/client";
 import { DollarSign, FileText, Loader2, Package, Pencil, Plus, ShoppingBag, Trash2, Wrench } from "lucide-react";
 import { useState } from "react";
@@ -120,6 +121,7 @@ const JobCardPartsTable = ({ jobCardId, parts, onRefresh }: JobCardPartsTablePro
           title: "Success",
           description: "Part/service updated successfully",
         });
+        requestGoogleSheetsSync('workshop');
         onRefresh();
         setEditPart(null);
       }
@@ -535,6 +537,7 @@ const JobCardPartsTable = ({ jobCardId, parts, onRefresh }: JobCardPartsTablePro
                         title: "Success",
                         description: "Part/service deleted successfully",
                       });
+                      requestGoogleSheetsSync('workshop');
                       onRefresh();
                     }
                   } catch {

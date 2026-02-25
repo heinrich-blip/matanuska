@@ -25,6 +25,7 @@ import type {
 } from '@/types/operations';
 import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { requestGoogleSheetsSync } from '@/hooks/useGoogleSheetsSync';
 
 interface OperationsContextType {
   // Trips
@@ -245,6 +246,7 @@ export const OperationsProvider = ({ children }: { children: ReactNode }) => {
     const { data, error } = await supabase.from('trips').insert([insertData]).select().single();
     if (error) throw error;
     toast.success('Trip added successfully');
+    requestGoogleSheetsSync('trips');
     return data.id;
   };
 
@@ -253,12 +255,14 @@ export const OperationsProvider = ({ children }: { children: ReactNode }) => {
     const { error } = await supabase.from('trips').update(updateData).eq('id', trip.id);
     if (error) throw error;
     toast.success('Trip updated successfully');
+    requestGoogleSheetsSync('trips');
   };
 
   const deleteTrip = async (id: string) => {
     const { error } = await supabase.from('trips').delete().eq('id', id);
     if (error) throw error;
     toast.success('Trip deleted successfully');
+    requestGoogleSheetsSync('trips');
   };
 
   // Cost entry operations
@@ -267,6 +271,7 @@ export const OperationsProvider = ({ children }: { children: ReactNode }) => {
     const { data, error } = await supabase.from('cost_entries').insert([insertData]).select().single();
     if (error) throw error;
     toast.success('Cost entry added');
+    requestGoogleSheetsSync('trips');
     return data.id;
   };
 
@@ -275,12 +280,14 @@ export const OperationsProvider = ({ children }: { children: ReactNode }) => {
     const { error } = await supabase.from('cost_entries').update(updateData).eq('id', cost.id);
     if (error) throw error;
     toast.success('Cost entry updated');
+    requestGoogleSheetsSync('trips');
   };
 
   const deleteCostEntry = async (id: string) => {
     const { error } = await supabase.from('cost_entries').delete().eq('id', id);
     if (error) throw error;
     toast.success('Cost entry deleted');
+    requestGoogleSheetsSync('trips');
   };
 
   // Helper function to fetch previous km reading for a diesel record
@@ -372,6 +379,7 @@ export const OperationsProvider = ({ children }: { children: ReactNode }) => {
     }
 
     toast.success('Diesel record added');
+    requestGoogleSheetsSync('diesel');
     return data.id;
   };
 
@@ -449,6 +457,7 @@ export const OperationsProvider = ({ children }: { children: ReactNode }) => {
     }
 
     toast.success('Diesel record updated');
+    requestGoogleSheetsSync('diesel');
   };
 
   const deleteDieselRecord = async (id: string) => {
@@ -465,6 +474,7 @@ export const OperationsProvider = ({ children }: { children: ReactNode }) => {
     const { error } = await supabase.from('diesel_records').delete().eq('id', id);
     if (error) throw error;
     toast.success('Diesel record deleted');
+    requestGoogleSheetsSync('diesel');
   };
 
   // Diesel norms operations

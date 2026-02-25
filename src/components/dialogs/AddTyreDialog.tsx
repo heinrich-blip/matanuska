@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
+import { requestGoogleSheetsSync } from "@/hooks/useGoogleSheetsSync";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 
@@ -130,6 +131,7 @@ const AddTyreDialog = ({ open, onOpenChange, onAdd }: AddTyreDialogProps) => {
         title: "Success",
         description: "Tyre added to inventory successfully",
       });
+      requestGoogleSheetsSync('tyres');
       onAdd();
       onOpenChange(false);
       setFormData({

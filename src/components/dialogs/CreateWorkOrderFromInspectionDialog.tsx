@@ -24,6 +24,7 @@ import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { requestGoogleSheetsSync } from "@/hooks/useGoogleSheetsSync";
 import { DatePicker } from "../ui/date-picker";
 
 interface CreateWorkOrderFromInspectionDialogProps {
@@ -161,6 +162,7 @@ export function CreateWorkOrderFromInspectionDialog({
       }
 
       toast.success(`Job Card ${jobNumber} created with ${faults.length} task(s)!`);
+      requestGoogleSheetsSync('workshop');
 
       // Send notification to assignee (placeholder - implement notification system)
       toast.info(`Notification sent to ${formData.assignee}`);

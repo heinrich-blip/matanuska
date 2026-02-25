@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { requestGoogleSheetsSync } from "@/hooks/useGoogleSheetsSync";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, FileUp, Package, ShoppingCart, X } from "lucide-react";
@@ -241,6 +242,7 @@ const ProcurementFromInventoryDialog = ({
         title: "Procurement Request Submitted",
         description: `Request for ${quantity} units of "${inventoryItem.name}" has been submitted successfully.`,
       });
+      requestGoogleSheetsSync('workshop');
 
       onOpenChange(false);
       if (onSuccess) onSuccess();

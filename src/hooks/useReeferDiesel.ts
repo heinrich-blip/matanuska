@@ -1,5 +1,6 @@
 import type { ReeferDieselRecord } from '@/components/diesel/ReeferDieselEntryModal';
 import { useToast } from '@/hooks/use-toast';
+import { requestGoogleSheetsSync } from '@/hooks/useGoogleSheetsSync';
 import { supabase } from '@/integrations/supabase/client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -127,6 +128,7 @@ export const useReeferDieselRecords = (options: UseReeferDieselRecordsOptions = 
       queryClient.invalidateQueries({ queryKey: ['reefer-consumption-summary'] });
       queryClient.invalidateQueries({ queryKey: ['reefer-consumption-by-horse'] });
       toast({ title: 'Success', description: 'Reefer diesel record added' });
+      requestGoogleSheetsSync('diesel');
     },
     onError: (error) => {
       toast({
@@ -157,6 +159,7 @@ export const useReeferDieselRecords = (options: UseReeferDieselRecordsOptions = 
       queryClient.invalidateQueries({ queryKey: ['reefer-consumption-summary'] });
       queryClient.invalidateQueries({ queryKey: ['reefer-consumption-by-horse'] });
       toast({ title: 'Success', description: 'Reefer diesel record updated' });
+      requestGoogleSheetsSync('diesel');
     },
     onError: (error) => {
       toast({
@@ -182,6 +185,7 @@ export const useReeferDieselRecords = (options: UseReeferDieselRecordsOptions = 
       queryClient.invalidateQueries({ queryKey: ['reefer-consumption-summary'] });
       queryClient.invalidateQueries({ queryKey: ['reefer-consumption-by-truck'] });
       toast({ title: 'Success', description: 'Reefer diesel record deleted' });
+      requestGoogleSheetsSync('diesel');
     },
     onError: (error) => {
       toast({

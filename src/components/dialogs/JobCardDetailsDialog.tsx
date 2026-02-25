@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { requestGoogleSheetsSync } from "@/hooks/useGoogleSheetsSync";
 import { supabase } from "@/integrations/supabase/client";
 import { generateJobCardPDF, type JobCardExportData } from "@/lib/jobCardExport";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
@@ -141,6 +142,7 @@ const JobCardDetailsDialog = ({ open, onOpenChange, jobCard, onUpdate }: JobCard
       title: "Success",
       description: "Status updated successfully",
     });
+    requestGoogleSheetsSync('workshop');
 
     if (onUpdate) onUpdate();
   };
@@ -164,6 +166,7 @@ const JobCardDetailsDialog = ({ open, onOpenChange, jobCard, onUpdate }: JobCard
       title: "Success",
       description: "Job card updated successfully",
     });
+    requestGoogleSheetsSync('workshop');
 
     if (onUpdate) onUpdate();
   };

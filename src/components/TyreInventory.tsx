@@ -10,6 +10,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { requestGoogleSheetsSync } from "@/hooks/useGoogleSheetsSync";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import {
@@ -492,6 +493,7 @@ const TyreInventory = () => {
                               toast({ title: "Error", description: error.message, variant: "destructive" });
                             } else {
                               toast({ title: "Deleted", description: "Tyre removed from system" });
+                              requestGoogleSheetsSync('tyres');
                               refetch();
                             }
                           }
@@ -640,6 +642,7 @@ const TyreInventory = () => {
                               toast({ title: "Error", description: error.message, variant: "destructive" });
                             } else {
                               toast({ title: "Deleted", description: "Tyre removed from system" });
+                              requestGoogleSheetsSync('tyres');
                               refetchBays();
                             }
                           }
