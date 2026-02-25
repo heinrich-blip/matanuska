@@ -85,6 +85,8 @@ interface WeeklyFleetData {
   totalLitres: number;
   totalKm: number;
   consumption: number | null; // km/L for trucks
+  totalHours: number; // hours operated for reefers
+  reeferConsumption: number | null; // L/hr for reefers
   totalCostZAR: number;
   totalCostUSD: number;
 }
@@ -94,7 +96,7 @@ interface WeeklySectionData {
   fleets: string[];
   isReeferSection: boolean; // Reefers use L/H instead of km/L
   data: WeeklyFleetData[];
-  sectionTotal: { totalLitres: number; totalKm: number; consumption: number | null; totalCostZAR: number; totalCostUSD: number };
+  sectionTotal: { totalLitres: number; totalKm: number; consumption: number | null; totalHours: number; reeferConsumption: number | null; totalCostZAR: number; totalCostUSD: number };
 }
 
 interface WeeklyReport {
@@ -798,10 +800,11 @@ const DieselManagement = () => {
       return `${start.toLocaleDateString('en-ZA', options)} - ${end.toLocaleDateString('en-ZA', options)}`;
     };
 
-    // Group records by week
-    const weekMap = new Map<string, { weekStart: Date; weekEnd: Date; records: typeof dieselRecords }>();
+    // Group truck records by week
+    const weekMap = new Map<string, { weekStart: Date; weekEnd: Date; truckRecords: typeof dieselRecords; reeferRecs: typeof reeferRecords }>();
 
-    dieselRecords.forEach(record => {
+    // Add truck records (non-reefer from dieselRecords)
+    dieselRecords.filter(r => !isReeferFleet(r.fleet_number)).forEach(record => {
       const recordDate = new Date(record.date);
       const weekStart = getWeekStart(recordDate);
       const weekEnd = new Date(weekStart);
@@ -809,16 +812,30 @@ const DieselManagement = () => {
       const weekKey = weekStart.toISOString().split('T')[0];
 
       if (!weekMap.has(weekKey)) {
-        weekMap.set(weekKey, { weekStart, weekEnd, records: [] });
+        weekMap.set(weekKey, { weekStart, weekEnd, truckRecords: [], reeferRecs: [] });
       }
-      weekMap.get(weekKey)!.records.push(record);
+      weekMap.get(weekKey)!.truckRecords.push(record);
+    });
+
+    // Add reefer records (from merged reeferRecords which includes both legacy + new)
+    reeferRecords.forEach(record => {
+      const recordDate = new Date(record.date);
+      const weekStart = getWeekStart(recordDate);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      const weekKey = weekStart.toISOString().split('T')[0];
+
+      if (!weekMap.has(weekKey)) {
+        weekMap.set(weekKey, { weekStart, weekEnd, truckRecords: [], reeferRecs: [] });
+      }
+      weekMap.get(weekKey)!.reeferRecs.push(record);
     });
 
     // Build weekly reports with sections
     const reports: WeeklyReport[] = [];
     const sortedWeeks = Array.from(weekMap.entries()).sort((a, b) => b[0].localeCompare(a[0])); // Most recent first
 
-    for (const [_weekKey, { weekStart, weekEnd, records }] of sortedWeeks) {
+    for (const [_weekKey, { weekStart, weekEnd, truckRecords: weekTruckRecords, reeferRecs: weekReeferRecords }] of sortedWeeks) {
       const sections: WeeklySectionData[] = [];
       let grandTotalLitres = 0;
       let grandTotalKm = 0;
@@ -828,36 +845,57 @@ const DieselManagement = () => {
       for (const [sectionName, fleetList] of Object.entries(FLEET_CATEGORIES)) {
         const isReeferSection = sectionName === REEFER_SECTION_NAME;
         const sectionFleetList = isReeferSection ? reeferFleetNumbers : fleetList;
-        const sectionRecords = isReeferSection
-          ? records.filter(r => isReeferFleet(r.fleet_number))
-          : records.filter(r => !isReeferFleet(r.fleet_number));
         const sectionData: WeeklyFleetData[] = [];
         let sectionTotalLitres = 0;
         let sectionTotalKm = 0;
+        let sectionTotalHours = 0;
         let sectionTotalCostZAR = 0;
         let sectionTotalCostUSD = 0;
 
-        for (const fleet of sectionFleetList) {
-          const fleetRecords = sectionRecords.filter(r => r.fleet_number === fleet);
-          if (fleetRecords.length > 0) {
-            const totalLitres = fleetRecords.reduce((sum, r) => sum + (r.litres_filled || 0), 0);
-            const totalKm = fleetRecords.reduce((sum, r) => sum + (r.distance_travelled || 0), 0);
-            const totalCostZAR = fleetRecords.reduce((sum, r) => sum + ((r.currency || 'ZAR') === 'ZAR' ? (r.total_cost || 0) : 0), 0);
-            const totalCostUSD = fleetRecords.reduce((sum, r) => sum + (r.currency === 'USD' ? (r.total_cost || 0) : 0), 0);
-            const consumption = isReeferSection ? null : (totalLitres > 0 ? totalKm / totalLitres : null);
+        if (isReeferSection) {
+          // Use merged reefer records for the reefer section
+          for (const fleet of sectionFleetList) {
+            const fleetRecords = weekReeferRecords.filter(r => r.fleet_number === fleet);
+            if (fleetRecords.length > 0) {
+              const totalLitres = fleetRecords.reduce((sum, r) => sum + (r.litres_filled || 0), 0);
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const totalHours = fleetRecords.reduce((sum, r) => sum + ((r as any).hours_operated || 0), 0);
+              const totalCostZAR = fleetRecords.reduce((sum, r) => sum + ((r.currency || 'ZAR') === 'ZAR' ? (r.total_cost || 0) : 0), 0);
+              const totalCostUSD = fleetRecords.reduce((sum, r) => sum + (r.currency === 'USD' ? (r.total_cost || 0) : 0), 0);
+              const reeferConsumption = totalHours > 0 ? totalLitres / totalHours : null;
 
-            sectionData.push({ fleet, totalLitres, totalKm, consumption, totalCostZAR, totalCostUSD });
-            sectionTotalLitres += totalLitres;
-            sectionTotalKm += totalKm;
-            sectionTotalCostZAR += totalCostZAR;
-            sectionTotalCostUSD += totalCostUSD;
+              sectionData.push({ fleet, totalLitres, totalKm: 0, consumption: null, totalHours, reeferConsumption, totalCostZAR, totalCostUSD });
+              sectionTotalLitres += totalLitres;
+              sectionTotalHours += totalHours;
+              sectionTotalCostZAR += totalCostZAR;
+              sectionTotalCostUSD += totalCostUSD;
+            }
+          }
+        } else {
+          // Use truck records for non-reefer sections
+          const sectionRecords = weekTruckRecords.filter(r => fleetList.includes(r.fleet_number));
+          for (const fleet of sectionFleetList) {
+            const fleetRecords = sectionRecords.filter(r => r.fleet_number === fleet);
+            if (fleetRecords.length > 0) {
+              const totalLitres = fleetRecords.reduce((sum, r) => sum + (r.litres_filled || 0), 0);
+              const totalKm = fleetRecords.reduce((sum, r) => sum + (r.distance_travelled || 0), 0);
+              const totalCostZAR = fleetRecords.reduce((sum, r) => sum + ((r.currency || 'ZAR') === 'ZAR' ? (r.total_cost || 0) : 0), 0);
+              const totalCostUSD = fleetRecords.reduce((sum, r) => sum + (r.currency === 'USD' ? (r.total_cost || 0) : 0), 0);
+              const consumption = totalLitres > 0 ? totalKm / totalLitres : null;
+
+              sectionData.push({ fleet, totalLitres, totalKm, consumption, totalHours: 0, reeferConsumption: null, totalCostZAR, totalCostUSD });
+              sectionTotalLitres += totalLitres;
+              sectionTotalKm += totalKm;
+              sectionTotalCostZAR += totalCostZAR;
+              sectionTotalCostUSD += totalCostUSD;
+            }
           }
         }
 
         // Add fleets with 0 litres if they're in the category (to show all fleets)
         for (const fleet of sectionFleetList) {
           if (!sectionData.find(d => d.fleet === fleet)) {
-            sectionData.push({ fleet, totalLitres: 0, totalKm: 0, consumption: null, totalCostZAR: 0, totalCostUSD: 0 });
+            sectionData.push({ fleet, totalLitres: 0, totalKm: 0, consumption: null, totalHours: 0, reeferConsumption: null, totalCostZAR: 0, totalCostUSD: 0 });
           }
         }
 
@@ -869,12 +907,13 @@ const DieselManagement = () => {
         });
 
         const sectionConsumption = isReeferSection ? null : (sectionTotalLitres > 0 ? sectionTotalKm / sectionTotalLitres : null);
+        const sectionReeferConsumption = isReeferSection && sectionTotalHours > 0 ? sectionTotalLitres / sectionTotalHours : null;
         sections.push({
           name: sectionName,
           fleets: sectionFleetList,
           isReeferSection,
           data: sectionData,
-          sectionTotal: { totalLitres: sectionTotalLitres, totalKm: sectionTotalKm, consumption: sectionConsumption, totalCostZAR: sectionTotalCostZAR, totalCostUSD: sectionTotalCostUSD },
+          sectionTotal: { totalLitres: sectionTotalLitres, totalKm: sectionTotalKm, consumption: sectionConsumption, totalHours: sectionTotalHours, reeferConsumption: sectionReeferConsumption, totalCostZAR: sectionTotalCostZAR, totalCostUSD: sectionTotalCostUSD },
         });
 
         if (!isReeferSection) {
@@ -897,17 +936,86 @@ const DieselManagement = () => {
     }
 
     return reports;
-  }, [dieselRecords, reeferFleetNumbers]);
+  }, [dieselRecords, reeferRecords, reeferFleetNumbers]);
 
-  // Export report to Excel (trucks only)
+  // Export report to Excel
   const exportReportToExcel = () => {
-    let headers = '';
     let rows: string[] = [];
     let filename = '';
 
-    if (reportType === 'driver') {
-      headers = ['Driver', 'Total Litres', 'Total Cost (ZAR)', 'Total Cost (USD)', 'Total Distance (km)', 'Avg km/L', 'Fill Count', 'Last Fill Date'].join('\t');
-      rows = driverReports.map(r => [
+    if (reportType === 'reefer') {
+      // Delegate to reefer export
+      exportReeferReportToExcel();
+      return;
+    }
+
+    if (reportType === 'weekly') {
+      // Weekly report export with all sections including reefer L/H
+      weeklyReports.forEach(weekReport => {
+        rows.push(`Week ${weekReport.weekNumber} — ${weekReport.weekLabel}`);
+        rows.push('');
+
+        weekReport.sections.forEach(section => {
+          rows.push(section.name);
+          if (section.isReeferSection) {
+            rows.push(['Fleet', 'Litres', 'Hours', 'L/H', 'Cost (ZAR)', 'Cost (USD)'].join('\t'));
+            section.data.forEach(d => {
+              rows.push([
+                d.fleet,
+                d.totalLitres > 0 ? d.totalLitres.toFixed(2) : '0',
+                d.totalHours > 0 ? d.totalHours.toFixed(1) : '—',
+                d.reeferConsumption !== null ? d.reeferConsumption.toFixed(2) : '—',
+                d.totalCostZAR.toFixed(2),
+                d.totalCostUSD.toFixed(2),
+              ].join('\t'));
+            });
+            rows.push([
+              'Section Total',
+              section.sectionTotal.totalLitres.toFixed(2),
+              section.sectionTotal.totalHours > 0 ? section.sectionTotal.totalHours.toFixed(1) : '—',
+              section.sectionTotal.reeferConsumption !== null ? section.sectionTotal.reeferConsumption.toFixed(2) : '—',
+              section.sectionTotal.totalCostZAR.toFixed(2),
+              section.sectionTotal.totalCostUSD.toFixed(2),
+            ].join('\t'));
+          } else {
+            rows.push(['Fleet', 'Litres', 'Km', 'km/L', 'Cost (ZAR)', 'Cost (USD)'].join('\t'));
+            section.data.forEach(d => {
+              rows.push([
+                d.fleet,
+                d.totalLitres > 0 ? d.totalLitres.toFixed(2) : '0',
+                d.totalKm > 0 ? d.totalKm.toString() : '—',
+                d.consumption !== null ? d.consumption.toFixed(2) : '—',
+                d.totalCostZAR.toFixed(2),
+                d.totalCostUSD.toFixed(2),
+              ].join('\t'));
+            });
+            rows.push([
+              'Section Total',
+              section.sectionTotal.totalLitres.toFixed(2),
+              section.sectionTotal.totalKm.toString(),
+              section.sectionTotal.consumption !== null ? section.sectionTotal.consumption.toFixed(2) : '—',
+              section.sectionTotal.totalCostZAR.toFixed(2),
+              section.sectionTotal.totalCostUSD.toFixed(2),
+            ].join('\t'));
+          }
+          rows.push('');
+        });
+
+        rows.push([
+          'GRAND TOTAL (Trucks)',
+          weekReport.grandTotal.totalLitres.toFixed(2),
+          weekReport.grandTotal.totalKm.toString(),
+          weekReport.grandTotal.consumption !== null ? weekReport.grandTotal.consumption.toFixed(2) : '—',
+          weekReport.grandTotal.totalCostZAR.toFixed(2),
+          weekReport.grandTotal.totalCostUSD.toFixed(2),
+        ].join('\t'));
+        rows.push('');
+        rows.push('');
+      });
+      filename = `diesel_weekly_consumption_${new Date().toISOString().split('T')[0]}.xls`;
+    } else if (reportType === 'driver') {
+      const headers = ['Driver', 'Total Litres', 'Total Cost (ZAR)', 'Total Cost (USD)', 'Total Distance (km)', 'Avg km/L', 'Fill Count', 'Last Fill Date'].join('\t');
+      rows = [headers, ...driverReports.map(r => [
         r.driver,
         r.totalLitres.toFixed(2),
         r.totalCostZAR.toFixed(2),
@@ -916,11 +1024,11 @@ const DieselManagement = () => {
         r.avgKmPerLitre.toFixed(2),
         r.fillCount.toString(),
         r.lastFillDate,
-      ].join('\t'));
+      ].join('\t'))];
       filename = `diesel_report_by_driver_${new Date().toISOString().split('T')[0]}.xls`;
     } else if (reportType === 'fleet') {
-      headers = ['Fleet', 'Total Litres', 'Total Cost (ZAR)', 'Total Cost (USD)', 'Total Distance (km)', 'Avg km/L', 'Fill Count', 'Drivers'].join('\t');
-      rows = fleetReports.map(r => [
+      const headers = ['Fleet', 'Total Litres', 'Total Cost (ZAR)', 'Total Cost (USD)', 'Total Distance (km)', 'Avg km/L', 'Fill Count', 'Drivers'].join('\t');
+      rows = [headers, ...fleetReports.map(r => [
         r.fleet,
         r.totalLitres.toFixed(2),
         r.totalCostZAR.toFixed(2),
@@ -929,11 +1037,11 @@ const DieselManagement = () => {
         r.avgKmPerLitre.toFixed(2),
         r.fillCount.toString(),
         r.drivers.join(', '),
-      ].join('\t'));
+      ].join('\t'))];
       filename = `diesel_report_by_fleet_${new Date().toISOString().split('T')[0]}.xls`;
     } else {
-      headers = ['Station', 'Total Litres', 'Total Cost (ZAR)', 'Total Cost (USD)', 'Avg Cost/L', 'Fill Count', 'Fleets Served'].join('\t');
-      rows = stationReports.map(r => [
+      const headers = ['Station', 'Total Litres', 'Total Cost (ZAR)', 'Total Cost (USD)', 'Avg Cost/L', 'Fill Count', 'Fleets Served'].join('\t');
+      rows = [headers, ...stationReports.map(r => [
         r.station,
         r.totalLitres.toFixed(2),
         r.totalCostZAR.toFixed(2),
@@ -941,11 +1049,11 @@ const DieselManagement = () => {
         r.avgCostPerLitre.toFixed(2),
         r.fillCount.toString(),
         r.fleetsServed.join(', '),
-      ].join('\t'));
+      ].join('\t'))];
       filename = `diesel_report_by_station_${new Date().toISOString().split('T')[0]}.xls`;
     }
 
-    const tsvContent = '\uFEFF' + headers + '\n' + rows.join('\n');
+    const tsvContent = '\uFEFF' + rows.join('\n');
     const blob = new Blob([tsvContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
@@ -1560,7 +1668,8 @@ const DieselManagement = () => {
               </Button>
             </div>
 
-            {/* Fleet-grouped records */}
+            {/* TRUCKS section */}
+            <h2 className="text-2xl font-bold mt-2 mb-4">TRUCKS</h2>
             {sortedFleets.length > 0 ? (
               <div className="space-y-6">
                 {sortedFleets.map((fleet) => {
@@ -1863,17 +1972,9 @@ const DieselManagement = () => {
             )}
 
             {sortedReeferFleets.length > 0 && (
-              <Card className="border-cyan-200/60 dark:border-cyan-900/60">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Snowflake className="h-5 w-5 text-cyan-500" />
-                    Reefer Diesel (L/hr)
-                  </CardTitle>
-                  <CardDescription>
-                    Separate view for reefer units {sortedReeferFleets.join(', ')}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
+              <>
+                <h2 className="text-2xl font-bold mt-6 mb-4">REEFERS</h2>
+                <div className="space-y-6">
                   {sortedReeferFleets.map((fleet) => {
                     const fleetTotals = getFleetTotals(reeferRecordsGroupedByFleetAndWeek, fleet);
                     const isFleetExpanded = expandedFleets.has(`reefer-${fleet}`);
@@ -2068,8 +2169,8 @@ const DieselManagement = () => {
                       </Card>
                     );
                   })}
-                </CardContent>
-              </Card>
+                </div>
+              </>
             )}
 
           </TabsContent>
@@ -3032,12 +3133,13 @@ const DieselManagement = () => {
                                   {weekReport.sections.map((section) => (
                                     <div key={section.name} className="border rounded-lg p-4">
                                       <h4 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                                        {section.name === 'Reefers (L/H)' && <Snowflake className="h-4 w-4 text-blue-500" />}
-                                        {section.name === '30 Ton Trucks' && <Truck className="h-4 w-4 text-orange-500" />}
-                                        {section.name === 'Farm Lmv' && <Truck className="h-4 w-4 text-green-500" />}
-                                        {(section.name === 'Bulawayo Truck' || section.name === 'Nyamagay Truck') && <Truck className="h-4 w-4 text-purple-500" />}
                                         {section.name}
-                                        {section.sectionTotal.consumption !== null && (
+                                        {section.isReeferSection && section.sectionTotal.reeferConsumption !== null && (
+                                          <Badge variant="secondary" className="ml-2">
+                                            Avg: {formatNumber(section.sectionTotal.reeferConsumption, 2)} L/H
+                                          </Badge>
+                                        )}
+                                        {!section.isReeferSection && section.sectionTotal.consumption !== null && (
                                           <Badge variant="secondary" className="ml-2">
                                             Avg: {formatNumber(section.sectionTotal.consumption, 2)} km/L
                                           </Badge>
@@ -3049,7 +3151,9 @@ const DieselManagement = () => {
                                             <tr className="border-b bg-muted/30">
                                               <th className="text-left p-2 font-medium">Fleet</th>
                                               <th className="text-right p-2 font-medium">Litres</th>
-                                              <th className="text-right p-2 font-medium">Km</th>
+                                              <th className="text-right p-2 font-medium">
+                                                {section.isReeferSection ? 'Hours' : 'Km'}
+                                              </th>
                                               <th className="text-right p-2 font-medium">
                                                 {section.isReeferSection ? 'L/H' : 'km/L'}
                                               </th>
@@ -3068,17 +3172,33 @@ const DieselManagement = () => {
                                                   )}
                                                 </td>
                                                 <td className="p-2 text-right">
-                                                  {fleetData.totalKm > 0 ? (
-                                                    <span>{formatNumber(fleetData.totalKm)}</span>
+                                                  {section.isReeferSection ? (
+                                                    fleetData.totalHours > 0 ? (
+                                                      <span>{formatNumber(fleetData.totalHours, 1)}</span>
+                                                    ) : (
+                                                      <span className="text-muted-foreground">—</span>
+                                                    )
                                                   ) : (
-                                                    <span className="text-muted-foreground">—</span>
+                                                    fleetData.totalKm > 0 ? (
+                                                      <span>{formatNumber(fleetData.totalKm)}</span>
+                                                    ) : (
+                                                      <span className="text-muted-foreground">—</span>
+                                                    )
                                                   )}
                                                 </td>
                                                 <td className="p-2 text-right">
-                                                  {fleetData.consumption !== null ? (
-                                                    <span className="font-medium text-primary">{formatNumber(fleetData.consumption, 2)}</span>
+                                                  {section.isReeferSection ? (
+                                                    fleetData.reeferConsumption !== null ? (
+                                                      <span className="font-medium text-cyan-600">{formatNumber(fleetData.reeferConsumption, 2)}</span>
+                                                    ) : (
+                                                      <span className="text-muted-foreground">—</span>
+                                                    )
                                                   ) : (
-                                                    <span className="text-muted-foreground">—</span>
+                                                    fleetData.consumption !== null ? (
+                                                      <span className="font-medium text-primary">{formatNumber(fleetData.consumption, 2)}</span>
+                                                    ) : (
+                                                      <span className="text-muted-foreground">—</span>
+                                                    )
                                                   )}
                                                 </td>
                                                 <td className="p-2 text-right">
@@ -3098,9 +3218,15 @@ const DieselManagement = () => {
                                             <tr className="bg-muted/50 font-medium">
                                               <td className="p-2">Section Total</td>
                                               <td className="p-2 text-right">{formatNumber(section.sectionTotal.totalLitres)} L</td>
-                                              <td className="p-2 text-right">{formatNumber(section.sectionTotal.totalKm)}</td>
+                                              <td className="p-2 text-right">
+                                                {section.isReeferSection
+                                                  ? (section.sectionTotal.totalHours > 0 ? formatNumber(section.sectionTotal.totalHours, 1) : '—')
+                                                  : formatNumber(section.sectionTotal.totalKm)}
+                                              </td>
                                               <td className="p-2 text-right text-primary">
-                                                {section.sectionTotal.consumption !== null ? formatNumber(section.sectionTotal.consumption, 2) : '—'}
+                                                {section.isReeferSection
+                                                  ? (section.sectionTotal.reeferConsumption !== null ? <span className="text-cyan-600">{formatNumber(section.sectionTotal.reeferConsumption, 2)}</span> : '—')
+                                                  : (section.sectionTotal.consumption !== null ? formatNumber(section.sectionTotal.consumption, 2) : '—')}
                                               </td>
                                               <td className="p-2 text-right">
                                                 {section.sectionTotal.totalCostZAR > 0 && <div>{formatCurrency(section.sectionTotal.totalCostZAR, 'ZAR')}</div>}

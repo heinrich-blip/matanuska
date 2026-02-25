@@ -456,6 +456,7 @@ async function syncDieselReports(
   const reeferFleetMap = new Map<string, any>()
   const reeferDriverMap = new Map<string, any>()
   const reeferStationMap = new Map<string, any>()
+  const reeferWeeklyMap = new Map<string, any>()
   let reeferTotalLitres = 0
   let reeferTotalCostZAR = 0
   let reeferTotalCostUSD = 0
@@ -522,6 +523,24 @@ async function syncDieselReports(
     else stData.cost_zar += cost
     if (reeferUnit) stData.fleets.add(reeferUnit)
     reeferStationMap.set(station, stData)
+
+    // Reefer weekly aggregation
+    if (record.date) {
+      const date = new Date(record.date)
+      const weekNum = getISOWeek(date)
+      const year = getISOWeekYear(date)
+      const weekKey = `${year}-W${String(weekNum).padStart(2, '0')}`
+
+      const week = reeferWeeklyMap.get(weekKey) || {
+        week: weekNum, year, fills: 0, litres: 0, total_hours: 0, cost_zar: 0, cost_usd: 0
+      }
+      week.fills += 1
+      week.litres += litres
+      if (hoursOp && hoursOp > 0) week.total_hours += hoursOp
+      if (currency === 'USD') week.cost_usd += cost
+      else week.cost_zar += cost
+      reeferWeeklyMap.set(weekKey, week)
+    }
   })
 
   // Reefer Summary sheet
@@ -623,6 +642,23 @@ async function syncDieselReports(
     })
   ]
 
+  // Reefer Weekly sheet
+  const reeferWeeklyData = [
+    ['Week', 'Year', 'Fill Count', 'Litres', 'Hours Operated', 'L/hr', 'Cost (ZAR)', 'Cost (USD)'],
+    ...Array.from(reeferWeeklyMap.values())
+      .sort((a, b) => `${b.year}-${b.week}`.localeCompare(`${a.year}-${a.week}`))
+      .map(d => [
+        d.week,
+        d.year,
+        d.fills,
+        d.litres.toFixed(2),
+        d.total_hours.toFixed(1),
+        d.total_hours > 0 ? (d.litres / d.total_hours).toFixed(2) : 'N/A',
+        d.cost_zar.toFixed(2),
+        d.cost_usd.toFixed(2)
+      ])
+  ]
+
   // Update each diesel sheet
   await updateSheet(accessToken, spreadsheetId, 'Diesel Summary', summaryData)
   await updateSheet(accessToken, spreadsheetId, 'Diesel by Fleet', fleetData)
@@ -637,11 +673,12 @@ async function syncDieselReports(
   await updateSheet(accessToken, spreadsheetId, 'Reefer by Fleet', reeferFleetData)
   await updateSheet(accessToken, spreadsheetId, 'Reefer by Driver', reeferDriverData)
   await updateSheet(accessToken, spreadsheetId, 'Reefer by Station', reeferStationData)
+  await updateSheet(accessToken, spreadsheetId, 'Reefer Weekly', reeferWeeklyData)
   await updateSheet(accessToken, spreadsheetId, 'Reefer Transactions', reeferTransactionsData)
 
   const allSheets = [
     'Diesel Summary', 'Diesel by Fleet', 'Diesel by Driver', 'Diesel by Station', 'Diesel Weekly', 'Diesel Monthly', 'Diesel Transactions',
-    'Reefer Summary', 'Reefer by Fleet', 'Reefer by Driver', 'Reefer by Station', 'Reefer Transactions'
+    'Reefer Summary', 'Reefer by Fleet', 'Reefer by Driver', 'Reefer by Station', 'Reefer Weekly', 'Reefer Transactions'
   ]
 
   return new Response(JSON.stringify({
