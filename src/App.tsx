@@ -18,7 +18,6 @@ import Analytics from "./pages/Analytics";
 import Auth from "./pages/Auth";
 import CostManagement from "./pages/CostManagement";
 import DieselManagement from "./pages/DieselManagement";
-import DieselSuppliers from "./pages/DieselSuppliers";
 import DriverManagement from "./pages/DriverManagement";
 // Faults page merged into Inspections page
 import FuelBunkers from "./pages/FuelBunkers";
@@ -95,7 +94,6 @@ const App = () => (
                   <Route path="/trip-management" element={<ProtectedRoute><TripManagement /></ProtectedRoute>} />
                   <Route path="/driver-management" element={<ProtectedRoute><DriverManagement /></ProtectedRoute>} />
                   <Route path="/diesel-management" element={<ProtectedRoute><DieselManagement /></ProtectedRoute>} />
-                  <Route path="/diesel-suppliers" element={<ProtectedRoute><DieselSuppliers /></ProtectedRoute>} />
                   <Route path="/fuel-bunkers" element={<ProtectedRoute><FuelBunkers /></ProtectedRoute>} />
                   <Route path="/invoicing" element={<ProtectedRoute><Invoicing /></ProtectedRoute>} />
                   <Route path="/reports" element={<Navigate to="/trip-management" replace />} /> {/* Reports moved to Trip Management */}

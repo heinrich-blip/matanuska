@@ -404,6 +404,513 @@ async function syncDieselReports(
   })
 }
 
+// Sync Tyre Reports to Google Sheets
+async function syncTyreReports(
+  supabase: any,
+  accessToken: string,
+  spreadsheetId: string
+): Promise<Response> {
+  // Fetch all tyres with vehicle info
+  const { data: tyres, error: tyresError } = await supabase
+    .from('tyres')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (tyresError) throw new Error(`Failed to fetch tyres: ${tyresError.message}`)
+
+  // Fetch tyre inventory
+  const { data: inventory, error: invError } = await supabase
+    .from('tyre_inventory')
+    .select('*')
+    .order('brand')
+
+  if (invError) throw new Error(`Failed to fetch tyre inventory: ${invError.message}`)
+
+  const tyreRecords = tyres || []
+  const inventoryRecords = inventory || []
+
+  // Build aggregations
+  const conditionMap = new Map<string, number>()
+  const brandMap = new Map<string, { count: number; total_km: number; avg_tread: number; tread_count: number; cost_zar: number; cost_usd: number }>()
+  const sizeMap = new Map<string, number>()
+  const positionMap = new Map<string, number>()
+  const totalTyres = tyreRecords.length
+  let totalKm = 0
+  let totalCostZAR = 0
+  let totalCostUSD = 0
+  let installedCount = 0
+  let removedCount = 0
+
+  tyreRecords.forEach((tyre: any) => {
+    // Condition counts
+    const condition = tyre.condition || 'Unknown'
+    conditionMap.set(condition, (conditionMap.get(condition) || 0) + 1)
+
+    // Brand aggregation
+    const brand = tyre.brand || 'Unknown'
+    const brandData = brandMap.get(brand) || { count: 0, total_km: 0, avg_tread: 0, tread_count: 0, cost_zar: 0, cost_usd: 0 }
+    brandData.count += 1
+    brandData.total_km += tyre.km_travelled || 0
+    if (tyre.current_tread_depth != null) {
+      brandData.avg_tread += tyre.current_tread_depth
+      brandData.tread_count += 1
+    }
+    brandData.cost_zar += tyre.purchase_cost_zar || 0
+    brandData.cost_usd += tyre.purchase_cost_usd || 0
+    brandMap.set(brand, brandData)
+
+    // Size counts
+    const size = tyre.size || 'Unknown'
+    sizeMap.set(size, (sizeMap.get(size) || 0) + 1)
+
+    // Position counts
+    const position = tyre.current_fleet_position || tyre.position || 'Unassigned'
+    positionMap.set(position, (positionMap.get(position) || 0) + 1)
+
+    // Totals
+    totalKm += tyre.km_travelled || 0
+    totalCostZAR += tyre.purchase_cost_zar || 0
+    totalCostUSD += tyre.purchase_cost_usd || 0
+    if (tyre.installation_date && !tyre.removal_date) installedCount++
+    if (tyre.removal_date) removedCount++
+  })
+
+  // Tyre Summary sheet
+  const summaryData = [
+    ['Tyre Management Report'],
+    ['Generated', new Date().toISOString()],
+    [''],
+    ['Overall Statistics'],
+    ['Total Tyres Tracked', totalTyres],
+    ['Currently Installed', installedCount],
+    ['Removed / In Stock', removedCount],
+    ['Total KM Travelled (all tyres)', totalKm.toFixed(0)],
+    [''],
+    ['Financial Summary'],
+    ['Total Purchase Cost (ZAR)', totalCostZAR.toFixed(2)],
+    ['Total Purchase Cost (USD)', totalCostUSD.toFixed(2)],
+    ['Average Cost/Tyre (ZAR)', totalTyres > 0 ? (totalCostZAR / totalTyres).toFixed(2) : '0'],
+    [''],
+    ['Condition Breakdown'],
+    ...Array.from(conditionMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([condition, count]) => [condition, count]),
+    [''],
+    ['Unique Brands', brandMap.size],
+    ['Unique Sizes', sizeMap.size],
+  ]
+
+  // Tyre by Brand sheet
+  const brandData = [
+    ['Brand', 'Count', 'Total KM', 'Avg KM/Tyre', 'Avg Tread Depth', 'Cost (ZAR)', 'Cost (USD)', 'Cost/KM (ZAR)'],
+    ...Array.from(brandMap.entries())
+      .sort((a, b) => b[1].count - a[1].count)
+      .map(([brand, d]) => [
+        brand,
+        d.count,
+        d.total_km.toFixed(0),
+        d.count > 0 ? (d.total_km / d.count).toFixed(0) : '0',
+        d.tread_count > 0 ? (d.avg_tread / d.tread_count).toFixed(1) : 'N/A',
+        d.cost_zar.toFixed(2),
+        d.cost_usd.toFixed(2),
+        d.total_km > 0 ? (d.cost_zar / d.total_km).toFixed(4) : 'N/A',
+      ])
+  ]
+
+  // Tyre by Size sheet
+  const sizeData = [
+    ['Size', 'Count', '% of Total'],
+    ...Array.from(sizeMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([size, count]) => [
+        size,
+        count,
+        totalTyres > 0 ? (count / totalTyres * 100).toFixed(1) + '%' : '0%',
+      ])
+  ]
+
+  // Tyre by Position sheet
+  const positionData = [
+    ['Position', 'Count'],
+    ...Array.from(positionMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([pos, count]) => [pos, count])
+  ]
+
+  // Tyre Inventory sheet
+  const inventoryData = [
+    ['Brand', 'Model', 'Size', 'Type', 'Quantity', 'Min Quantity', 'Reorder Needed', 'Unit Price (ZAR)', 'Unit Price (USD)', 'Supplier', 'Vendor', 'Location', 'Status'],
+    ...inventoryRecords.map((inv: any) => [
+      inv.brand || '',
+      inv.model || '',
+      inv.size || '',
+      inv.type || '',
+      inv.quantity || 0,
+      inv.min_quantity || 0,
+      (inv.quantity || 0) <= (inv.min_quantity || 0) ? 'YES' : 'No',
+      inv.purchase_cost_zar || inv.unit_price || '',
+      inv.purchase_cost_usd || '',
+      inv.supplier || '',
+      inv.vendor || '',
+      inv.location || '',
+      inv.status || '',
+    ])
+  ]
+
+  // Tyre Details (raw data) sheet - limit to 1000
+  const detailsData = [
+    ['Serial Number', 'Brand', 'Model', 'Size', 'Type', 'Condition', 'Position', 'Fleet Position', 'Current Tread', 'Initial Tread', 'KM Travelled', 'Install Date', 'Removal Date', 'Removal Reason', 'Cost (ZAR)', 'Cost (USD)', 'Notes'],
+    ...tyreRecords.slice(0, 1000).map((t: any) => [
+      t.serial_number || '',
+      t.brand || '',
+      t.model || '',
+      t.size || '',
+      t.type || '',
+      t.condition || '',
+      t.position || '',
+      t.current_fleet_position || '',
+      t.current_tread_depth != null ? t.current_tread_depth : '',
+      t.initial_tread_depth != null ? t.initial_tread_depth : '',
+      t.km_travelled || 0,
+      t.installation_date || '',
+      t.removal_date || '',
+      t.removal_reason || '',
+      t.purchase_cost_zar || '',
+      t.purchase_cost_usd || '',
+      t.notes || '',
+    ])
+  ]
+
+  // Update sheets
+  await updateSheet(accessToken, spreadsheetId, 'Tyre Summary', summaryData)
+  await updateSheet(accessToken, spreadsheetId, 'Tyres by Brand', brandData)
+  await updateSheet(accessToken, spreadsheetId, 'Tyres by Size', sizeData)
+  await updateSheet(accessToken, spreadsheetId, 'Tyres by Position', positionData)
+  await updateSheet(accessToken, spreadsheetId, 'Tyre Inventory', inventoryData)
+  await updateSheet(accessToken, spreadsheetId, 'Tyre Details', detailsData)
+
+  return new Response(JSON.stringify({
+    success: true,
+    message: 'Tyre reports synced to Google Sheet successfully',
+    updated_at: new Date().toISOString(),
+    tyres_processed: tyreRecords.length,
+    inventory_items: inventoryRecords.length,
+    sheets_updated: ['Tyre Summary', 'Tyres by Brand', 'Tyres by Size', 'Tyres by Position', 'Tyre Inventory', 'Tyre Details'],
+  }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    status: 200,
+  })
+}
+
+// Sync Workshop (Job Cards) Reports to Google Sheets
+async function syncWorkshopReports(
+  supabase: any,
+  accessToken: string,
+  spreadsheetId: string,
+  startDate: Date | null,
+  period: string
+): Promise<Response> {
+  // Fetch job cards
+  let jobCardsQuery = supabase
+    .from('job_cards')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (startDate) {
+    jobCardsQuery = jobCardsQuery.gte('created_at', startDate.toISOString())
+  }
+
+  const { data: jobCards, error: jcError } = await jobCardsQuery
+  if (jcError) throw new Error(`Failed to fetch job cards: ${jcError.message}`)
+
+  const jobCardRecords = jobCards || []
+
+  // Fetch vehicle info for fleet numbers
+  const vehicleIds = [...new Set(jobCardRecords.map((jc: any) => jc.vehicle_id).filter(Boolean))]
+  const vehicleMap2 = new Map<string, any>()
+  if (vehicleIds.length > 0) {
+    const { data: vehicles } = await supabase
+      .from('vehicles')
+      .select('id, fleet_number, registration_number')
+      .in('id', vehicleIds)
+    ;(vehicles || []).forEach((v: any) => vehicleMap2.set(v.id, v))
+  }
+
+  const jobCardIds = jobCardRecords.map((jc: any) => jc.id)
+
+  // Fetch labor entries for these job cards
+  let laborEntries: any[] = []
+  if (jobCardIds.length > 0) {
+    const { data: labor } = await supabase
+      .from('labor_entries')
+      .select('*')
+      .in('job_card_id', jobCardIds)
+    laborEntries = labor || []
+  }
+
+  // Fetch parts requests for these job cards
+  let partsRequests: any[] = []
+  if (jobCardIds.length > 0) {
+    const { data: parts } = await supabase
+      .from('parts_requests')
+      .select('*')
+      .in('job_card_id', jobCardIds)
+    partsRequests = parts || []
+  }
+
+  // Fetch job card notes
+  let jobCardNotes: any[] = []
+  if (jobCardIds.length > 0) {
+    const { data: notes } = await supabase
+      .from('job_card_notes')
+      .select('*')
+      .in('job_card_id', jobCardIds)
+    jobCardNotes = notes || []
+  }
+
+  // Build aggregations
+  const statusMap = new Map<string, number>()
+  const priorityMap = new Map<string, number>()
+  const assigneeMap = new Map<string, { cards: number; labor_hours: number; labor_cost: number; parts_count: number; parts_cost: number }>()
+  const vehicleMap = new Map<string, { cards: number; labor_cost: number; parts_cost: number }>()
+const monthlyMap = new Map<string, { month: string; year: number; cards: number; labor_hours: number; labor_cost: number; parts_cost: number }>()
+
+  let totalLaborHours = 0
+  let totalLaborCost = 0
+  let totalPartsCost = 0
+  let totalPartsQty = 0
+
+  // Labor by job card
+  const laborByJC = new Map<string, { hours: number; cost: number }>()
+  laborEntries.forEach((le: any) => {
+    const jcId = le.job_card_id
+    const entry = laborByJC.get(jcId) || { hours: 0, cost: 0 }
+    entry.hours += le.hours_worked || 0
+    entry.cost += le.total_cost || 0
+    laborByJC.set(jcId, entry)
+    totalLaborHours += le.hours_worked || 0
+    totalLaborCost += le.total_cost || 0
+  })
+
+  // Parts by job card
+  const partsByJC = new Map<string, { count: number; cost: number }>()
+  partsRequests.forEach((pr: any) => {
+    const jcId = pr.job_card_id
+    const entry = partsByJC.get(jcId) || { count: 0, cost: 0 }
+    entry.count += pr.quantity || 0
+    entry.cost += pr.total_price || (pr.unit_price || 0) * (pr.quantity || 0)
+    partsByJC.set(jcId, entry)
+    totalPartsQty += pr.quantity || 0
+    totalPartsCost += pr.total_price || (pr.unit_price || 0) * (pr.quantity || 0)
+  })
+
+  // Notes count by job card
+  const notesByJC = new Map<string, number>()
+  jobCardNotes.forEach((n: any) => {
+    notesByJC.set(n.job_card_id, (notesByJC.get(n.job_card_id) || 0) + 1)
+  })
+
+  jobCardRecords.forEach((jc: any) => {
+    const status = jc.status || 'Unknown'
+    statusMap.set(status, (statusMap.get(status) || 0) + 1)
+
+    const priority = jc.priority || 'Unknown'
+    priorityMap.set(priority, (priorityMap.get(priority) || 0) + 1)
+
+    const assignee = jc.assignee || 'Unassigned'
+    const assigneeData = assigneeMap.get(assignee) || { cards: 0, labor_hours: 0, labor_cost: 0, parts_count: 0, parts_cost: 0 }
+    assigneeData.cards += 1
+    const jcLabor = laborByJC.get(jc.id)
+    if (jcLabor) {
+      assigneeData.labor_hours += jcLabor.hours
+      assigneeData.labor_cost += jcLabor.cost
+    }
+    const jcParts = partsByJC.get(jc.id)
+    if (jcParts) {
+      assigneeData.parts_count += jcParts.count
+      assigneeData.parts_cost += jcParts.cost
+    }
+    assigneeMap.set(assignee, assigneeData)
+
+    // Vehicle aggregation
+    const vehicleInfo = vehicleMap2.get(jc.vehicle_id)
+    const fleet = vehicleInfo?.fleet_number || 'No Vehicle'
+    const vehicleData = vehicleMap.get(fleet) || { cards: 0, labor_cost: 0, parts_cost: 0 }
+    vehicleData.cards += 1
+    if (jcLabor) vehicleData.labor_cost += jcLabor.cost
+    if (jcParts) vehicleData.parts_cost += jcParts.cost
+    vehicleMap.set(fleet, vehicleData)
+
+    // Monthly
+    if (jc.created_at) {
+      const date = new Date(jc.created_at)
+      const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+      const month = monthlyMap.get(monthKey) || { month: monthNames[date.getMonth()], year: date.getFullYear(), cards: 0, labor_hours: 0, labor_cost: 0, parts_cost: 0 }
+      month.cards += 1
+      if (jcLabor) {
+        month.labor_hours += jcLabor.hours
+        month.labor_cost += jcLabor.cost
+      }
+      if (jcParts) month.parts_cost += jcParts.cost
+      monthlyMap.set(monthKey, month)
+    }
+  })
+
+  // Workshop Summary sheet
+  const totalMaintenanceCost = totalLaborCost + totalPartsCost
+  const summaryData = [
+    ['Workshop Management Report'],
+    ['Period', period],
+    ['Generated', new Date().toISOString()],
+    [''],
+    ['Overall Statistics'],
+    ['Total Job Cards', jobCardRecords.length],
+    ['Total Labor Hours', totalLaborHours.toFixed(1)],
+    ['Total Parts Requested', totalPartsQty],
+    [''],
+    ['Financial Summary'],
+    ['Total Labor Cost', totalLaborCost.toFixed(2)],
+    ['Total Parts Cost', totalPartsCost.toFixed(2)],
+    ['Total Maintenance Cost', totalMaintenanceCost.toFixed(2)],
+    ['Avg Cost per Job Card', jobCardRecords.length > 0 ? (totalMaintenanceCost / jobCardRecords.length).toFixed(2) : '0'],
+    [''],
+    ['Status Breakdown'],
+    ...Array.from(statusMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([status, count]) => [status, count]),
+    [''],
+    ['Priority Breakdown'],
+    ...Array.from(priorityMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([priority, count]) => [priority, count]),
+    [''],
+    ['Unique Technicians/Assignees', assigneeMap.size],
+    ['Unique Vehicles Serviced', vehicleMap.size],
+  ]
+
+  // Workshop by Assignee sheet
+  const assigneeData = [
+    ['Assignee', 'Job Cards', 'Labor Hours', 'Labor Cost', 'Parts Count', 'Parts Cost', 'Total Cost'],
+    ...Array.from(assigneeMap.entries())
+      .sort((a, b) => b[1].cards - a[1].cards)
+      .map(([name, d]) => [
+        name,
+        d.cards,
+        d.labor_hours.toFixed(1),
+        d.labor_cost.toFixed(2),
+        d.parts_count,
+        d.parts_cost.toFixed(2),
+        (d.labor_cost + d.parts_cost).toFixed(2),
+      ])
+  ]
+
+  // Workshop by Vehicle sheet
+  const vehicleData = [
+    ['Fleet Number', 'Job Cards', 'Labor Cost', 'Parts Cost', 'Total Cost', 'Avg Cost/Card'],
+    ...Array.from(vehicleMap.entries())
+      .sort((a, b) => (b[1].labor_cost + b[1].parts_cost) - (a[1].labor_cost + a[1].parts_cost))
+      .map(([fleet, d]) => [
+        fleet,
+        d.cards,
+        d.labor_cost.toFixed(2),
+        d.parts_cost.toFixed(2),
+        (d.labor_cost + d.parts_cost).toFixed(2),
+        d.cards > 0 ? ((d.labor_cost + d.parts_cost) / d.cards).toFixed(2) : '0',
+      ])
+  ]
+
+  // Workshop Monthly sheet
+  const monthlyData = [
+    ['Month', 'Year', 'Job Cards', 'Labor Hours', 'Labor Cost', 'Parts Cost', 'Total Cost'],
+    ...Array.from(monthlyMap.entries())
+      .sort((a, b) => b[0].localeCompare(a[0]))
+      .map(([_key, d]) => [
+        d.month,
+        d.year,
+        d.cards,
+        d.labor_hours.toFixed(1),
+        d.labor_cost.toFixed(2),
+        d.parts_cost.toFixed(2),
+        (d.labor_cost + d.parts_cost).toFixed(2),
+      ])
+  ]
+
+  // Workshop Job Cards Detail sheet (raw data)
+  const detailsData = [
+    ['Job Number', 'Title', 'Status', 'Priority', 'Assignee', 'Fleet Number', 'Odometer', 'Due Date', 'Created', 'Labor Hours', 'Labor Cost', 'Parts Qty', 'Parts Cost', 'Total Cost', 'Notes Count'],
+    ...jobCardRecords.slice(0, 1000).map((jc: any) => {
+      const labor = laborByJC.get(jc.id) || { hours: 0, cost: 0 }
+      const parts = partsByJC.get(jc.id) || { count: 0, cost: 0 }
+      const notesCount = notesByJC.get(jc.id) || 0
+      return [
+        jc.job_number || '',
+        jc.title || '',
+        jc.status || '',
+        jc.priority || '',
+        jc.assignee || '',
+        vehicleMap2.get(jc.vehicle_id)?.fleet_number || '',
+        jc.odometer_reading || '',
+        jc.due_date || '',
+        jc.created_at ? new Date(jc.created_at).toISOString().split('T')[0] : '',
+        labor.hours.toFixed(1),
+        labor.cost.toFixed(2),
+        parts.count,
+        parts.cost.toFixed(2),
+        (labor.cost + parts.cost).toFixed(2),
+        notesCount,
+      ]
+    })
+  ]
+
+  // Parts Requests Detail sheet
+  const partsDetailData = [
+    ['Part Name', 'Part Number', 'Brand', 'Quantity', 'Unit Price', 'Total Price', 'Status', 'Job Card', 'Requested By', 'IR Number', 'Is Service', 'Vendor', 'Expected Delivery', 'Received Qty', 'Received Date'],
+    ...partsRequests.slice(0, 1000).map((pr: any) => {
+      const jc = jobCardRecords.find((j: any) => j.id === pr.job_card_id)
+      return [
+        pr.part_name || '',
+        pr.part_number || '',
+        pr.make_brand || '',
+        pr.quantity || 0,
+        pr.unit_price || '',
+        pr.total_price || '',
+        pr.status || '',
+        jc?.job_number || '',
+        pr.requested_by || '',
+        pr.ir_number || '',
+        pr.is_service ? 'Yes' : 'No',
+        pr.vendor_id || '',
+        pr.expected_delivery_date || '',
+        pr.received_quantity || '',
+        pr.received_date || '',
+      ]
+    })
+  ]
+
+  // Update sheets
+  await updateSheet(accessToken, spreadsheetId, 'Workshop Summary', summaryData)
+  await updateSheet(accessToken, spreadsheetId, 'Workshop by Assignee', assigneeData)
+  await updateSheet(accessToken, spreadsheetId, 'Workshop by Vehicle', vehicleData)
+  await updateSheet(accessToken, spreadsheetId, 'Workshop Monthly', monthlyData)
+  await updateSheet(accessToken, spreadsheetId, 'Workshop Job Cards', detailsData)
+  await updateSheet(accessToken, spreadsheetId, 'Workshop Parts', partsDetailData)
+
+  return new Response(JSON.stringify({
+    success: true,
+    message: 'Workshop reports synced to Google Sheet successfully',
+    updated_at: new Date().toISOString(),
+    period: period,
+    job_cards_processed: jobCardRecords.length,
+    labor_entries: laborEntries.length,
+    parts_requests: partsRequests.length,
+    sheets_updated: ['Workshop Summary', 'Workshop by Assignee', 'Workshop by Vehicle', 'Workshop Monthly', 'Workshop Job Cards', 'Workshop Parts'],
+  }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    status: 200,
+  })
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -459,6 +966,16 @@ Deno.serve(async (req) => {
     // Handle Diesel Reports sync
     if (syncType === 'diesel') {
       return await syncDieselReports(supabase, accessToken, spreadsheetId, startDate, period)
+    }
+
+    // Handle Tyre Reports sync
+    if (syncType === 'tyres') {
+      return await syncTyreReports(supabase, accessToken, spreadsheetId)
+    }
+
+    // Handle Workshop (Job Cards) Reports sync
+    if (syncType === 'workshop') {
+      return await syncWorkshopReports(supabase, accessToken, spreadsheetId, startDate, period)
     }
 
     // Default: Handle Trip Reports sync

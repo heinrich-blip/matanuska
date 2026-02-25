@@ -44,7 +44,6 @@ import type { Database } from "@/integrations/supabase/types";
 import { useQuery } from "@tanstack/react-query";
 import
   {
-    BarChart3,
     Calendar,
     CheckCircle2,
     ClipboardList,
@@ -816,8 +815,6 @@ const JobCards = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Job Cards</h1>
-            <p className="text-muted-foreground mt-1">Manage and track maintenance jobs</p>
             {isLoading && <p className="text-sm text-blue-500">Loading job cards...</p>}
             {queryError && <p className="text-sm text-red-500">Error: {String(queryError)}</p>}
           </div>
@@ -842,12 +839,10 @@ const JobCards = () => {
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList>
-            <TabsTrigger value="job-cards" className="gap-2">
-              <ClipboardList className="h-4 w-4" />
+            <TabsTrigger value="job-cards" className="px-5 py-2.5 text-base">
               Job Cards
             </TabsTrigger>
-            <TabsTrigger value="cost-reports" className="gap-2">
-              <BarChart3 className="h-4 w-4" />
+            <TabsTrigger value="cost-reports" className="px-5 py-2.5 text-base">
               Cost Reports
             </TabsTrigger>
           </TabsList>

@@ -16,13 +16,6 @@ const CostManagement = () => {
   return (
     <Layout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Cost Management</h1>
-          <p className="text-muted-foreground">
-            Track and manage operational costs
-          </p>
-        </div>
-
         <Tabs defaultValue="overview" className="space-y-6">
           <TabsList>
             <TabsTrigger value="overview">Cost Overview</TabsTrigger>

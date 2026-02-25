@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { MaintenanceSchedule } from "@/types/maintenance";
+import { useQuery } from "@tanstack/react-query";
+import { calculateKmStatus, getVehicleLatestKm } from "@/lib/maintenanceKmTracking";
+import { Progress } from "@/components/ui/progress";
 import {
   Table,
   TableBody,
@@ -30,6 +33,14 @@ export function ScheduleList({ schedules, onUpdate, showOverdueOnly }: ScheduleL
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const { toast } = useToast();
+
+  // Fetch latest KM for vehicles with KM-based schedules (from trips + current_odometer)
+  const vehicleIds = [...new Set(schedules.filter(s => s.odometer_based && s.vehicle_id).map(s => s.vehicle_id!))];
+  const { data: vehicleOdometers = {} } = useQuery({
+    queryKey: ["vehicle-odometers-from-trips", vehicleIds],
+    queryFn: () => getVehicleLatestKm(vehicleIds),
+    enabled: vehicleIds.length > 0,
+  });
 
   const filteredSchedules = schedules.filter(schedule => {
     const matchesSearch = schedule.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -146,6 +157,7 @@ export function ScheduleList({ schedules, onUpdate, showOverdueOnly }: ScheduleL
               <TableHead>Category</TableHead>
               <TableHead>Priority</TableHead>
               <TableHead>Next Due</TableHead>
+              <TableHead>KM Progress</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Assigned To</TableHead>
               <TableHead>Actions</TableHead>
@@ -154,7 +166,7 @@ export function ScheduleList({ schedules, onUpdate, showOverdueOnly }: ScheduleL
           <TableBody>
             {filteredSchedules.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground">
+                <TableCell colSpan={9} className="text-center text-muted-foreground">
                   {showOverdueOnly ? "No overdue schedules" : "No schedules found"}
                 </TableCell>
               </TableRow>
@@ -175,7 +187,9 @@ export function ScheduleList({ schedules, onUpdate, showOverdueOnly }: ScheduleL
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {schedule.next_due_date ? (
+                      {schedule.odometer_based ? (
+                        <Badge variant="secondary" className="text-xs">KM-based</Badge>
+                      ) : schedule.next_due_date ? (
                         <div className="flex items-center gap-2">
                           {isOverdue && <AlertTriangle className="h-4 w-4 text-destructive" />}
                           {isDueToday && <Calendar className="h-4 w-4 text-warning" />}
@@ -188,15 +202,42 @@ export function ScheduleList({ schedules, onUpdate, showOverdueOnly }: ScheduleL
                       )}
                     </TableCell>
                     <TableCell>
-                      {isOverdue ? (
-                        <Badge variant="destructive">Overdue</Badge>
-                      ) : isDueToday ? (
-                        <Badge variant="default">Due Today</Badge>
-                      ) : daysUntilDue !== null && daysUntilDue <= 7 ? (
-                        <Badge variant="secondary">Due Soon</Badge>
-                      ) : (
-                        <Badge variant="outline">Scheduled</Badge>
+                      {schedule.odometer_based && schedule.vehicle_id && schedule.odometer_interval_km ? (() => {
+                        const currentOdo = vehicleOdometers[schedule.vehicle_id!] || 0;
+                        const lastReading = schedule.last_odometer_reading || 0;
+                        const kmStatus = calculateKmStatus(schedule.odometer_interval_km, lastReading, currentOdo);
+                        return (
+                          <div className="space-y-1 min-w-[120px]">
+                            <Progress
+                              value={kmStatus.progressPercent}
+                              className={`h-2 ${kmStatus.isOverdue ? '[&>div]:bg-red-500' : kmStatus.isApproaching ? '[&>div]:bg-amber-500' : ''}`}
+                            />
+                            <p className={`text-xs ${kmStatus.isOverdue ? 'text-red-600 font-semibold' : kmStatus.isApproaching ? 'text-amber-600' : 'text-muted-foreground'}`}>
+                              {kmStatus.isOverdue
+                                ? `${Math.abs(kmStatus.remainingKm).toLocaleString()} km overdue`
+                                : `${kmStatus.remainingKm.toLocaleString()} km remaining`}
+                            </p>
+                          </div>
+                        );
+                      })() : (
+                        <span className="text-xs text-muted-foreground">—</span>
                       )}
+                    </TableCell>
+                    <TableCell>
+                      {(() => {
+                        if (schedule.odometer_based && schedule.vehicle_id && schedule.odometer_interval_km) {
+                          const currentOdo = vehicleOdometers[schedule.vehicle_id!] || 0;
+                          const lastReading = schedule.last_odometer_reading || 0;
+                          const kmStatus = calculateKmStatus(schedule.odometer_interval_km, lastReading, currentOdo);
+                          if (kmStatus.isOverdue) return <Badge variant="destructive">KM Overdue</Badge>;
+                          if (kmStatus.isApproaching) return <Badge variant="default">KM Due Soon</Badge>;
+                          return <Badge variant="outline">Scheduled</Badge>;
+                        }
+                        if (isOverdue) return <Badge variant="destructive">Overdue</Badge>;
+                        if (isDueToday) return <Badge variant="default">Due Today</Badge>;
+                        if (daysUntilDue !== null && daysUntilDue <= 7) return <Badge variant="secondary">Due Soon</Badge>;
+                        return <Badge variant="outline">Scheduled</Badge>;
+                      })()}
                     </TableCell>
                     <TableCell>{schedule.assigned_to || "Unassigned"}</TableCell>
                     <TableCell>

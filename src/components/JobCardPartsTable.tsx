@@ -20,7 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { DollarSign, FileText, Loader2, Package, Pencil, Plus, Trash2, Wrench } from "lucide-react";
+import { DollarSign, FileText, Loader2, Package, Pencil, Plus, ShoppingBag, Trash2, Wrench } from "lucide-react";
 import { useState } from "react";
 import AddPartWithCostDialog from "./dialogs/AddPartWithCostDialog";
 import InventoryDetailDialog from "./dialogs/InventoryDetailDialog";
@@ -49,6 +49,15 @@ interface PartsRequest {
   document_name?: string | null;
   is_service?: boolean | null;
   service_description?: string | null;
+  // Procurement workflow fields
+  ir_number?: string | null;
+  sage_requisition_number?: string | null;
+  procurement_started?: boolean | null;
+  cash_manager_approval_date?: string | null;
+  cash_manager_reference?: string | null;
+  ordered_at?: string | null;
+  received_date?: string | null;
+  allocated_to_job_card?: boolean | null;
   vendors?: {
     id: string;
     name: string;
@@ -153,8 +162,33 @@ const JobCardPartsTable = ({ jobCardId, parts, onRefresh }: JobCardPartsTablePro
       case "approved": return "default";
       case "pending": return "secondary";
       case "rejected": return "destructive";
+      case "fulfilled": return "default";
       default: return "secondary";
     }
+  };
+
+  // Procurement status helper
+  const getProcurementInfo = (part: PartsRequest) => {
+    const irNum = part.ir_number || part.sage_requisition_number;
+    if (!irNum && !part.procurement_started) return null;
+
+    let step = "IR Created";
+    let variant: "default" | "secondary" | "outline" | "destructive" = "secondary";
+    if (part.allocated_to_job_card) {
+      step = "Fulfilled";
+      variant = "default";
+    } else if (part.received_date) {
+      step = "Received";
+      variant = "default";
+    } else if (part.ordered_at) {
+      step = "Ordered";
+      variant = "outline";
+    } else if (part.cash_manager_approval_date) {
+      step = "Approved";
+      variant = "outline";
+    }
+
+    return { irNum, step, variant };
   };
 
   return (
@@ -183,6 +217,7 @@ const JobCardPartsTable = ({ jobCardId, parts, onRefresh }: JobCardPartsTablePro
                   <TableHead className="text-right">Qty</TableHead>
                   <TableHead className="text-right">Price</TableHead>
                   <TableHead>Doc</TableHead>
+                  <TableHead>IR / Procurement</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Notes</TableHead>
                   <TableHead className="w-12"></TableHead>
@@ -286,6 +321,35 @@ const JobCardPartsTable = ({ jobCardId, parts, onRefresh }: JobCardPartsTablePro
                           <FileText className="h-4 w-4 text-gray-400" />
                         </div>
                       )}
+                    </TableCell>
+
+                    {/* IR / Procurement Status */}
+                    <TableCell>
+                      {(() => {
+                        const info = getProcurementInfo(part);
+                        if (info) {
+                          return (
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1">
+                                <ShoppingBag className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-xs font-mono font-medium">{info.irNum}</span>
+                              </div>
+                              <Badge variant={info.variant} className="text-[10px] px-1.5 py-0">
+                                {info.step}
+                              </Badge>
+                            </div>
+                          );
+                        }
+                        // Show "Needs Procurement" for out-of-stock items without IR
+                        if (part.notes?.includes('[OUT OF STOCK')) {
+                          return (
+                            <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
+                              Awaiting IR
+                            </Badge>
+                          );
+                        }
+                        return <span className="text-xs text-muted-foreground">—</span>;
+                      })()}
                     </TableCell>
 
                     {/* Status */}

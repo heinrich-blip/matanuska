@@ -221,12 +221,6 @@ const Invoicing = () => {
       <div className="space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Invoicing</h1>
-            <p className="text-muted-foreground">
-              Manage invoices, track payments, and monitor collections
-            </p>
-          </div>
           <Button onClick={exportToCSV} variant="outline">
             <Download className="h-4 w-4 mr-2" />
             Export

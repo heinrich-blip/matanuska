@@ -2,7 +2,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
+  CardDescription,
   CardContent,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
 import {
   Collapsible,
@@ -16,6 +19,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -40,10 +51,11 @@ import
     MoreHorizontal,
     Pencil,
     Plus,
+    Search,
     Trash2,
     XCircle
   } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import TyreInspectionDialog from "./tyres/TyreInspectionDialog";
 import TyreLifecycleDialog from "./tyres/TyreLifecycleDialog";
 import TyreManagementDialog from "./tyres/TyreManagementDialog";
@@ -87,6 +99,8 @@ interface PositionData {
 const TyreInspection = () => {
   const [vehicleId, setVehicleId] = useState("");
   const [positions, setPositions] = useState<PositionData[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [inspectionDialogOpen, setInspectionDialogOpen] = useState(false);
   const [lifecycleDialogOpen, setLifecycleDialogOpen] = useState(false);
   const [managementDialogOpen, setManagementDialogOpen] = useState(false);
@@ -128,16 +142,56 @@ const TyreInspection = () => {
 
   // Define category order
   const categoryConfig: Record<string, { label: string; tyreCount: string }> = {
-    Horse: { label: "HORSE (TRUCKS)", tyreCount: "10+SP tyres" },
-    Reefer: { label: "REEFER (REFRIGERATED)", tyreCount: "12 tyres" },
-    Trailer: { label: "INTERLINKS", tyreCount: "12 tyres" },
-    LMV: { label: "LMV (LIGHT VEHICLES)", tyreCount: "4-6 tyres" },
-    Other: { label: "OTHER", tyreCount: "Varies" },
-    Unassigned: { label: "UNASSIGNED", tyreCount: "-" },
+    Horse: { label: "Horse", tyreCount: "10 + spare" },
+    Reefer: { label: "Reefer", tyreCount: "12 tyres" },
+    Trailer: { label: "Interlink", tyreCount: "12 tyres" },
+    LMV: { label: "LMV", tyreCount: "4–6 tyres" },
+    Other: { label: "Other", tyreCount: "Varies" },
+    Unassigned: { label: "Unassigned", tyreCount: "-" },
   };
 
   const sortedCategories = ["Horse", "Reefer", "Trailer", "LMV", "Other", "Unassigned"]
     .filter(cat => vehiclesByCategory[cat] && Object.keys(vehiclesByCategory[cat]).length > 0);
+
+  const filteredVehiclesByCategory = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+
+    return sortedCategories.reduce<Record<string, typeof vehicles>>((acc, category) => {
+      if (categoryFilter !== "all" && category !== categoryFilter) return acc;
+
+      const fleetsInCategory = vehiclesByCategory[category] || {};
+      const categoryVehicles = Object.values(fleetsInCategory).flat();
+
+      const filtered = !term
+        ? categoryVehicles
+        : categoryVehicles.filter((vehicle) => {
+            const fleet = vehicle.fleet_number?.toLowerCase() || "";
+            const reg = vehicle.registration_number?.toLowerCase() || "";
+            const make = vehicle.make?.toLowerCase() || "";
+            const model = vehicle.model?.toLowerCase() || "";
+            return (
+              fleet.includes(term) ||
+              reg.includes(term) ||
+              make.includes(term) ||
+              model.includes(term)
+            );
+          });
+
+      if (filtered.length > 0) {
+        acc[category] = filtered;
+      }
+      return acc;
+    }, {});
+  }, [sortedCategories, categoryFilter, vehiclesByCategory, searchTerm]);
+
+  const visibleCategories = sortedCategories.filter(
+    (category) => (filteredVehiclesByCategory[category] || []).length > 0
+  );
+
+  const totalVisibleVehicles = visibleCategories.reduce(
+    (sum, category) => sum + (filteredVehiclesByCategory[category]?.length || 0),
+    0
+  );
 
   // Toggle category expansion
   const toggleCategory = (category: string) => {
@@ -262,35 +316,72 @@ const TyreInspection = () => {
   };
 
   return (
-    <div className="space-y-4 p-4">
+    <div className="space-y-6">
       {/* Vehicle Selection by Fleet */}
-      <Card className="shadow-lg border-0 bg-gradient-to-br from-background to-muted/20">
-        <CardContent className="space-y-3 pt-4">
-          {sortedCategories.length === 0 ? (
+      <Card className="shadow-card">
+        <CardHeader className="pb-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <CardTitle className="text-xl">Vehicle Store</CardTitle>
+              <CardDescription>
+                Select a fleet vehicle and manage tyre positions, inspections, and lifecycle actions
+              </CardDescription>
+            </div>
+            <Badge className="w-fit text-sm px-3 py-1.5 bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-sm shadow-blue-500/30">
+              {totalVisibleVehicles} Active Vehicle{totalVisibleVehicles === 1 ? "" : "s"}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="relative w-full lg:max-w-md">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search by fleet, registration, make or model"
+                className="pl-9"
+              />
+            </div>
+
+            <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto lg:items-center">
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder="Filter category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All categories</SelectItem>
+                  {sortedCategories.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {categoryConfig[category]?.label || category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Badge variant="outline" className="h-10 px-3 justify-center sm:justify-start bg-muted/40 border-muted">
+                Showing {totalVisibleVehicles} vehicle{totalVisibleVehicles === 1 ? "" : "s"}
+              </Badge>
+            </div>
+          </div>
+
+          {visibleCategories.length === 0 ? (
             <p className="text-muted-foreground text-sm">No vehicles found</p>
           ) : (
-            sortedCategories.map((category) => {
+            visibleCategories.map((category) => {
               const categoryData = categoryConfig[category];
-              const fleetsInCategory = vehiclesByCategory[category] || {};
-              const fleetNumbers = Object.keys(fleetsInCategory).sort((a, b) => {
+              const categoryVehicles = filteredVehiclesByCategory[category] || [];
+              const fleetNumbers = Array.from(
+                new Set(categoryVehicles.map((vehicle) => vehicle.fleet_number || "Unassigned"))
+              ).sort((a, b) => {
                 const numA = parseInt(a);
                 const numB = parseInt(b);
                 if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
                 return a.localeCompare(b);
               });
-              const totalVehicles = fleetNumbers.reduce((sum, fn) => sum + (fleetsInCategory[fn]?.length || 0), 0);
+              const totalVehicles = categoryVehicles.length;
               const isExpanded = expandedCategories.has(category);
-              
-              // Category-specific colors
-              const categoryColors: Record<string, string> = {
-                Horse: "from-blue-500/10 to-blue-600/5 border-blue-500/30 hover:border-blue-500/50",
-                Reefer: "from-cyan-500/10 to-cyan-600/5 border-cyan-500/30 hover:border-cyan-500/50",
-                Trailer: "from-purple-500/10 to-purple-600/5 border-purple-500/30 hover:border-purple-500/50",
-                LMV: "from-green-500/10 to-green-600/5 border-green-500/30 hover:border-green-500/50",
-                Other: "from-gray-500/10 to-gray-600/5 border-gray-500/30 hover:border-gray-500/50",
-                Unassigned: "from-orange-500/10 to-orange-600/5 border-orange-500/30 hover:border-orange-500/50",
-              };
-              
+
               return (
                 <Collapsible
                   key={category}
@@ -300,29 +391,31 @@ const TyreInspection = () => {
                   <CollapsibleTrigger asChild>
                     <Button
                       variant="ghost"
-                      className={`w-full justify-between px-4 py-3 h-auto rounded-lg border bg-gradient-to-r transition-all duration-200 ${categoryColors[category] || categoryColors.Other}`}
+                      className="w-full justify-between px-4 py-3 h-auto rounded-lg border bg-gradient-to-r from-muted/70 to-muted/40 hover:from-muted/80 hover:to-muted/50 transition-all"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-6 h-6 rounded flex items-center justify-center transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}>
+                      <div className="flex items-center gap-2.5">
+                        <div className={`w-5 h-5 rounded flex items-center justify-center transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}>
                           <ChevronRight className="w-4 h-4" />
                         </div>
-                        <span className="font-bold tracking-wide text-sm">{categoryData?.label || category}</span>
-                        <span className="text-xs text-muted-foreground font-normal">({categoryData?.tyreCount || "-"})</span>
+                        <span className="font-semibold text-sm">{categoryData?.label || category}</span>
+                        <span className="text-xs text-muted-foreground">{categoryData?.tyreCount || "-"}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="px-2 py-0.5 rounded-full bg-background/80 text-xs font-medium border">
+                        <Badge variant="outline" className="text-xs font-medium bg-background/80 border-muted">
                           {fleetNumbers.length} fleets
-                        </span>
-                        <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                        </Badge>
+                        <Badge className="text-xs font-medium bg-gradient-to-r from-violet-600 to-indigo-500 text-white shadow-sm">
                           {totalVehicles} vehicles
-                        </span>
+                        </Badge>
                       </div>
                     </Button>
                   </CollapsibleTrigger>
                   <CollapsibleContent>
-                    <div className="ml-4 mt-2 space-y-1 border-l-2 border-primary/20 pl-4">
+                    <div className="ml-2 mt-2 space-y-1 border-l border-border/70 pl-3">
                       {fleetNumbers.flatMap((fleetNumber) => {
-                        const fleetVehicles = fleetsInCategory[fleetNumber] || [];
+                        const fleetVehicles = categoryVehicles.filter(
+                          (vehicle) => (vehicle.fleet_number || "Unassigned") === fleetNumber
+                        );
                         
                         return fleetVehicles.map((vehicle) => {
                           const isSelected = vehicleId === vehicle.id;
@@ -331,19 +424,23 @@ const TyreInspection = () => {
                           return (
                             <div key={vehicle.id}>
                               <Button
-                                variant={isSelected ? "default" : "ghost"}
+                                variant={isSelected ? "secondary" : "ghost"}
                                 size="sm"
-                                className={`w-full justify-start gap-3 h-10 text-sm transition-all duration-150 ${isSelected ? 'shadow-md' : 'hover:bg-muted/80 hover:translate-x-1'}`}
+                                className={`w-full justify-start gap-3 h-10 rounded-md text-sm transition-colors ${
+                                  isSelected
+                                    ? "border border-primary/30 bg-primary/5 text-primary"
+                                    : "hover:bg-muted/60"
+                                }`}
                                 onClick={() => setVehicleId(isSelected ? "" : vehicle.id)}
                               >
                                 <div className={`transition-transform duration-200 ${isSelected ? 'rotate-90' : ''}`}>
                                   <ChevronRight className="w-3 h-3" />
                                 </div>
                                 <span className="font-semibold">Fleet {fleetNumber}</span>
-                                <span className="text-muted-foreground font-light">|</span>
-                                <span className="font-medium">{vehicle.registration_number}</span>
+                                <span className="text-muted-foreground">•</span>
+                                <span className="font-medium text-muted-foreground">{vehicle.registration_number}</span>
                                 {fleetConf && (
-                                  <span className={`ml-auto px-2 py-0.5 rounded text-xs font-medium ${isSelected ? 'bg-background/20' : 'bg-muted'}`}>
+                                  <span className="ml-auto px-2 py-0.5 rounded bg-muted text-xs font-medium">
                                     {fleetConf.positions.length} positions
                                   </span>
                                 )}
@@ -351,25 +448,33 @@ const TyreInspection = () => {
                                     
                                     {/* Inline Tyre Table - appears directly under selected vehicle */}
                                     {isSelected && positions.length > 0 && (
-                                      <div className="mt-3 mb-4 border rounded-xl overflow-hidden shadow-sm bg-background overflow-x-auto">
+                                      <div className="mt-3 mb-4 border rounded-lg overflow-hidden bg-background overflow-x-auto">
                                         <Table className="min-w-[700px]">
                                           <TableHeader>
-                                            <TableRow className="bg-gradient-to-r from-muted to-muted/50 border-b-2">
-                                              <TableHead className="text-sm py-3 font-bold tracking-wider">POSITION</TableHead>
-                                              <TableHead className="text-sm py-3 font-bold tracking-wider">DOT / SERIAL</TableHead>
-                                              <TableHead className="text-sm py-3 font-bold tracking-wider">BRAND / MODEL</TableHead>
-                                              <TableHead className="text-sm py-3 font-bold tracking-wider">SIZE</TableHead>
-                                              <TableHead className="text-sm py-3 font-bold tracking-wider">KM TRAVELED</TableHead>
-                                              <TableHead className="text-sm py-3 font-bold tracking-wider">TREAD (mm)</TableHead>
-                                              <TableHead className="text-sm py-3 font-bold tracking-wider">CONDITION</TableHead>
-                                              <TableHead className="text-sm py-3 font-bold tracking-wider text-right">ACTIONS</TableHead>
+                                            <TableRow className="bg-gradient-to-r from-muted/80 to-muted/50 hover:from-muted/80 hover:to-muted/50 border-b-2 border-muted">
+                                              <TableHead className="min-w-[120px] text-xs py-3.5 font-semibold text-foreground/80 uppercase tracking-wide">Position</TableHead>
+                                              <TableHead className="min-w-[160px] text-xs py-3.5 font-semibold text-foreground/80 uppercase tracking-wide">DOT / Serial</TableHead>
+                                              <TableHead className="min-w-[140px] text-xs py-3.5 font-semibold text-foreground/80 uppercase tracking-wide">Brand / Model</TableHead>
+                                              <TableHead className="min-w-[90px] text-xs py-3.5 font-semibold text-foreground/80 uppercase tracking-wide">Size</TableHead>
+                                              <TableHead className="min-w-[120px] text-xs py-3.5 font-semibold text-foreground/80 uppercase tracking-wide">KM Traveled</TableHead>
+                                              <TableHead className="min-w-[120px] text-xs py-3.5 font-semibold text-foreground/80 uppercase tracking-wide">Tread (mm)</TableHead>
+                                              <TableHead className="min-w-[120px] text-xs py-3.5 font-semibold text-foreground/80 uppercase tracking-wide">Condition</TableHead>
+                                              <TableHead className="min-w-[110px] text-xs py-3.5 font-semibold text-foreground/80 uppercase tracking-wide text-right">Actions</TableHead>
                                             </TableRow>
                                           </TableHeader>
                                           <TableBody>
                                             {positions.map((pos, index) => (
-                                              <TableRow key={pos.position} className={`text-sm transition-colors hover:bg-muted/50 ${index % 2 === 0 ? 'bg-background' : 'bg-muted/20'}`}>
+                                              <TableRow
+                                                key={pos.position}
+                                                className={`
+                                                  ${index % 2 === 0 ? "bg-background" : "bg-muted/10"}
+                                                  transition-all duration-200 ease-in-out
+                                                  hover:bg-primary/5 hover:shadow-[inset_4px_0_0_0_hsl(var(--primary))]
+                                                  group
+                                                `}
+                                              >
                                                 <TableCell className="py-3">
-                                                  <span className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 text-primary font-bold">{pos.position}</span>
+                                                  <span className="inline-flex items-center justify-center w-9 h-9 rounded-md bg-muted/70 text-foreground font-semibold">{pos.position}</span>
                                                   <span className="text-muted-foreground ml-3">{pos.positionLabel.split(' - ')[1] || ''}</span>
                                                 </TableCell>
                                                 <TableCell className="py-3">
@@ -407,11 +512,11 @@ const TyreInspection = () => {
                                                 <TableCell className="py-3">
                                                   {pos.currentTreadDepth !== null ? (
                                                     <div className="flex flex-col gap-0.5">
-                                                      <span className={`font-bold px-3 py-1 rounded inline-block w-fit ${
-                                                        pos.currentTreadDepth <= 3 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                                                        pos.currentTreadDepth <= 5 ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
-                                                        pos.currentTreadDepth <= 7 ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                                                        'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                                      <span className={`font-semibold px-2.5 py-1 rounded inline-block w-fit ${
+                                                        pos.currentTreadDepth <= 3 ? 'bg-gradient-to-r from-red-600 to-rose-500 text-white shadow-sm' :
+                                                        pos.currentTreadDepth <= 5 ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-white shadow-sm' :
+                                                        pos.currentTreadDepth <= 7 ? 'bg-gradient-to-r from-yellow-500 to-orange-400 text-white shadow-sm' :
+                                                        'bg-gradient-to-r from-emerald-500 to-green-400 text-white shadow-sm'
                                                       }`}>
                                                         {pos.currentTreadDepth} mm
                                                       </span>
@@ -427,7 +532,7 @@ const TyreInspection = () => {
                                                 <TableCell className="py-2 text-right">
                                                   <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
-                                                      <Button variant="outline" size="sm" className="h-8 w-8 p-0 hover:bg-primary/10 transition-colors">
+                                                      <Button variant="outline" size="sm" className="h-8 w-8 p-0 opacity-70 group-hover:opacity-100 transition-opacity">
                                                         <MoreHorizontal className="w-4 h-4" />
                                                       </Button>
                                                     </DropdownMenuTrigger>
@@ -435,15 +540,15 @@ const TyreInspection = () => {
                                                       {pos.tyreCode ? (
                                                         <>
                                                           <DropdownMenuItem onClick={() => handleInspect(pos)} className="gap-2">
-                                                            <ClipboardCheck className="w-4 h-4 text-blue-500" />
+                                                            <ClipboardCheck className="w-4 h-4" />
                                                             Inspect Tyre
                                                           </DropdownMenuItem>
                                                           <DropdownMenuItem onClick={() => handleEdit(pos)} className="gap-2">
-                                                            <Pencil className="w-4 h-4 text-amber-500" />
+                                                            <Pencil className="w-4 h-4" />
                                                             Edit Details
                                                           </DropdownMenuItem>
                                                           <DropdownMenuItem onClick={() => handleViewLifecycle(pos)} className="gap-2">
-                                                            <History className="w-4 h-4 text-purple-500" />
+                                                            <History className="w-4 h-4" />
                                                             View Lifecycle
                                                           </DropdownMenuItem>
                                                           <DropdownMenuSeparator />
@@ -454,7 +559,7 @@ const TyreInspection = () => {
                                                         </>
                                                       ) : (
                                                         <DropdownMenuItem onClick={() => handleInstall(pos)} className="gap-2">
-                                                          <Plus className="w-4 h-4 text-green-500" />
+                                                          <Plus className="w-4 h-4" />
                                                           Install Tyre
                                                         </DropdownMenuItem>
                                                       )}
@@ -470,8 +575,8 @@ const TyreInspection = () => {
                                     
                                     {/* Show empty positions message */}
                                     {isSelected && positions.length === 0 && fleetConfig && (
-                                      <div className="mt-3 mb-4 p-4 border rounded-xl text-sm text-muted-foreground bg-muted/30 flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center animate-pulse">
+                                      <div className="mt-3 mb-4 p-4 border rounded-lg text-sm text-muted-foreground bg-muted/20 flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
                                           <ChevronRight className="w-4 h-4" />
                                         </div>
                                         Loading tyre positions...
@@ -480,7 +585,7 @@ const TyreInspection = () => {
                                     
                                     {/* No fleet config warning inline */}
                                     {isSelected && !fleetConfig && (
-                                      <div className="mt-3 mb-4 p-4 border-2 border-amber-500/30 bg-gradient-to-r from-amber-500/10 to-orange-500/5 rounded-xl text-sm text-amber-700 dark:text-amber-400">
+                                      <div className="mt-3 mb-4 p-4 border border-amber-500/40 bg-amber-500/10 rounded-lg text-sm text-amber-700 dark:text-amber-400">
                                         <span className="font-semibold">No fleet configuration found</span>
                                         <p className="text-xs text-muted-foreground mt-1">This vehicle doesn't have a fleet configuration assigned.</p>
                                       </div>

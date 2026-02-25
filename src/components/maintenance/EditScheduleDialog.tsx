@@ -1,6 +1,4 @@
-
 import { Button } from "@/components/ui/button";
-import { DatePicker } from "@/components/ui/date-picker";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,21 +8,22 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { MaintenanceSchedule } from "@/types/maintenance";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 
-interface AddScheduleDialogProps {
+interface EditScheduleDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  schedule: MaintenanceSchedule;
   onSuccess: () => void;
 }
 
-export function AddScheduleDialog({ open, onOpenChange, onSuccess }: AddScheduleDialogProps) {
+export function EditScheduleDialog({ open, onOpenChange, schedule, onSuccess }: EditScheduleDialogProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
 
-  // Fetch active vehicles for selection
   const { data: vehicles = [], isLoading: vehiclesLoading } = useQuery({
     queryKey: ["vehicles", "active"],
     queryFn: async () => {
@@ -33,38 +32,66 @@ export function AddScheduleDialog({ open, onOpenChange, onSuccess }: AddSchedule
         .select("id, registration_number, fleet_number, vehicle_type")
         .eq("active", true)
         .order("fleet_number");
-
       if (error) throw error;
-      // Filter out any vehicles with empty or null IDs
       return (data || []).filter(vehicle => vehicle.id && vehicle.id.trim() !== "");
     },
   });
 
   const { register, handleSubmit, watch, setValue, reset } = useForm({
     defaultValues: {
-      vehicle_id: "none",
-      title: "",
-      description: "",
-      schedule_type: "one_time",
-      frequency: "monthly",
-      frequency_value: 1,
-      start_date: new Date().toISOString().split('T')[0],
-      category: "service",
-      maintenance_type: "",
-      priority: "medium",
-      assigned_to: "",
-      estimated_duration_hours: 0,
-      auto_create_job_card: false,
-      odometer_based: false,
-      odometer_interval_km: 0,
-      last_odometer_reading: 0,
-      notes: "",
+      vehicle_id: schedule.vehicle_id || "none",
+      title: schedule.title || "",
+      description: schedule.description || "",
+      schedule_type: schedule.schedule_type || "one_time",
+      frequency: schedule.frequency || "monthly",
+      frequency_value: schedule.frequency_value || 1,
+      category: schedule.category || "service",
+      maintenance_type: schedule.maintenance_type || "",
+      priority: schedule.priority || "medium",
+      assigned_to: schedule.assigned_to || "",
+      estimated_duration_hours: schedule.estimated_duration_hours || 0,
+      auto_create_job_card: schedule.auto_create_job_card || false,
+      odometer_based: schedule.odometer_based || false,
+      odometer_interval_km: schedule.odometer_interval_km || 0,
+      last_odometer_reading: schedule.last_odometer_reading || 0,
+      notes: schedule.notes || "",
     },
   });
+
+  // Reset form when schedule changes
+  useEffect(() => {
+    if (open && schedule) {
+      reset({
+        vehicle_id: schedule.vehicle_id || "none",
+        title: schedule.title || "",
+        description: schedule.description || "",
+        schedule_type: schedule.schedule_type || "one_time",
+        frequency: schedule.frequency || "monthly",
+        frequency_value: schedule.frequency_value || 1,
+        category: schedule.category || "service",
+        maintenance_type: schedule.maintenance_type || "",
+        priority: schedule.priority || "medium",
+        assigned_to: schedule.assigned_to || "",
+        estimated_duration_hours: schedule.estimated_duration_hours || 0,
+        auto_create_job_card: schedule.auto_create_job_card || false,
+        odometer_based: schedule.odometer_based || false,
+        odometer_interval_km: schedule.odometer_interval_km || 0,
+        last_odometer_reading: schedule.last_odometer_reading || 0,
+        notes: schedule.notes || "",
+      });
+    }
+  }, [open, schedule, reset]);
 
   const scheduleType = watch("schedule_type");
   const odometerBased = watch("odometer_based");
   const selectedVehicleId = watch("vehicle_id");
+  const intervalKm = watch("odometer_interval_km");
+  const lastOdometerReading = watch("last_odometer_reading");
+
+  // Compute next service KM
+  const nextServiceKm = odometerBased && intervalKm && lastOdometerReading
+    ? lastOdometerReading + intervalKm
+    : null;
 
   // Auto-populate last_odometer_reading from vehicle's current_odometer
   const { data: selectedVehicleData } = useQuery({
@@ -78,57 +105,19 @@ export function AddScheduleDialog({ open, onOpenChange, onSuccess }: AddSchedule
       if (error) throw error;
       return data;
     },
-    enabled: !!selectedVehicleId && selectedVehicleId !== "none" && odometerBased,
+    enabled: !!selectedVehicleId && selectedVehicleId !== "none",
   });
-
-  // Set last_odometer_reading when vehicle data is fetched
-  useEffect(() => {
-    if (selectedVehicleData?.current_odometer && odometerBased) {
-      setValue("last_odometer_reading", selectedVehicleData.current_odometer);
-    }
-  }, [selectedVehicleData, odometerBased, setValue]);
 
   const onSubmit = async (data: Record<string, unknown>) => {
     setLoading(true);
     try {
-      // Calculate next_due_date based on start_date and frequency
-      const startDate = new Date(data.start_date as string);
-      const nextDueDate = new Date(startDate);
-
-      if (data.schedule_type === "recurring") {
-        // Add frequency interval to start date
-        switch (data.frequency) {
-          case "daily":
-            nextDueDate.setDate(nextDueDate.getDate() + (data.frequency_value as number || 1));
-            break;
-          case "weekly":
-            nextDueDate.setDate(nextDueDate.getDate() + (7 * (data.frequency_value as number || 1)));
-            break;
-          case "monthly":
-            nextDueDate.setMonth(nextDueDate.getMonth() + (data.frequency_value as number || 1));
-            break;
-          case "quarterly":
-            nextDueDate.setMonth(nextDueDate.getMonth() + (3 * (data.frequency_value as number || 1)));
-            break;
-          case "yearly":
-            nextDueDate.setFullYear(nextDueDate.getFullYear() + (data.frequency_value as number || 1));
-            break;
-        }
-      }
-
-      // For KM-based schedules, use a far-future sentinel date (not shown in UI)
-      const isOdometerBased = data.odometer_based as boolean;
-      const finalNextDueDate = isOdometerBased
-        ? '2099-12-31'
-        : nextDueDate.toISOString().split('T')[0];
-
-      const submitData = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const updateData: Record<string, any> = {
         title: data.title,
         description: data.description,
         schedule_type: data.schedule_type,
         frequency: data.frequency,
         frequency_value: data.frequency_value,
-        start_date: data.start_date,
         category: data.category,
         maintenance_type: data.maintenance_type,
         service_type: data.maintenance_type || data.category || "service",
@@ -137,32 +126,30 @@ export function AddScheduleDialog({ open, onOpenChange, onSuccess }: AddSchedule
         estimated_duration_hours: data.estimated_duration_hours,
         auto_create_job_card: data.auto_create_job_card,
         odometer_based: data.odometer_based,
-        odometer_interval_km: isOdometerBased ? data.odometer_interval_km : null,
-        last_odometer_reading: isOdometerBased ? (data.last_odometer_reading || 0) : null,
+        odometer_interval_km: data.odometer_interval_km,
+        last_odometer_reading: data.last_odometer_reading || 0,
         notes: data.notes || null,
-        // Required fields
-        next_due_date: finalNextDueDate,
-        // Vehicle ID - null for fleet-wide, specific UUID for vehicle-specific
         vehicle_id: data.vehicle_id === "none" ? null : data.vehicle_id,
-        // Optional fields
-        created_by: "System User",
-        notification_channels: {
-          email: true,
-          sms: false,
-          in_app: true,
-        },
-        notification_recipients: [],
       };
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await supabase.from("maintenance_schedules").insert([submitData as any]);      if (error) throw error;
+      // If NOT KM-based, clear odometer fields
+      if (!data.odometer_based) {
+        updateData.odometer_interval_km = null;
+        updateData.last_odometer_reading = null;
+      }
+
+      const { error } = await supabase
+        .from("maintenance_schedules")
+        .update(updateData)
+        .eq("id", schedule.id);
+
+      if (error) throw error;
 
       toast({
         title: "Success",
-        description: "Maintenance schedule created successfully",
+        description: "Maintenance schedule updated successfully",
       });
 
-      reset();
       onSuccess();
       onOpenChange(false);
     } catch (error) {
@@ -180,31 +167,31 @@ export function AddScheduleDialog({ open, onOpenChange, onSuccess }: AddSchedule
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Create Maintenance Schedule</DialogTitle>
+          <DialogTitle>Edit Maintenance Schedule</DialogTitle>
           <DialogDescription>
-            Fill in the details below to create a new maintenance schedule for your fleet or a specific vehicle.
+            Update the schedule details below.
           </DialogDescription>
         </DialogHeader>
         <ScrollArea className="max-h-[600px] pr-4">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="title">Title *</Label>
-                <Input id="title" {...register("title")} required />
+                <Label htmlFor="edit-title">Title *</Label>
+                <Input id="edit-title" {...register("title")} required />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="maintenance_type">Maintenance Type *</Label>
-                <Input id="maintenance_type" {...register("maintenance_type")} required />
+                <Label htmlFor="edit-maintenance_type">Maintenance Type *</Label>
+                <Input id="edit-maintenance_type" {...register("maintenance_type")} required />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="vehicle_id">Vehicle</Label>
+              <Label htmlFor="edit-vehicle_id">Vehicle</Label>
               <Select
+                value={watch("vehicle_id")}
                 onValueChange={(value) => setValue("vehicle_id", value)}
                 disabled={vehiclesLoading}
-                defaultValue="none"
               >
                 <SelectTrigger>
                   <SelectValue placeholder={vehiclesLoading ? "Loading vehicles..." : "Select vehicle (optional)"} />
@@ -219,22 +206,19 @@ export function AddScheduleDialog({ open, onOpenChange, onSuccess }: AddSchedule
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">
-                Select a specific vehicle or leave empty for fleet-wide maintenance
-              </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea id="description" {...register("description")} />
+              <Label htmlFor="edit-description">Description</Label>
+              <Textarea id="edit-description" {...register("description")} />
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="category">Category *</Label>
+                <Label htmlFor="edit-category">Category *</Label>
                 <Select
+                  value={watch("category")}
                   onValueChange={(value) => setValue("category", value as "inspection" | "service" | "repair" | "replacement" | "calibration")}
-                  defaultValue="service"
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select category" />
@@ -250,10 +234,10 @@ export function AddScheduleDialog({ open, onOpenChange, onSuccess }: AddSchedule
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="priority">Priority *</Label>
+                <Label htmlFor="edit-priority">Priority *</Label>
                 <Select
+                  value={watch("priority")}
                   onValueChange={(value) => setValue("priority", value as "low" | "medium" | "high" | "critical")}
-                  defaultValue="medium"
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select priority" />
@@ -268,100 +252,76 @@ export function AddScheduleDialog({ open, onOpenChange, onSuccess }: AddSchedule
               </div>
             </div>
 
-            {!odometerBased && (
-              <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="edit-schedule_type">Schedule Type *</Label>
+                <Select
+                  value={watch("schedule_type")}
+                  onValueChange={(value) => setValue("schedule_type", value as "one_time" | "recurring")}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="one_time">One Time</SelectItem>
+                    <SelectItem value="recurring">Recurring</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {scheduleType === "recurring" && !odometerBased && (
                 <div className="space-y-2">
-                  <Label htmlFor="schedule_type">Schedule Type *</Label>
+                  <Label htmlFor="edit-frequency">Frequency *</Label>
                   <Select
-                    onValueChange={(value) => setValue("schedule_type", value as "one_time" | "recurring")}
-                    defaultValue="one_time"
+                    value={watch("frequency") || "monthly"}
+                    onValueChange={(value) => setValue("frequency", value as "daily" | "weekly" | "monthly" | "quarterly" | "yearly")}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select type" />
+                      <SelectValue placeholder="Select frequency" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="one_time">One Time</SelectItem>
-                      <SelectItem value="recurring">Recurring</SelectItem>
+                      <SelectItem value="daily">Daily</SelectItem>
+                      <SelectItem value="weekly">Weekly</SelectItem>
+                      <SelectItem value="monthly">Monthly</SelectItem>
+                      <SelectItem value="quarterly">Quarterly</SelectItem>
+                      <SelectItem value="yearly">Yearly</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-
-                {scheduleType === "recurring" && (
-                  <div className="space-y-2">
-                    <Label htmlFor="frequency">Frequency *</Label>
-                    <Select
-                      onValueChange={(value) => setValue("frequency", value as "daily" | "weekly" | "monthly" | "quarterly" | "yearly")}
-                      defaultValue="monthly"
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select frequency" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="daily">Daily</SelectItem>
-                        <SelectItem value="weekly">Weekly</SelectItem>
-                        <SelectItem value="monthly">Monthly</SelectItem>
-                        <SelectItem value="quarterly">Quarterly</SelectItem>
-                        <SelectItem value="yearly">Yearly</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {!odometerBased && (
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="start_date">Start Date *</Label>
-                  <DatePicker
-                    id="start_date"
-                    value={watch("start_date")}
-                    onChange={(date) => setValue("start_date", date ? date.toISOString().split('T')[0] : '')}
-                    placeholder="Select start date"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="estimated_duration_hours">Estimated Duration (hours)</Label>
-                  <Input
-                    id="estimated_duration_hours"
-                    type="number"
-                    step="0.5"
-                    {...register("estimated_duration_hours", { valueAsNumber: true })}
-                  />
-                </div>
-              </div>
-            )}
+              )}
+            </div>
 
             <div className="space-y-2">
-              <Label htmlFor="assigned_to">Assigned To</Label>
-              <Input id="assigned_to" {...register("assigned_to")} />
+              <Label htmlFor="edit-assigned_to">Assigned To</Label>
+              <Input id="edit-assigned_to" {...register("assigned_to")} />
             </div>
 
             <div className="flex items-center space-x-2">
               <Switch
-                id="auto_create_job_card"
+                id="edit-auto_create_job_card"
+                checked={watch("auto_create_job_card")}
                 onCheckedChange={(checked) => setValue("auto_create_job_card", checked)}
               />
-              <Label htmlFor="auto_create_job_card">Auto-create job card when due</Label>
+              <Label htmlFor="edit-auto_create_job_card">Auto-create job card when due</Label>
             </div>
 
             <div className="flex items-center space-x-2">
               <Switch
-                id="odometer_based"
+                id="edit-odometer_based"
+                checked={odometerBased}
                 onCheckedChange={(checked) => setValue("odometer_based", checked)}
               />
-              <Label htmlFor="odometer_based">Odometer-based scheduling</Label>
+              <Label htmlFor="edit-odometer_based">KM-based scheduling (instead of date)</Label>
             </div>
 
             {odometerBased && (
               <div className="space-y-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
-                <p className="text-sm font-medium text-blue-800">KM-Based Schedule — no date required</p>
+                <p className="text-sm font-medium text-blue-800">KM-Based Schedule Configuration</p>
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="last_odometer_reading">Previous / Last Service KM *</Label>
+                    <Label htmlFor="edit-last_odometer_reading">Previous / Last Service KM *</Label>
                     <Input
-                      id="last_odometer_reading"
+                      id="edit-last_odometer_reading"
                       type="number"
                       placeholder="KM at last service"
                       {...register("last_odometer_reading", { valueAsNumber: true })}
@@ -373,23 +333,21 @@ export function AddScheduleDialog({ open, onOpenChange, onSuccess }: AddSchedule
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="odometer_interval_km">Service Interval (km) *</Label>
+                    <Label htmlFor="edit-odometer_interval_km">Service Interval (km) *</Label>
                     <Input
-                      id="odometer_interval_km"
+                      id="edit-odometer_interval_km"
                       type="number"
                       placeholder="e.g. 10000"
                       {...register("odometer_interval_km", { valueAsNumber: true })}
                     />
                   </div>
                 </div>
-                {watch("last_odometer_reading") > 0 && watch("odometer_interval_km") > 0 && (
+                {nextServiceKm !== null && (
                   <div className="rounded-md bg-white p-3 border">
                     <p className="text-sm text-muted-foreground">Next Service Due At</p>
-                    <p className="text-xl font-bold text-blue-700">
-                      {(watch("last_odometer_reading") + watch("odometer_interval_km")).toLocaleString()} km
-                    </p>
+                    <p className="text-xl font-bold text-blue-700">{nextServiceKm.toLocaleString()} km</p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      ({watch("last_odometer_reading").toLocaleString()} km + {watch("odometer_interval_km").toLocaleString()} km interval)
+                      ({lastOdometerReading?.toLocaleString()} km + {intervalKm?.toLocaleString()} km interval)
                     </p>
                   </div>
                 )}
@@ -397,8 +355,8 @@ export function AddScheduleDialog({ open, onOpenChange, onSuccess }: AddSchedule
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea id="notes" {...register("notes")} />
+              <Label htmlFor="edit-notes">Notes</Label>
+              <Textarea id="edit-notes" {...register("notes")} />
             </div>
 
             <div className="flex justify-end gap-2">
@@ -406,7 +364,7 @@ export function AddScheduleDialog({ open, onOpenChange, onSuccess }: AddSchedule
                 Cancel
               </Button>
               <Button type="submit" disabled={loading}>
-                {loading ? "Creating..." : "Create Schedule"}
+                {loading ? "Saving..." : "Save Changes"}
               </Button>
             </div>
           </form>

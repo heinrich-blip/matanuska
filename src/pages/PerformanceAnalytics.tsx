@@ -24,13 +24,6 @@ const PerformanceAnalytics = () => {
   return (
     <Layout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Performance Analytics</h1>
-          <p className="text-muted-foreground">
-            Analyze fleet and operational performance
-          </p>
-        </div>
-
         <Tabs defaultValue="dashboard" className="space-y-6">
           <TabsList>
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>

@@ -239,7 +239,9 @@ export default function AddPartWithCostDialog({
                   }
                   disabled={
                     state.sourceType === "inventory" &&
-                    !!state.selectedInventoryId
+                    !!state.selectedInventoryId &&
+                    state.unitPrice > 0 &&
+                    !hasInsufficientStock
                   }
                 />
               </div>

@@ -1143,10 +1143,18 @@ const TripReportsSection = ({ trips, costEntries }: TripReportsSectionProps) => 
                               <div className="flex items-center gap-3 text-sm text-muted-foreground">
                                 <span>{month.tripCount} trips</span>
                                 <Badge variant="outline" className="text-xs">{month.completedTrips} completed</Badge>
+                                <span className="flex items-center gap-1">
+                                  <MapPin className="h-3 w-3" />
+                                  {month.totalKm.toLocaleString()} km
+                                </span>
                               </div>
                             </div>
                           </div>
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 lg:gap-6">
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 lg:gap-6">
+                            <div className="text-center lg:text-right">
+                              <p className="text-xs text-muted-foreground">Distance</p>
+                              <p className="font-semibold tabular-nums">{month.totalKm.toLocaleString()} km</p>
+                            </div>
                             <div className="text-center lg:text-right">
                               <p className="text-xs text-muted-foreground">Revenue</p>
                               <CurrencyDisplay amounts={month.revenue} type="revenue" />

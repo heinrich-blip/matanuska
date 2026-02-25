@@ -173,7 +173,8 @@ function InventoryPartFormInner({
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            Insufficient stock: Only {availableQuantity} units available
+            <strong>Short — needs restock!</strong> Only {availableQuantity} units available.
+            You can still add this item — it will be sent to procurement for ordering.
           </AlertDescription>
         </Alert>
       )}

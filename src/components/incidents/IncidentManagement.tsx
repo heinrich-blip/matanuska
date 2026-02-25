@@ -268,10 +268,6 @@ const IncidentManagement = () => {
       <div className="space-y-8">
         {/* Header */}
         <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Incident Management</h1>
-            <p className="text-muted-foreground mt-1">Track and manage vehicle incidents, claims, and reports</p>
-          </div>
           {activeMainTab === "incidents" && (
             <Button onClick={() => openDialog("add")}>
               <Plus className="mr-2 h-4 w-4" />

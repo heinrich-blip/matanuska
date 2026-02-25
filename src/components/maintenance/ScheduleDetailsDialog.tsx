@@ -10,10 +10,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { MaintenanceSchedule } from "@/types/maintenance";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { AlertCircle, Calendar, CheckCircle, Clock, Smartphone, User, Wrench } from "lucide-react";
+import { AlertCircle, Calendar, CheckCircle, Clock, Edit, Gauge, Smartphone, User, Wrench } from "lucide-react";
 import { useState } from "react";
 import { CreateJobCardFromScheduleDialog } from "../dialogs/CreateJobCardFromScheduleDialog";
+import { EditScheduleDialog } from "./EditScheduleDialog";
 import { MobileQuickComplete } from "./MobileQuickComplete";
+import { Progress } from "@/components/ui/progress";
+import { calculateKmStatus, getVehicleLatestKm } from "@/lib/maintenanceKmTracking";
 
 interface ScheduleDetailsDialogProps {
   schedule: MaintenanceSchedule;
@@ -33,6 +36,27 @@ export function ScheduleDetailsDialog({
   const [loading, setLoading] = useState(false);
   const [showCreateJobCard, setShowCreateJobCard] = useState(false);
   const [showMobileQuickComplete, setShowMobileQuickComplete] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+
+  // Fetch vehicle KM for KM-based schedules (from trips + current_odometer)
+  const { data: vehicleOdometer } = useQuery({
+    queryKey: ["vehicle-km-from-trips", schedule.vehicle_id],
+    queryFn: async () => {
+      if (!schedule.vehicle_id) return null;
+      const kmMap = await getVehicleLatestKm([schedule.vehicle_id]);
+      const { data: vehicle } = await supabase
+        .from("vehicles")
+        .select("fleet_number, registration_number")
+        .eq("id", schedule.vehicle_id)
+        .single();
+      return {
+        current_odometer: kmMap[schedule.vehicle_id] || 0,
+        fleet_number: vehicle?.fleet_number || null,
+        registration_number: vehicle?.registration_number || null,
+      };
+    },
+    enabled: open && !!schedule.vehicle_id && !!schedule.odometer_based,
+  });
 
   const { data: history } = useQuery({
     queryKey: ["maintenance-history", schedule.id],
@@ -143,12 +167,14 @@ export function ScheduleDetailsDialog({
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Clock className="h-4 w-4" />
-                        <span>Next Due Date</span>
+                        <span>{schedule.odometer_based ? "Tracking" : "Next Due Date"}</span>
                       </div>
                       <p className="font-medium">
-                        {schedule.next_due_date
-                          ? format(new Date(schedule.next_due_date), "PPP")
-                          : "Not scheduled"}
+                        {schedule.odometer_based
+                          ? "KM-based (see below)"
+                          : schedule.next_due_date
+                            ? format(new Date(schedule.next_due_date), "PPP")
+                            : "Not scheduled"}
                       </p>
                     </div>
 
@@ -175,7 +201,65 @@ export function ScheduleDetailsDialog({
                     </div>
                   )}
 
-                  <div className="flex gap-2 pt-4">
+                  {/* KM Tracking Section */}
+                  {schedule.odometer_based && schedule.odometer_interval_km && (() => {
+                    const currentOdo = vehicleOdometer?.current_odometer || 0;
+                    const lastReading = schedule.last_odometer_reading || 0;
+                    const kmStatus = calculateKmStatus(schedule.odometer_interval_km, lastReading, currentOdo);
+                    return (
+                      <Card className={`border ${kmStatus.isOverdue ? 'border-red-300 bg-red-50' : kmStatus.isApproaching ? 'border-amber-300 bg-amber-50' : 'border-blue-200 bg-blue-50'}`}>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm flex items-center gap-2">
+                            <Gauge className="h-4 w-4" />
+                            KM-Based Tracking
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <div className="grid gap-3 md:grid-cols-4">
+                            <div>
+                              <p className="text-xs text-muted-foreground">Interval</p>
+                              <p className="font-semibold">{schedule.odometer_interval_km.toLocaleString()} km</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Last Service</p>
+                              <p className="font-semibold">{lastReading.toLocaleString()} km</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Current Odometer</p>
+                              <p className="font-semibold">{currentOdo.toLocaleString()} km</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Next Service At</p>
+                              <p className="font-semibold">{kmStatus.nextServiceKm.toLocaleString()} km</p>
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <div className="flex justify-between text-xs">
+                              <span>{kmStatus.progressPercent}% used</span>
+                              <span className={kmStatus.isOverdue ? 'text-red-600 font-semibold' : kmStatus.isApproaching ? 'text-amber-600 font-semibold' : ''}>
+                                {kmStatus.isOverdue
+                                  ? `${Math.abs(kmStatus.remainingKm).toLocaleString()} km overdue`
+                                  : `${kmStatus.remainingKm.toLocaleString()} km remaining`}
+                              </span>
+                            </div>
+                            <Progress
+                              value={kmStatus.progressPercent}
+                              className={`h-3 ${kmStatus.isOverdue ? '[&>div]:bg-red-500' : kmStatus.isApproaching ? '[&>div]:bg-amber-500' : '[&>div]:bg-blue-500'}`}
+                            />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })()}
+
+                  <div className="flex gap-2 pt-4 flex-wrap">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowEditDialog(true)}
+                    >
+                      <Edit className="mr-2 h-4 w-4" />
+                      Edit Schedule
+                    </Button>
                     {isMobile ? (
                       <Button onClick={() => setShowMobileQuickComplete(true)} disabled={!schedule.next_due_date}>
                         <Smartphone className="mr-2 h-4 w-4" />
@@ -249,6 +333,16 @@ export function ScheduleDetailsDialog({
         onOpenChange={setShowMobileQuickComplete}
         scheduleId={schedule.id}
         onSuccess={onUpdate}
+      />
+
+      <EditScheduleDialog
+        schedule={schedule}
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
+        onSuccess={() => {
+          onUpdate();
+          onOpenChange(false);
+        }}
       />
 
       <CreateJobCardFromScheduleDialog

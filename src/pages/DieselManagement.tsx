@@ -21,7 +21,7 @@ import { generateAllFleetsDieselExcel, generateAllFleetsDieselPDF, generateFleet
 import { formatCurrency, formatDate, formatNumber } from '@/lib/formatters';
 import type { DieselConsumptionRecord, DieselNorms } from '@/types/operations';
 import { AlertCircle, BarChart3, CheckCircle, ChevronDown, ChevronRight, Download, Edit, Eye, FileSpreadsheet, FileText, Filter, Fuel, Link, Plus, Settings, Snowflake, Trash2, Truck, Upload, User } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 // Report data types
 interface DriverReport {
@@ -35,6 +35,16 @@ interface DriverReport {
   lastFillDate: string;
 }
 
+interface ReeferDriverReport {
+  driver: string;
+  totalLitres: number;
+  totalCostZAR: number;
+  totalCostUSD: number;
+  fillCount: number;
+  lastFillDate: string;
+  fleets: string[];
+}
+
 interface FleetReport {
   fleet: string;
   totalLitres: number;
@@ -42,6 +52,15 @@ interface FleetReport {
   totalCostUSD: number;
   totalDistance: number;
   avgKmPerLitre: number;
+  fillCount: number;
+  drivers: string[];
+}
+
+interface ReeferFleetReport {
+  fleet: string;
+  totalLitres: number;
+  totalCostZAR: number;
+  totalCostUSD: number;
   fillCount: number;
   drivers: string[];
 }
@@ -91,6 +110,16 @@ const FLEET_CATEGORIES = {
   'Nyamagay Truck': ['30H'],
 };
 
+const REEFER_SECTION_NAME = 'Reefers (L/H)';
+const isReeferFleet = (fleet?: string | null) => !!fleet && fleet.toUpperCase().trim().endsWith('F');
+
+const getWeekNumberForDateString = (dateStr: string): number => {
+  const date = new Date(dateStr);
+  const startOfYear = new Date(date.getFullYear(), 0, 1);
+  const days = Math.floor((date.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
+  return Math.ceil((days + startOfYear.getDay() + 1) / 7);
+};
+
 const DieselManagement = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [fleetFilter, _setFleetFilter] = useState<string>('');
@@ -109,6 +138,19 @@ const DieselManagement = () => {
     updateDieselNorm,
     deleteDieselNorm,
   } = useOperations();
+
+  const truckRecords = useMemo(
+    () => dieselRecords.filter(record => !isReeferFleet(record.fleet_number)),
+    [dieselRecords]
+  );
+  const reeferRecords = useMemo(
+    () => dieselRecords.filter(record => isReeferFleet(record.fleet_number)),
+    [dieselRecords]
+  );
+  const reeferFleetNumbers = useMemo(() => {
+    const fleets = new Set(reeferRecords.map(r => r.fleet_number).filter(Boolean));
+    return Array.from(fleets).sort();
+  }, [reeferRecords]);
 
   // Modal states
   const [isManualEntryOpen, setIsManualEntryOpen] = useState(false);
@@ -163,25 +205,36 @@ const DieselManagement = () => {
   // Debrief fleet filter for PDF export
   const [debriefFleetFilter, setDebriefFleetFilter] = useState<string>('');
 
-  // Calculate summary statistics
-  const totalRecords = dieselRecords.length;
-  const totalLitres = dieselRecords.reduce((sum, record) => sum + (record.litres_filled || 0), 0);
+  // Calculate summary statistics (trucks)
+  const totalRecords = truckRecords.length;
+  const totalLitres = truckRecords.reduce((sum, record) => sum + (record.litres_filled || 0), 0);
 
   // Calculate costs by currency
-  const totalCostZAR = dieselRecords
+  const totalCostZAR = truckRecords
     .filter(r => (r.currency || 'ZAR') === 'ZAR')
     .reduce((sum, record) => sum + (record.total_cost || 0), 0);
-  const totalCostUSD = dieselRecords
+  const totalCostUSD = truckRecords
     .filter(r => r.currency === 'USD')
     .reduce((sum, record) => sum + (record.total_cost || 0), 0);
 
-  const totalDistance = dieselRecords.reduce((sum, record) => sum + (record.distance_travelled || 0), 0);
+  const totalDistance = truckRecords.reduce((sum, record) => sum + (record.distance_travelled || 0), 0);
   const averageKmPerLitre = totalDistance && totalLitres
     ? totalDistance / totalLitres
     : 0;
 
+  // Reefer summary statistics
+  const reeferTotalRecords = reeferRecords.length;
+  const reeferTotalLitres = reeferRecords.reduce((sum, record) => sum + (record.litres_filled || 0), 0);
+  const reeferTotalCostZAR = reeferRecords
+    .filter(r => (r.currency || 'ZAR') === 'ZAR')
+    .reduce((sum, record) => sum + (record.total_cost || 0), 0);
+  const reeferTotalCostUSD = reeferRecords
+    .filter(r => r.currency === 'USD')
+    .reduce((sum, record) => sum + (record.total_cost || 0), 0);
+
   // Helper: Calculate km per litre for a record
   const calculateKmPerLitre = (record: DieselConsumptionRecord): number | null => {
+    if (isReeferFleet(record.fleet_number)) return null;
     if (!record.distance_travelled || !record.litres_filled) return null;
     return record.distance_travelled / record.litres_filled;
   };
@@ -206,7 +259,7 @@ const DieselManagement = () => {
   };
 
   // Calculate records requiring debrief based on norms
-  const recordsRequiringDebrief = dieselRecords.filter(record => {
+  const recordsRequiringDebrief = truckRecords.filter(record => {
     const kmPerLitre = calculateKmPerLitre(record);
     if (!kmPerLitre) return false;
     const norm = getNormForFleet(record.fleet_number);
@@ -217,15 +270,7 @@ const DieselManagement = () => {
   const debriefStats = {
     total: recordsRequiringDebrief.length,
     pending: recordsRequiringDebrief.filter(r => !r.debrief_signed).length,
-    completed: dieselRecords.filter(r => r.debrief_signed).length,
-  };
-
-  // Helper: Get ISO week number from a date string
-  const getWeekNumber = (dateStr: string): number => {
-    const date = new Date(dateStr);
-    const startOfYear = new Date(date.getFullYear(), 0, 1);
-    const days = Math.floor((date.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
-    return Math.ceil((days + startOfYear.getDay() + 1) / 7);
+    completed: truckRecords.filter(r => r.debrief_signed).length,
   };
 
   // Get current week number
@@ -251,16 +296,16 @@ const DieselManagement = () => {
     }
     if (weekFilter) {
       const weekNum = parseInt(weekFilter);
-      filtered = filtered.filter(record => getWeekNumber(record.date) === weekNum);
+      filtered = filtered.filter(record => getWeekNumberForDateString(record.date) === weekNum);
     }
     return filtered;
   }, [dieselRecords, fleetFilter, weekFilter]);
 
   // Get unique fleet numbers from records for filter dropdown
   const uniqueFleetNumbers = useMemo(() => {
-    const fleets = new Set(dieselRecords.map(r => r.fleet_number));
+    const fleets = new Set(truckRecords.map(r => r.fleet_number));
     return Array.from(fleets).sort();
-  }, [dieselRecords]);
+  }, [truckRecords]);
 
   // Helper: Get week date range string (e.g., "Jan 27 - Feb 2")
   const getWeekDateRange = (weekNum: number, year: number = new Date().getFullYear()): string => {
@@ -276,13 +321,12 @@ const DieselManagement = () => {
     return `${formatShort(weekStart)} - ${formatShort(weekEnd)}`;
   };
 
-  // Group records by fleet, then by week
-  const recordsGroupedByFleetAndWeek = useMemo(() => {
+  const groupRecordsByFleetAndWeek = useCallback((records: DieselConsumptionRecord[]) => {
     const grouped: Record<string, Record<number, DieselConsumptionRecord[]>> = {};
 
-    dieselRecords.forEach(record => {
+    records.forEach(record => {
       const fleet = record.fleet_number;
-      const week = getWeekNumber(record.date);
+      const week = getWeekNumberForDateString(record.date);
 
       if (!grouped[fleet]) {
         grouped[fleet] = {};
@@ -302,12 +346,25 @@ const DieselManagement = () => {
     });
 
     return grouped;
-  }, [dieselRecords]);
+  }, []);
+
+  // Group records by fleet, then by week
+  const truckRecordsGroupedByFleetAndWeek = useMemo(
+    () => groupRecordsByFleetAndWeek(truckRecords),
+    [groupRecordsByFleetAndWeek, truckRecords]
+  );
+  const reeferRecordsGroupedByFleetAndWeek = useMemo(
+    () => groupRecordsByFleetAndWeek(reeferRecords),
+    [groupRecordsByFleetAndWeek, reeferRecords]
+  );
 
   // Get sorted fleet list
   const sortedFleets = useMemo(() => {
-    return Object.keys(recordsGroupedByFleetAndWeek).sort();
-  }, [recordsGroupedByFleetAndWeek]);
+    return Object.keys(truckRecordsGroupedByFleetAndWeek).sort();
+  }, [truckRecordsGroupedByFleetAndWeek]);
+  const sortedReeferFleets = useMemo(() => {
+    return Object.keys(reeferRecordsGroupedByFleetAndWeek).sort();
+  }, [reeferRecordsGroupedByFleetAndWeek]);
 
   // Toggle fleet expansion
   const toggleFleetExpanded = (fleet: string) => {
@@ -336,15 +393,19 @@ const DieselManagement = () => {
   };
 
   // Calculate fleet totals
-  const getFleetTotals = (fleet: string) => {
-    const fleetRecords = Object.values(recordsGroupedByFleetAndWeek[fleet] || {}).flat();
+  const getFleetTotals = (
+    groupedRecords: Record<string, Record<number, DieselConsumptionRecord[]>>,
+    fleet: string
+  ) => {
+    const fleetRecords = Object.values(groupedRecords[fleet] || {}).flat();
     const totalLitres = fleetRecords.reduce((sum, r) => sum + (r.litres_filled || 0), 0);
     const totalCostZAR = fleetRecords.reduce((sum, r) => sum + ((r.currency || 'ZAR') === 'ZAR' ? (r.total_cost || 0) : 0), 0);
     const totalCostUSD = fleetRecords.reduce((sum, r) => sum + (r.currency === 'USD' ? (r.total_cost || 0) : 0), 0);
     const totalDistance = fleetRecords.reduce((sum, r) => sum + (r.distance_travelled || 0), 0);
-    const avgKmL = totalLitres > 0 ? totalDistance / totalLitres : 0;
+    const isReefer = isReeferFleet(fleet);
+    const avgKmL = !isReefer && totalLitres > 0 ? totalDistance / totalLitres : 0;
     // Calculate pending debrief dynamically based on norms instead of using stored requires_debrief
-    const pendingDebrief = fleetRecords.filter(r => {
+    const pendingDebrief = isReefer ? 0 : fleetRecords.filter(r => {
       if (r.debrief_signed) return false; // Already debriefed
       const kmPerLitre = calculateKmPerLitre(r);
       if (!kmPerLitre) return false;
@@ -355,14 +416,14 @@ const DieselManagement = () => {
   };
 
   // Calculate week totals for a fleet
-  const getWeekTotals = (records: DieselConsumptionRecord[]) => {
+  const getWeekTotals = (records: DieselConsumptionRecord[], isReefer = false) => {
     const totalLitres = records.reduce((sum, r) => sum + (r.litres_filled || 0), 0);
     const totalCostZAR = records.reduce((sum, r) => sum + ((r.currency || 'ZAR') === 'ZAR' ? (r.total_cost || 0) : 0), 0);
     const totalCostUSD = records.reduce((sum, r) => sum + (r.currency === 'USD' ? (r.total_cost || 0) : 0), 0);
     const totalDistance = records.reduce((sum, r) => sum + (r.distance_travelled || 0), 0);
-    const avgKmL = totalLitres > 0 ? totalDistance / totalLitres : 0;
+    const avgKmL = !isReefer && totalLitres > 0 ? totalDistance / totalLitres : 0;
     // Calculate pending debrief dynamically based on norms instead of using stored requires_debrief
-    const pendingDebrief = records.filter(r => {
+    const pendingDebrief = isReefer ? 0 : records.filter(r => {
       if (r.debrief_signed) return false; // Already debriefed
       const kmPerLitre = calculateKmPerLitre(r);
       if (!kmPerLitre) return false;
@@ -376,7 +437,7 @@ const DieselManagement = () => {
   const driverReports = useMemo((): DriverReport[] => {
     const driverMap = new Map<string, DriverReport>();
 
-    dieselRecords.forEach(record => {
+    truckRecords.forEach(record => {
       const driver = record.driver_name || 'Unknown Driver';
       const existing = driverMap.get(driver);
 
@@ -407,13 +468,44 @@ const DieselManagement = () => {
     });
 
     return Array.from(driverMap.values()).sort((a, b) => b.totalLitres - a.totalLitres);
-  }, [dieselRecords]);
+  }, [truckRecords]);
+
+  const reeferDriverReports = useMemo((): ReeferDriverReport[] => {
+    const driverMap = new Map<string, ReeferDriverReport>();
+
+    reeferRecords.forEach(record => {
+      const driver = record.driver_name || 'Unknown Driver';
+      const existing = driverMap.get(driver);
+      const fleet = record.fleet_number;
+
+      if (existing) {
+        existing.totalLitres += record.litres_filled || 0;
+        existing.totalCostZAR += (record.currency || 'ZAR') === 'ZAR' ? (record.total_cost || 0) : 0;
+        existing.totalCostUSD += record.currency === 'USD' ? (record.total_cost || 0) : 0;
+        existing.fillCount += 1;
+        if (record.date > existing.lastFillDate) existing.lastFillDate = record.date;
+        if (fleet && !existing.fleets.includes(fleet)) existing.fleets.push(fleet);
+      } else {
+        driverMap.set(driver, {
+          driver,
+          totalLitres: record.litres_filled || 0,
+          totalCostZAR: (record.currency || 'ZAR') === 'ZAR' ? (record.total_cost || 0) : 0,
+          totalCostUSD: record.currency === 'USD' ? (record.total_cost || 0) : 0,
+          fillCount: 1,
+          lastFillDate: record.date,
+          fleets: fleet ? [fleet] : [],
+        });
+      }
+    });
+
+    return Array.from(driverMap.values()).sort((a, b) => b.totalLitres - a.totalLitres);
+  }, [reeferRecords]);
 
   // Generate reports by fleet
   const fleetReports = useMemo((): FleetReport[] => {
     const fleetMap = new Map<string, FleetReport>();
 
-    dieselRecords.forEach(record => {
+    truckRecords.forEach(record => {
       const fleet = record.fleet_number;
       const existing = fleetMap.get(fleet);
       const driver = record.driver_name || 'Unknown';
@@ -445,13 +537,42 @@ const DieselManagement = () => {
     });
 
     return Array.from(fleetMap.values()).sort((a, b) => b.totalLitres - a.totalLitres);
-  }, [dieselRecords]);
+  }, [truckRecords]);
+
+  const reeferFleetReports = useMemo((): ReeferFleetReport[] => {
+    const fleetMap = new Map<string, ReeferFleetReport>();
+
+    reeferRecords.forEach(record => {
+      const fleet = record.fleet_number;
+      const existing = fleetMap.get(fleet);
+      const driver = record.driver_name || 'Unknown';
+
+      if (existing) {
+        existing.totalLitres += record.litres_filled || 0;
+        existing.totalCostZAR += (record.currency || 'ZAR') === 'ZAR' ? (record.total_cost || 0) : 0;
+        existing.totalCostUSD += record.currency === 'USD' ? (record.total_cost || 0) : 0;
+        existing.fillCount += 1;
+        if (!existing.drivers.includes(driver)) existing.drivers.push(driver);
+      } else {
+        fleetMap.set(fleet, {
+          fleet,
+          totalLitres: record.litres_filled || 0,
+          totalCostZAR: (record.currency || 'ZAR') === 'ZAR' ? (record.total_cost || 0) : 0,
+          totalCostUSD: record.currency === 'USD' ? (record.total_cost || 0) : 0,
+          fillCount: 1,
+          drivers: [driver],
+        });
+      }
+    });
+
+    return Array.from(fleetMap.values()).sort((a, b) => b.totalLitres - a.totalLitres);
+  }, [reeferRecords]);
 
   // Generate reports by filling station
   const stationReports = useMemo((): StationReport[] => {
     const stationMap = new Map<string, StationReport>();
 
-    dieselRecords.forEach(record => {
+    truckRecords.forEach(record => {
       const station = record.fuel_station || 'Unknown Station';
       const existing = stationMap.get(station);
       const fleet = record.fleet_number;
@@ -482,7 +603,42 @@ const DieselManagement = () => {
     });
 
     return Array.from(stationMap.values()).sort((a, b) => b.totalLitres - a.totalLitres);
-  }, [dieselRecords]);
+  }, [truckRecords]);
+
+  const reeferStationReports = useMemo((): StationReport[] => {
+    const stationMap = new Map<string, StationReport>();
+
+    reeferRecords.forEach(record => {
+      const station = record.fuel_station || 'Unknown Station';
+      const existing = stationMap.get(station);
+      const fleet = record.fleet_number;
+
+      if (existing) {
+        existing.totalLitres += record.litres_filled || 0;
+        existing.totalCostZAR += (record.currency || 'ZAR') === 'ZAR' ? (record.total_cost || 0) : 0;
+        existing.totalCostUSD += record.currency === 'USD' ? (record.total_cost || 0) : 0;
+        existing.fillCount += 1;
+        if (!existing.fleetsServed.includes(fleet)) existing.fleetsServed.push(fleet);
+      } else {
+        stationMap.set(station, {
+          station,
+          totalLitres: record.litres_filled || 0,
+          totalCostZAR: (record.currency || 'ZAR') === 'ZAR' ? (record.total_cost || 0) : 0,
+          totalCostUSD: record.currency === 'USD' ? (record.total_cost || 0) : 0,
+          avgCostPerLitre: 0,
+          fillCount: 1,
+          fleetsServed: [fleet],
+        });
+      }
+    });
+
+    stationMap.forEach(report => {
+      const totalCost = report.totalCostZAR + report.totalCostUSD;
+      report.avgCostPerLitre = report.totalLitres > 0 ? totalCost / report.totalLitres : 0;
+    });
+
+    return Array.from(stationMap.values()).sort((a, b) => b.totalLitres - a.totalLitres);
+  }, [reeferRecords]);
 
   // Generate weekly consumption report by fleet categories
   const weeklyReports = useMemo((): WeeklyReport[] => {
@@ -539,21 +695,25 @@ const DieselManagement = () => {
       let grandTotalCostUSD = 0;
 
       for (const [sectionName, fleetList] of Object.entries(FLEET_CATEGORIES)) {
-        const isReeferSection = sectionName === 'Reefers (L/H)';
+        const isReeferSection = sectionName === REEFER_SECTION_NAME;
+        const sectionFleetList = isReeferSection ? reeferFleetNumbers : fleetList;
+        const sectionRecords = isReeferSection
+          ? records.filter(r => isReeferFleet(r.fleet_number))
+          : records.filter(r => !isReeferFleet(r.fleet_number));
         const sectionData: WeeklyFleetData[] = [];
         let sectionTotalLitres = 0;
         let sectionTotalKm = 0;
         let sectionTotalCostZAR = 0;
         let sectionTotalCostUSD = 0;
 
-        for (const fleet of fleetList) {
-          const fleetRecords = records.filter(r => r.fleet_number === fleet);
+        for (const fleet of sectionFleetList) {
+          const fleetRecords = sectionRecords.filter(r => r.fleet_number === fleet);
           if (fleetRecords.length > 0) {
             const totalLitres = fleetRecords.reduce((sum, r) => sum + (r.litres_filled || 0), 0);
             const totalKm = fleetRecords.reduce((sum, r) => sum + (r.distance_travelled || 0), 0);
             const totalCostZAR = fleetRecords.reduce((sum, r) => sum + ((r.currency || 'ZAR') === 'ZAR' ? (r.total_cost || 0) : 0), 0);
             const totalCostUSD = fleetRecords.reduce((sum, r) => sum + (r.currency === 'USD' ? (r.total_cost || 0) : 0), 0);
-            const consumption = totalLitres > 0 ? totalKm / totalLitres : null;
+            const consumption = isReeferSection ? null : (totalLitres > 0 ? totalKm / totalLitres : null);
 
             sectionData.push({ fleet, totalLitres, totalKm, consumption, totalCostZAR, totalCostUSD });
             sectionTotalLitres += totalLitres;
@@ -564,7 +724,7 @@ const DieselManagement = () => {
         }
 
         // Add fleets with 0 litres if they're in the category (to show all fleets)
-        for (const fleet of fleetList) {
+        for (const fleet of sectionFleetList) {
           if (!sectionData.find(d => d.fleet === fleet)) {
             sectionData.push({ fleet, totalLitres: 0, totalKm: 0, consumption: null, totalCostZAR: 0, totalCostUSD: 0 });
           }
@@ -577,19 +737,21 @@ const DieselManagement = () => {
           return numA - numB;
         });
 
-        const sectionConsumption = sectionTotalLitres > 0 ? sectionTotalKm / sectionTotalLitres : null;
+        const sectionConsumption = isReeferSection ? null : (sectionTotalLitres > 0 ? sectionTotalKm / sectionTotalLitres : null);
         sections.push({
           name: sectionName,
-          fleets: fleetList,
+          fleets: sectionFleetList,
           isReeferSection,
           data: sectionData,
           sectionTotal: { totalLitres: sectionTotalLitres, totalKm: sectionTotalKm, consumption: sectionConsumption, totalCostZAR: sectionTotalCostZAR, totalCostUSD: sectionTotalCostUSD },
         });
 
-        grandTotalLitres += sectionTotalLitres;
-        grandTotalKm += sectionTotalKm;
-        grandTotalCostZAR += sectionTotalCostZAR;
-        grandTotalCostUSD += sectionTotalCostUSD;
+        if (!isReeferSection) {
+          grandTotalLitres += sectionTotalLitres;
+          grandTotalKm += sectionTotalKm;
+          grandTotalCostZAR += sectionTotalCostZAR;
+          grandTotalCostUSD += sectionTotalCostUSD;
+        }
       }
 
       const grandConsumption = grandTotalLitres > 0 ? grandTotalKm / grandTotalLitres : null;
@@ -604,7 +766,7 @@ const DieselManagement = () => {
     }
 
     return reports;
-  }, [dieselRecords]);
+  }, [dieselRecords, reeferFleetNumbers]);
 
   // Export report to Excel
   const exportReportToExcel = () => {
@@ -624,6 +786,22 @@ const DieselManagement = () => {
         r.fillCount.toString(),
         r.lastFillDate,
       ].join('\t'));
+      if (reeferDriverReports.length > 0) {
+        rows = rows.concat([
+          '',
+          'REEFER DRIVERS',
+          ['Driver', 'Total Litres', 'Total Cost (ZAR)', 'Total Cost (USD)', 'Fill Count', 'Last Fill Date', 'Fleets'].join('\t'),
+          ...reeferDriverReports.map(r => [
+            r.driver,
+            r.totalLitres.toFixed(2),
+            r.totalCostZAR.toFixed(2),
+            r.totalCostUSD.toFixed(2),
+            r.fillCount.toString(),
+            r.lastFillDate,
+            r.fleets.join(', '),
+          ].join('\t')),
+        ]);
+      }
       filename = `diesel_report_by_driver_${new Date().toISOString().split('T')[0]}.xls`;
     } else if (reportType === 'fleet') {
       headers = ['Fleet', 'Total Litres', 'Total Cost (ZAR)', 'Total Cost (USD)', 'Total Distance (km)', 'Avg km/L', 'Fill Count', 'Drivers'].join('\t');
@@ -637,6 +815,21 @@ const DieselManagement = () => {
         r.fillCount.toString(),
         r.drivers.join(', '),
       ].join('\t'));
+      if (reeferFleetReports.length > 0) {
+        rows = rows.concat([
+          '',
+          'REEFER FLEETS',
+          ['Fleet', 'Total Litres', 'Total Cost (ZAR)', 'Total Cost (USD)', 'Fill Count', 'Drivers'].join('\t'),
+          ...reeferFleetReports.map(r => [
+            r.fleet,
+            r.totalLitres.toFixed(2),
+            r.totalCostZAR.toFixed(2),
+            r.totalCostUSD.toFixed(2),
+            r.fillCount.toString(),
+            r.drivers.join(', '),
+          ].join('\t')),
+        ]);
+      }
       filename = `diesel_report_by_fleet_${new Date().toISOString().split('T')[0]}.xls`;
     } else {
       headers = ['Station', 'Total Litres', 'Total Cost (ZAR)', 'Total Cost (USD)', 'Avg Cost/L', 'Fill Count', 'Fleets Served'].join('\t');
@@ -649,6 +842,22 @@ const DieselManagement = () => {
         r.fillCount.toString(),
         r.fleetsServed.join(', '),
       ].join('\t'));
+      if (reeferStationReports.length > 0) {
+        rows = rows.concat([
+          '',
+          'REEFER STATIONS',
+          ['Station', 'Total Litres', 'Total Cost (ZAR)', 'Total Cost (USD)', 'Avg Cost/L', 'Fill Count', 'Fleets Served'].join('\t'),
+          ...reeferStationReports.map(r => [
+            r.station,
+            r.totalLitres.toFixed(2),
+            r.totalCostZAR.toFixed(2),
+            r.totalCostUSD.toFixed(2),
+            r.avgCostPerLitre.toFixed(2),
+            r.fillCount.toString(),
+            r.fleetsServed.join(', '),
+          ].join('\t')),
+        ]);
+      }
       filename = `diesel_report_by_station_${new Date().toISOString().split('T')[0]}.xls`;
     }
 
@@ -735,10 +944,10 @@ const DieselManagement = () => {
       recordsToExport = recordsRequiringDebrief;
       filename = `diesel_pending_debriefs_${new Date().toISOString().split('T')[0]}.xls`;
     } else if (type === 'completed') {
-      recordsToExport = dieselRecords.filter(r => r.debrief_signed);
+      recordsToExport = truckRecords.filter(r => r.debrief_signed);
       filename = `diesel_completed_debriefs_${new Date().toISOString().split('T')[0]}.xls`;
     } else {
-      recordsToExport = [...recordsRequiringDebrief, ...dieselRecords.filter(r => r.debrief_signed)];
+      recordsToExport = [...recordsRequiringDebrief, ...truckRecords.filter(r => r.debrief_signed)];
       filename = `diesel_all_debriefs_${new Date().toISOString().split('T')[0]}.xls`;
     }
 
@@ -859,7 +1068,7 @@ const DieselManagement = () => {
 
   // Export fleet debrief summary PDF
   const handleExportFleetDebriefSummary = (fleetNumber: string, showPendingOnly: boolean = false) => {
-    const fleetRecords = dieselRecords.filter(r => r.fleet_number === fleetNumber);
+    const fleetRecords = truckRecords.filter(r => r.fleet_number === fleetNumber);
     const recordsWithDebriefStatus = fleetRecords.map(record => {
       const kmPerLitre = calculateKmPerLitre(record);
       const norm = getNormForFleet(record.fleet_number);
@@ -893,7 +1102,7 @@ const DieselManagement = () => {
 
   // Export all debrief transactions as PDF
   const handleExportAllDebriefsPDF = () => {
-    const recordsWithDebriefStatus = dieselRecords.map(record => {
+    const recordsWithDebriefStatus = truckRecords.map(record => {
       const kmPerLitre = calculateKmPerLitre(record);
       const norm = getNormForFleet(record.fleet_number);
       const requiresDebrief = kmPerLitre !== null && norm && kmPerLitre < norm.min_acceptable;
@@ -961,12 +1170,6 @@ const DieselManagement = () => {
     <Layout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Diesel Management</h1>
-            <p className="text-muted-foreground">
-              Track and manage fuel consumption across the fleet
-            </p>
-          </div>
           <div className="flex gap-2">
             <Button
               className="gap-2"
@@ -1005,21 +1208,31 @@ const DieselManagement = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-semibold">{totalRecords}</div>
+              {reeferTotalRecords > 0 && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Reefers: {reeferTotalRecords}
+                </p>
+              )}
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Litres</CardTitle>
+              <CardTitle className="text-sm font-medium">Truck Litres</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-semibold">{formatNumber(totalLitres)} L</div>
+              {reeferTotalLitres > 0 && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Reefers: {formatNumber(reeferTotalLitres)} L
+                </p>
+              )}
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Cost</CardTitle>
+              <CardTitle className="text-sm font-medium">Truck Cost</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-semibold">{formatCurrency(totalCostZAR, 'ZAR')}</div>
@@ -1028,12 +1241,19 @@ const DieselManagement = () => {
                   {formatCurrency(totalCostUSD, 'USD')}
                 </p>
               )}
+              {(reeferTotalCostZAR > 0 || reeferTotalCostUSD > 0) && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Reefers: {reeferTotalCostZAR > 0 ? formatCurrency(reeferTotalCostZAR, 'ZAR') : ''}
+                  {reeferTotalCostZAR > 0 && reeferTotalCostUSD > 0 ? ' / ' : ''}
+                  {reeferTotalCostUSD > 0 ? formatCurrency(reeferTotalCostUSD, 'USD') : ''}
+                </p>
+              )}
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Average km/L</CardTitle>
+              <CardTitle className="text-sm font-medium">Avg km/L (Trucks)</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-semibold">{formatNumber(averageKmPerLitre, 2)}</div>
@@ -1093,9 +1313,9 @@ const DieselManagement = () => {
             {sortedFleets.length > 0 ? (
               <div className="space-y-6">
                 {sortedFleets.map((fleet) => {
-                  const fleetTotals = getFleetTotals(fleet);
+                  const fleetTotals = getFleetTotals(truckRecordsGroupedByFleetAndWeek, fleet);
                   const isFleetExpanded = expandedFleets.has(fleet);
-                  const fleetWeeks = Object.keys(recordsGroupedByFleetAndWeek[fleet])
+                  const fleetWeeks = Object.keys(truckRecordsGroupedByFleetAndWeek[fleet])
                     .map(w => parseInt(w))
                     .sort((a, b) => b - a); // Most recent weeks first
 
@@ -1153,7 +1373,7 @@ const DieselManagement = () => {
                               {fleetWeeks.map((week) => {
                                 const weekKey = `${fleet}-${week}`;
                                 const isWeekExpanded = expandedWeeks.has(weekKey);
-                                const weekRecords = recordsGroupedByFleetAndWeek[fleet][week];
+                                const weekRecords = truckRecordsGroupedByFleetAndWeek[fleet][week];
                                 const weekTotals = getWeekTotals(weekRecords);
 
                                 return (
@@ -1390,6 +1610,210 @@ const DieselManagement = () => {
                 </CardContent>
               </Card>
             )}
+
+            {sortedReeferFleets.length > 0 && (
+              <Card className="border-cyan-200/60 dark:border-cyan-900/60">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Snowflake className="h-5 w-5 text-cyan-500" />
+                    Reefer Diesel (L/hr)
+                  </CardTitle>
+                  <CardDescription>
+                    Separate view for reefer units {sortedReeferFleets.join(', ')}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {sortedReeferFleets.map((fleet) => {
+                    const fleetTotals = getFleetTotals(reeferRecordsGroupedByFleetAndWeek, fleet);
+                    const isFleetExpanded = expandedFleets.has(`reefer-${fleet}`);
+                    const fleetWeeks = Object.keys(reeferRecordsGroupedByFleetAndWeek[fleet])
+                      .map(w => parseInt(w))
+                      .sort((a, b) => b - a);
+
+                    return (
+                      <Card key={`reefer-${fleet}`} className="overflow-hidden">
+                        <Collapsible open={isFleetExpanded} onOpenChange={() => toggleFleetExpanded(`reefer-${fleet}`)}>
+                          <CollapsibleTrigger asChild>
+                            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  {isFleetExpanded ? (
+                                    <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                                  ) : (
+                                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                                  )}
+                                  <div>
+                                    <CardTitle className="text-xl">{fleet}</CardTitle>
+                                    <CardDescription>
+                                      {fleetTotals.count} transactions across {fleetWeeks.length} week(s)
+                                    </CardDescription>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-6 text-sm">
+                                  <div className="text-right">
+                                    <p className="text-muted-foreground">Total Litres</p>
+                                    <p className="font-semibold">{formatNumber(fleetTotals.totalLitres)} L</p>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="text-muted-foreground">Total Cost</p>
+                                    <p className="font-semibold">
+                                      {fleetTotals.totalCostZAR > 0 && formatCurrency(fleetTotals.totalCostZAR, 'ZAR')}
+                                      {fleetTotals.totalCostZAR > 0 && fleetTotals.totalCostUSD > 0 && ' / '}
+                                      {fleetTotals.totalCostUSD > 0 && formatCurrency(fleetTotals.totalCostUSD, 'USD')}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            </CardHeader>
+                          </CollapsibleTrigger>
+
+                          <CollapsibleContent>
+                            <CardContent className="pt-0">
+                              <div className="space-y-3">
+                                {fleetWeeks.map((week) => {
+                                  const weekKey = `reefer-${fleet}-${week}`;
+                                  const isWeekExpanded = expandedWeeks.has(weekKey);
+                                  const weekRecords = reeferRecordsGroupedByFleetAndWeek[fleet][week];
+                                  const weekTotals = getWeekTotals(weekRecords, true);
+
+                                  return (
+                                    <Collapsible key={weekKey} open={isWeekExpanded} onOpenChange={() => toggleWeekExpanded(weekKey)}>
+                                      <div className="border rounded-lg">
+                                        <CollapsibleTrigger asChild>
+                                          <div className="flex items-center justify-between p-3 cursor-pointer hover:bg-muted/30 transition-colors">
+                                            <div className="flex items-center gap-2">
+                                              {isWeekExpanded ? (
+                                                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                              ) : (
+                                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                              )}
+                                              <span className="font-medium">
+                                                Week {week}{week === currentWeek ? ' (Current)' : ''}
+                                              </span>
+                                              <span className="text-sm text-muted-foreground">
+                                                ({getWeekDateRange(week)})
+                                              </span>
+                                              <Badge variant="secondary" className="ml-2">
+                                                {weekRecords.length} transaction{weekRecords.length !== 1 ? 's' : ''}
+                                              </Badge>
+                                            </div>
+                                            <div className="flex items-center gap-4 text-sm">
+                                              <span>{formatNumber(weekTotals.totalLitres)} L</span>
+                                              <span>
+                                                {weekTotals.totalCostZAR > 0 && formatCurrency(weekTotals.totalCostZAR, 'ZAR')}
+                                                {weekTotals.totalCostZAR > 0 && weekTotals.totalCostUSD > 0 && ' / '}
+                                                {weekTotals.totalCostUSD > 0 && formatCurrency(weekTotals.totalCostUSD, 'USD')}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        </CollapsibleTrigger>
+
+                                        <CollapsibleContent>
+                                          <div className="border-t bg-background">
+                                            <div className="overflow-x-auto">
+                                              <table className="w-full text-sm">
+                                                <thead className="bg-slate-100 dark:bg-slate-800 border-b-2 border-slate-200 dark:border-slate-700">
+                                                  <tr>
+                                                    <th className="text-left px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">Date</th>
+                                                    <th className="text-left px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">Driver</th>
+                                                    <th className="text-left px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">Station</th>
+                                                    <th className="text-right px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">Litres</th>
+                                                    <th className="text-right px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">Cost</th>
+                                                    <th className="text-center px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">Actions</th>
+                                                  </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                                                  {weekRecords.map((record, idx) => (
+                                                    <tr
+                                                      key={record.id}
+                                                      className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${idx % 2 === 0 ? 'bg-white dark:bg-slate-900' : 'bg-slate-50/50 dark:bg-slate-800/30'}`}
+                                                    >
+                                                      <td className="px-4 py-3 whitespace-nowrap">
+                                                        <span className="font-medium">{formatDate(record.date)}</span>
+                                                      </td>
+                                                      <td className="px-4 py-3">
+                                                        <div className="flex items-center gap-2">
+                                                          <User className="h-4 w-4 text-muted-foreground" />
+                                                          <span>{record.driver_name || <span className="text-muted-foreground italic">No driver</span>}</span>
+                                                        </div>
+                                                      </td>
+                                                      <td className="px-4 py-3">
+                                                        <div className="flex items-center gap-2">
+                                                          <Fuel className="h-4 w-4 text-muted-foreground" />
+                                                          <span>{record.fuel_station || <span className="text-muted-foreground italic">Unknown</span>}</span>
+                                                        </div>
+                                                      </td>
+                                                      <td className="px-4 py-3 text-right font-mono">
+                                                        <span className="font-semibold">{formatNumber(record.litres_filled)}</span>
+                                                        <span className="text-muted-foreground ml-1">L</span>
+                                                      </td>
+                                                      <td className="px-4 py-3 text-right font-mono">
+                                                        <span className="font-semibold">
+                                                          {formatCurrency(record.total_cost, (record.currency || 'ZAR') as 'ZAR' | 'USD')}
+                                                        </span>
+                                                      </td>
+                                                      <td className="px-4 py-3 text-center">
+                                                        <DropdownMenu>
+                                                          <DropdownMenuTrigger asChild>
+                                                            <Button variant="outline" size="sm" className="h-8 px-2">
+                                                              <Settings className="h-4 w-4 mr-1" />
+                                                              <ChevronDown className="h-3 w-3" />
+                                                            </Button>
+                                                          </DropdownMenuTrigger>
+                                                          <DropdownMenuContent align="end" className="w-48">
+                                                            <DropdownMenuItem onClick={() => openViewModal(record)}>
+                                                              <Eye className="h-4 w-4 mr-2" />
+                                                              View Details
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => openEditRecord(record)}>
+                                                              <Edit className="h-4 w-4 mr-2" />
+                                                              Edit Record
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => openTripLinkage(record)}>
+                                                              <Link className="h-4 w-4 mr-2" />
+                                                              {record.trip_id ? 'Change Trip' : 'Link to Trip'}
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => openReeferLinkage(record)}>
+                                                              <Snowflake className="h-4 w-4 mr-2" />
+                                                              Link Reefer
+                                                            </DropdownMenuItem>
+                                                            {!record.probe_verified && (
+                                                              <DropdownMenuItem onClick={() => openProbeVerification(record)}>
+                                                                <CheckCircle className="h-4 w-4 mr-2" />
+                                                                Verify Probe
+                                                              </DropdownMenuItem>
+                                                            )}
+                                                            <DropdownMenuItem
+                                                              onClick={() => handleDeleteRecord(record.id)}
+                                                              className="text-destructive"
+                                                            >
+                                                              <Trash2 className="h-4 w-4 mr-2" />
+                                                              Delete Record
+                                                            </DropdownMenuItem>
+                                                          </DropdownMenuContent>
+                                                        </DropdownMenu>
+                                                      </td>
+                                                    </tr>
+                                                  ))}
+                                                </tbody>
+                                              </table>
+                                            </div>
+                                          </div>
+                                        </CollapsibleContent>
+                                      </div>
+                                    </Collapsible>
+                                  );
+                                })}
+                              </div>
+                            </CardContent>
+                          </CollapsibleContent>
+                        </Collapsible>
+                      </Card>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           {/* Reefer Diesel Tab - Separate tracking for reefer units (L/hr) */}
@@ -1554,7 +1978,7 @@ const DieselManagement = () => {
                       </CardDescription>
                     </div>
                     <div className="flex gap-2">
-                      {dieselRecords.filter(r => r.debrief_signed).length > 0 && (
+                      {truckRecords.filter(r => r.debrief_signed).length > 0 && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -1565,7 +1989,7 @@ const DieselManagement = () => {
                           Export Completed
                         </Button>
                       )}
-                      {(recordsRequiringDebrief.length > 0 || dieselRecords.filter(r => r.debrief_signed).length > 0) && (
+                      {(recordsRequiringDebrief.length > 0 || truckRecords.filter(r => r.debrief_signed).length > 0) && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -1580,9 +2004,9 @@ const DieselManagement = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  {dieselRecords.filter(r => r.debrief_signed).length > 0 ? (
+                  {truckRecords.filter(r => r.debrief_signed).length > 0 ? (
                     <div className="space-y-3">
-                      {dieselRecords.filter(r => r.debrief_signed).map((record) => (
+                      {truckRecords.filter(r => r.debrief_signed).map((record) => (
                         <div key={record.id} className="border rounded-lg p-4 flex items-center justify-between">
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 flex-1">
                             <div>
@@ -1705,7 +2129,7 @@ const DieselManagement = () => {
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem
                               onClick={() => {
-                                const exportRecords: DieselExportRecord[] = dieselRecords.map(r => ({
+                                const exportRecords: DieselExportRecord[] = truckRecords.map(r => ({
                                   id: r.id,
                                   date: r.date,
                                   fleet_number: r.fleet_number,
@@ -1734,7 +2158,7 @@ const DieselManagement = () => {
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => {
-                                const exportRecords: DieselExportRecord[] = dieselRecords.map(r => ({
+                                const exportRecords: DieselExportRecord[] = truckRecords.map(r => ({
                                   id: r.id,
                                   date: r.date,
                                   fleet_number: r.fleet_number,
@@ -1820,7 +2244,7 @@ const DieselManagement = () => {
                                       <DropdownMenuContent align="end">
                                         <DropdownMenuItem
                                           onClick={() => {
-                                            const exportRecords: DieselExportRecord[] = dieselRecords.map(r => ({
+                                            const exportRecords: DieselExportRecord[] = truckRecords.map(r => ({
                                               id: r.id,
                                               date: r.date,
                                               fleet_number: r.fleet_number,
@@ -1852,7 +2276,7 @@ const DieselManagement = () => {
                                         </DropdownMenuItem>
                                         <DropdownMenuItem
                                           onClick={() => {
-                                            const exportRecords: DieselExportRecord[] = dieselRecords.map(r => ({
+                                            const exportRecords: DieselExportRecord[] = truckRecords.map(r => ({
                                               id: r.id,
                                               date: r.date,
                                               fleet_number: r.fleet_number,
@@ -1909,6 +2333,62 @@ const DieselManagement = () => {
                       <div className="text-center py-8">
                         <BarChart3 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                         <p className="text-muted-foreground">No diesel records to report</p>
+                      </div>
+                    )}
+
+                    {reeferFleetReports.length > 0 && (
+                      <div className="mt-8">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Snowflake className="h-4 w-4 text-cyan-500" />
+                          <h4 className="font-semibold">Reefer Fleets (L/hr)</h4>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b">
+                                <th className="text-left p-3 font-medium">Fleet</th>
+                                <th className="text-right p-3 font-medium">Total Litres</th>
+                                <th className="text-right p-3 font-medium">Total Cost</th>
+                                <th className="text-right p-3 font-medium">Fills</th>
+                                <th className="text-left p-3 font-medium">Drivers</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {reeferFleetReports.map((report) => (
+                                <tr key={report.fleet} className="border-b hover:bg-muted/50">
+                                  <td className="p-3 font-medium">{report.fleet}</td>
+                                  <td className="p-3 text-right">{formatNumber(report.totalLitres)} L</td>
+                                  <td className="p-3 text-right">
+                                    {report.totalCostZAR > 0 && <div>{formatCurrency(report.totalCostZAR, 'ZAR')}</div>}
+                                    {report.totalCostUSD > 0 && <div className="text-xs text-muted-foreground">{formatCurrency(report.totalCostUSD, 'USD')}</div>}
+                                  </td>
+                                  <td className="p-3 text-right">{report.fillCount}</td>
+                                  <td className="p-3">
+                                    <div className="flex flex-wrap gap-1">
+                                      {report.drivers.slice(0, 3).map(d => (
+                                        <Badge key={d} variant="secondary" className="text-xs">{d}</Badge>
+                                      ))}
+                                      {report.drivers.length > 3 && (
+                                        <Badge variant="outline" className="text-xs">+{report.drivers.length - 3}</Badge>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            <tfoot>
+                              <tr className="bg-muted/50 font-medium">
+                                <td className="p-3">Total</td>
+                                <td className="p-3 text-right">{formatNumber(reeferFleetReports.reduce((s, r) => s + r.totalLitres, 0))} L</td>
+                                <td className="p-3 text-right">
+                                  {formatCurrency(reeferFleetReports.reduce((s, r) => s + r.totalCostZAR, 0), 'ZAR')}
+                                </td>
+                                <td className="p-3 text-right">{reeferFleetReports.reduce((s, r) => s + r.fillCount, 0)}</td>
+                                <td className="p-3"></td>
+                              </tr>
+                            </tfoot>
+                          </table>
+                        </div>
                       </div>
                     )}
                   </CardContent>
@@ -1979,6 +2459,65 @@ const DieselManagement = () => {
                       <div className="text-center py-8">
                         <BarChart3 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                         <p className="text-muted-foreground">No diesel records to report</p>
+                      </div>
+                    )}
+
+                    {reeferDriverReports.length > 0 && (
+                      <div className="mt-8">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Snowflake className="h-4 w-4 text-cyan-500" />
+                          <h4 className="font-semibold">Reefer Drivers (L/hr)</h4>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b">
+                                <th className="text-left p-3 font-medium">Driver</th>
+                                <th className="text-right p-3 font-medium">Total Litres</th>
+                                <th className="text-right p-3 font-medium">Total Cost</th>
+                                <th className="text-right p-3 font-medium">Fills</th>
+                                <th className="text-right p-3 font-medium">Last Fill</th>
+                                <th className="text-left p-3 font-medium">Fleets</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {reeferDriverReports.map((report) => (
+                                <tr key={report.driver} className="border-b hover:bg-muted/50">
+                                  <td className="p-3 font-medium">{report.driver}</td>
+                                  <td className="p-3 text-right">{formatNumber(report.totalLitres)} L</td>
+                                  <td className="p-3 text-right">
+                                    {report.totalCostZAR > 0 && <div>{formatCurrency(report.totalCostZAR, 'ZAR')}</div>}
+                                    {report.totalCostUSD > 0 && <div className="text-xs text-muted-foreground">{formatCurrency(report.totalCostUSD, 'USD')}</div>}
+                                  </td>
+                                  <td className="p-3 text-right">{report.fillCount}</td>
+                                  <td className="p-3 text-right text-muted-foreground">{formatDate(report.lastFillDate)}</td>
+                                  <td className="p-3">
+                                    <div className="flex flex-wrap gap-1">
+                                      {report.fleets.slice(0, 3).map(fleet => (
+                                        <Badge key={fleet} variant="secondary" className="text-xs">{fleet}</Badge>
+                                      ))}
+                                      {report.fleets.length > 3 && (
+                                        <Badge variant="outline" className="text-xs">+{report.fleets.length - 3}</Badge>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            <tfoot>
+                              <tr className="bg-muted/50 font-medium">
+                                <td className="p-3">Total</td>
+                                <td className="p-3 text-right">{formatNumber(reeferDriverReports.reduce((s, r) => s + r.totalLitres, 0))} L</td>
+                                <td className="p-3 text-right">
+                                  {formatCurrency(reeferDriverReports.reduce((s, r) => s + r.totalCostZAR, 0), 'ZAR')}
+                                </td>
+                                <td className="p-3 text-right">{reeferDriverReports.reduce((s, r) => s + r.fillCount, 0)}</td>
+                                <td className="p-3"></td>
+                                <td className="p-3"></td>
+                              </tr>
+                            </tfoot>
+                          </table>
+                        </div>
                       </div>
                     )}
                   </CardContent>
@@ -2055,6 +2594,67 @@ const DieselManagement = () => {
                       <div className="text-center py-8">
                         <BarChart3 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                         <p className="text-muted-foreground">No diesel records to report</p>
+                      </div>
+                    )}
+
+                    {reeferStationReports.length > 0 && (
+                      <div className="mt-8">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Snowflake className="h-4 w-4 text-cyan-500" />
+                          <h4 className="font-semibold">Reefer Stations (L/hr)</h4>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b">
+                                <th className="text-left p-3 font-medium">Station</th>
+                                <th className="text-right p-3 font-medium">Total Litres</th>
+                                <th className="text-right p-3 font-medium">Total Cost</th>
+                                <th className="text-right p-3 font-medium">Avg Cost/L</th>
+                                <th className="text-right p-3 font-medium">Fills</th>
+                                <th className="text-left p-3 font-medium">Fleets Served</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {reeferStationReports.map((report) => (
+                                <tr key={report.station} className="border-b hover:bg-muted/50">
+                                  <td className="p-3 font-medium">{report.station}</td>
+                                  <td className="p-3 text-right">{formatNumber(report.totalLitres)} L</td>
+                                  <td className="p-3 text-right">
+                                    {report.totalCostZAR > 0 && <div>{formatCurrency(report.totalCostZAR, 'ZAR')}</div>}
+                                    {report.totalCostUSD > 0 && <div className="text-xs text-muted-foreground">{formatCurrency(report.totalCostUSD, 'USD')}</div>}
+                                  </td>
+                                  <td className="p-3 text-right">
+                                    {formatNumber(report.avgCostPerLitre, 2)}/L
+                                  </td>
+                                  <td className="p-3 text-right">{report.fillCount}</td>
+                                  <td className="p-3">
+                                    <div className="flex flex-wrap gap-1">
+                                      {report.fleetsServed.slice(0, 4).map(f => (
+                                        <Badge key={f} variant="secondary" className="text-xs">{f}</Badge>
+                                      ))}
+                                      {report.fleetsServed.length > 4 && (
+                                        <Badge variant="outline" className="text-xs">+{report.fleetsServed.length - 4}</Badge>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            <tfoot>
+                              <tr className="bg-muted/50 font-medium">
+                                <td className="p-3">Total</td>
+                                <td className="p-3 text-right">{formatNumber(reeferStationReports.reduce((s, r) => s + r.totalLitres, 0))} L</td>
+                                <td className="p-3 text-right">
+                                  {formatCurrency(reeferStationReports.reduce((s, r) => s + r.totalCostZAR, 0), 'ZAR')}
+                                </td>
+                                <td className="p-3 text-right">—</td>
+                                <td className="p-3 text-right">{reeferStationReports.reduce((s, r) => s + r.fillCount, 0)}</td>
+                                <td className="p-3"></td>
+                              </tr>
+                            </tfoot>
+                          </table>
+                        </div>
                       </div>
                     )}
                   </CardContent>

@@ -518,10 +518,6 @@ export function InspectionHistory() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Inspection History</h1>
-          <p className="text-muted-foreground">View and manage vehicle inspection records</p>
-        </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <Button variant="outline" size="sm" onClick={exportInspectionsToExcel} className="h-9 gap-1.5 text-xs">
             <Download className="w-3.5 h-3.5" />

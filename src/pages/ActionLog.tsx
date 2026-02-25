@@ -476,10 +476,6 @@ const ActionLog = () => {
       <div className="space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Action Log</h1>
-            <p className="text-muted-foreground">Track and manage action items and tasks</p>
-          </div>
           <div className="flex gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

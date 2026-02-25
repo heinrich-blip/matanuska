@@ -10,7 +10,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { useQuery } from "@tanstack/react-query";
 import jsPDF from "jspdf";
 import { Progress } from "@/components/ui/progress";
-import { Award, BarChart3, CheckCircle2, DollarSign, FileDown, Package, Star, TrendingUp } from "lucide-react";
+import { CheckCircle2, DollarSign, FileDown, Package, Star, TrendingUp } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import * as XLSX from "xlsx";
@@ -506,25 +506,20 @@ const FleetTyreReports = () => {
         </CardHeader>
         <CardContent>
           <Tabs value={reportType} onValueChange={setReportType}>
-            <TabsList className="flex overflow-x-auto w-full lg:grid lg:grid-cols-5">
-              <TabsTrigger value="overview">
-                <BarChart3 className="w-4 h-4 mr-2" />
+            <TabsList className="grid w-full grid-cols-5">
+              <TabsTrigger value="overview" className="px-5 py-2.5 text-base">
                 Overview
               </TabsTrigger>
-              <TabsTrigger value="brands">
-                <Package className="w-4 h-4 mr-2" />
+              <TabsTrigger value="brands" className="px-5 py-2.5 text-base">
                 Brand Analysis
               </TabsTrigger>
-              <TabsTrigger value="health">
-                <TrendingUp className="w-4 h-4 mr-2" />
+              <TabsTrigger value="health" className="px-5 py-2.5 text-base">
                 Health
               </TabsTrigger>
-              <TabsTrigger value="recommendations">
-                <Award className="w-4 h-4 mr-2" />
+              <TabsTrigger value="recommendations" className="px-5 py-2.5 text-base">
                 Recommendations
               </TabsTrigger>
-              <TabsTrigger value="cost">
-                <DollarSign className="w-4 h-4 mr-2" />
+              <TabsTrigger value="cost" className="px-5 py-2.5 text-base">
                 Cost
               </TabsTrigger>
             </TabsList>

@@ -289,7 +289,6 @@ const JobCardDetails = () => {
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Job Card Details</h1>
               <p className="text-muted-foreground">#{jobCard.job_number}</p>
             </div>
           </div>

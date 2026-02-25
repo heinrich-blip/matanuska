@@ -216,10 +216,6 @@ const FaultTracking = () => {
 
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Fault Tracking</h1>
-            <p className="text-muted-foreground">Monitor and resolve vehicle faults</p>
-          </div>
           <div className="flex gap-2 w-full sm:w-auto">
             <Button
               variant="outline"

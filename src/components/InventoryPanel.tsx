@@ -1,13 +1,15 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { useCreateReplenishmentRequest } from "@/hooks/useProcurement";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { differenceInDays, parseISO } from "date-fns";
-import { AlertTriangle, Edit, FileText, Package, Plus, Search, Shield, ShieldAlert, ShieldCheck, ShoppingCart, Trash2, TrendingUp, Truck, Upload } from "lucide-react";
+import { AlertTriangle, CheckSquare, Edit, FileText, Package, Plus, Search, Shield, ShieldAlert, ShieldCheck, ShoppingCart, Trash2, TrendingUp, Truck, Upload, X } from "lucide-react";
 import { useState } from "react";
 import AddInventoryItemDialog from "./dialogs/AddInventoryItemDialog";
 import AddWarrantyItemDialog from "./dialogs/AddWarrantyItemDialog";
@@ -121,6 +123,10 @@ const InventoryPanel = () => {
   const [editWarrantyItem, setEditWarrantyItem] = useState<WarrantyItemRecord | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("inventory");
+  const [selectedInventoryIds, setSelectedInventoryIds] = useState<Set<string>>(new Set());
+  const [bulkReordering, setBulkReordering] = useState(false);
+
+  const createReplenishmentRequest = useCreateReplenishmentRequest();
 
   const { data: inventory = [], refetch } = useQuery({
     queryKey: ["inventory"],
@@ -257,6 +263,72 @@ const InventoryPanel = () => {
   const expiringSoonCount = invExpiringSoonCount + standaloneExpiringSoonCount;
   const expiredCount = invExpiredCount + standaloneExpiredCount;
 
+  // Multi-select helpers
+  const toggleInventorySelection = (id: string) => {
+    setSelectedInventoryIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAllInventory = () => {
+    if (selectedInventoryIds.size === filteredInventory.length) {
+      setSelectedInventoryIds(new Set());
+    } else {
+      setSelectedInventoryIds(new Set(filteredInventory.map(i => i.id)));
+    }
+  };
+
+  const clearInventorySelection = () => setSelectedInventoryIds(new Set());
+
+  const handleBulkReorder = async () => {
+    const selectedItems = filteredInventory.filter(i => selectedInventoryIds.has(i.id));
+    if (selectedItems.length === 0) return;
+
+    setBulkReordering(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const item of selectedItems) {
+      try {
+        const shortage = Math.max(item.minQuantity - item.quantity, item.minQuantity);
+        await createReplenishmentRequest.mutateAsync({
+          id: item.id,
+          name: item.name,
+          part_number: item.partNumber,
+          category: item.category,
+          quantity: item.quantity,
+          min_quantity: item.minQuantity,
+          unit_price: item.unitPrice,
+          supplier: item.supplier || null,
+          location: item.location || null,
+          shortage,
+        });
+        successCount++;
+      } catch {
+        failCount++;
+      }
+    }
+
+    setBulkReordering(false);
+    clearInventorySelection();
+
+    if (failCount === 0) {
+      toast({
+        title: "Reorder Requests Created",
+        description: `${successCount} item${successCount > 1 ? "s" : ""} sent to procurement.`,
+      });
+    } else {
+      toast({
+        title: "Partial Success",
+        description: `${successCount} created, ${failCount} failed.`,
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleUpdateStock = (item: InventoryItem) => {
     setSelectedItem({ id: item.id, name: item.name, quantity: item.quantity });
     setUpdateDialogOpen(true);
@@ -335,10 +407,6 @@ const InventoryPanel = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Inventory Management</h1>
-          <p className="text-muted-foreground mt-2">Track and manage workshop parts</p>
-        </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
             <Upload className="h-4 w-4 mr-2" />
@@ -438,6 +506,42 @@ const InventoryPanel = () => {
               </div>
             </CardHeader>
             <CardContent>
+              {/* Selection bar */}
+              {selectedInventoryIds.size > 0 && (
+                <div className="mb-4 flex items-center justify-between rounded-lg border bg-muted/50 px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <CheckSquare className="h-5 w-5 text-primary" />
+                    <span className="font-medium">
+                      {selectedInventoryIds.size} item{selectedInventoryIds.size > 1 ? "s" : ""} selected
+                    </span>
+                    <Button variant="ghost" size="sm" onClick={clearInventorySelection}>
+                      <X className="h-4 w-4 mr-1" /> Clear
+                    </Button>
+                  </div>
+                  <Button
+                    onClick={handleBulkReorder}
+                    disabled={bulkReordering}
+                    className="bg-orange-600 hover:bg-orange-700"
+                  >
+                    <ShoppingCart className="h-4 w-4 mr-2" />
+                    {bulkReordering ? "Creating..." : `Reorder Selected (${selectedInventoryIds.size})`}
+                  </Button>
+                </div>
+              )}
+
+              {/* Select all toggle */}
+              {filteredInventory.length > 0 && (
+                <div className="mb-3 flex items-center gap-2">
+                  <Checkbox
+                    checked={selectedInventoryIds.size === filteredInventory.length && filteredInventory.length > 0}
+                    onCheckedChange={toggleAllInventory}
+                  />
+                  <span className="text-sm text-muted-foreground">
+                    {selectedInventoryIds.size === filteredInventory.length ? "Deselect all" : "Select all"}
+                  </span>
+                </div>
+              )}
+
               <div className="space-y-3">
                 {filteredInventory.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
@@ -445,9 +549,14 @@ const InventoryPanel = () => {
                   </div>
                 ) : (
                   filteredInventory.map((item) => (
-                    <Card key={item.id} className="shadow-sm">
+                    <Card key={item.id} className={`shadow-sm ${selectedInventoryIds.has(item.id) ? "ring-2 ring-primary" : ""}`}>
                       <CardContent className="pt-6">
-                        <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-3">
+                          <Checkbox
+                            checked={selectedInventoryIds.has(item.id)}
+                            onCheckedChange={() => toggleInventorySelection(item.id)}
+                            className="mt-1"
+                          />
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
                               <h3 className="font-semibold text-foreground">{item.name}</h3>

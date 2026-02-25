@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import type { MaintenanceSchedule } from "@/types/maintenance";
 import { useQuery } from "@tanstack/react-query";
-import { AlertCircle, BarChart3, Bell, Calendar, CheckCircle, Clock, FileText, History, Plus } from "lucide-react";
+import { AlertCircle, Calendar, CheckCircle, Clock, Plus } from "lucide-react";
 import { useState } from "react";
 
 export default function MaintenanceScheduling() {
@@ -75,12 +75,6 @@ export default function MaintenanceScheduling() {
     <Layout>
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Maintenance Scheduling</h1>
-            <p className="text-muted-foreground">
-              Manage and track vehicle maintenance schedules
-            </p>
-          </div>
           <Button onClick={() => setIsAddDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             New Schedule
@@ -136,9 +130,9 @@ export default function MaintenanceScheduling() {
         <Tabs defaultValue="list" className="w-full">
           <div className="overflow-x-auto -mx-1 px-1">
             <TabsList className="inline-flex w-auto min-w-full lg:grid lg:w-full lg:grid-cols-7">
-              <TabsTrigger value="list" className="whitespace-nowrap">Schedule List</TabsTrigger>
-              <TabsTrigger value="calendar" className="whitespace-nowrap">Calendar View</TabsTrigger>
-              <TabsTrigger value="overdue" className="whitespace-nowrap">
+              <TabsTrigger value="list" className="px-5 py-2.5 text-base whitespace-nowrap">Schedule List</TabsTrigger>
+              <TabsTrigger value="calendar" className="px-5 py-2.5 text-base whitespace-nowrap">Calendar View</TabsTrigger>
+              <TabsTrigger value="overdue" className="px-5 py-2.5 text-base whitespace-nowrap">
               Overdue
               {stats && stats.overdue > 0 && (
                 <Badge variant="destructive" className="ml-2">
@@ -146,20 +140,16 @@ export default function MaintenanceScheduling() {
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="history" className="whitespace-nowrap">
-              <History className="w-4 h-4 mr-2" />
+            <TabsTrigger value="history" className="px-5 py-2.5 text-base whitespace-nowrap">
               History
             </TabsTrigger>
-            <TabsTrigger value="analytics" className="whitespace-nowrap">
-              <BarChart3 className="w-4 h-4 mr-2" />
+            <TabsTrigger value="analytics" className="px-5 py-2.5 text-base whitespace-nowrap">
               Analytics
             </TabsTrigger>
-            <TabsTrigger value="templates" className="whitespace-nowrap">
-              <FileText className="w-4 h-4 mr-2" />
+            <TabsTrigger value="templates" className="px-5 py-2.5 text-base whitespace-nowrap">
               Templates
             </TabsTrigger>
-            <TabsTrigger value="notifications" className="whitespace-nowrap">
-              <Bell className="w-4 h-4 mr-2" />
+            <TabsTrigger value="notifications" className="px-5 py-2.5 text-base whitespace-nowrap">
               Alerts
             </TabsTrigger>
           </TabsList>

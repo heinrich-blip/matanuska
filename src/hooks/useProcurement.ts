@@ -3,6 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 // Types
+export interface QuoteAttachment {
+  file_url: string;
+  file_name: string;
+  vendor_name: string;
+  price: number | null;
+  uploaded_at: string;
+}
+
 export interface PartsRequest {
   id: string;
   job_card_id: string | null;
@@ -24,6 +32,7 @@ export interface PartsRequest {
   rejected_at: string | null;
   rejection_reason: string | null;
   // Workflow tracking fields
+  ir_number: string | null;
   sage_requisition_number: string | null;
   sage_requisition_date: string | null;
   sage_requisition_by: string | null;
@@ -36,6 +45,11 @@ export interface PartsRequest {
   received_date: string | null;
   received_by: string | null;
   received_quantity: number | null;
+  // Procurement workflow fields
+  procurement_started: boolean | null;
+  allocated_to_job_card: boolean | null;
+  allocated_at: string | null;
+  quotes: QuoteAttachment[] | null;
   created_at: string | null;
   updated_at: string | null;
   // Joined data
@@ -101,6 +115,8 @@ const PROCUREMENT_KEYS = {
   all: ["procurement-requests"] as const,
   pending: ["procurement-requests", "pending"] as const,
   approved: ["procurement-requests", "approved"] as const,
+  cashManager: ["procurement-requests", "cash-manager"] as const,
+  openRequests: ["procurement-requests", "open"] as const,
   lowStock: ["low-stock-items"] as const,
   vendors: ["vendors"] as const,
 };
@@ -842,7 +858,220 @@ export const useMarkAsReceived = () => {
       queryClient.invalidateQueries({ queryKey: PROCUREMENT_KEYS.lowStock });
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
       queryClient.invalidateQueries({ queryKey: ["procurement-stats"] });
+      queryClient.invalidateQueries({ queryKey: PROCUREMENT_KEYS.cashManager });
+      queryClient.invalidateQueries({ queryKey: PROCUREMENT_KEYS.openRequests });
       toast({ title: "Order Received", description: "Items received and inventory updated" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+};
+
+// ======== NEW HOOKS FOR PROCUREMENT WORKFLOW OVERHAUL ========
+
+// Hook to fetch open requests (not yet in procurement, not fulfilled/allocated)
+export const useOpenRequests = () => {
+  return useQuery({
+    queryKey: PROCUREMENT_KEYS.openRequests,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("parts_requests")
+        .select(`
+          *,
+          job_card:job_cards(id, job_number, title, status),
+          vendor:vendors(id, vendor_name, contact_person, phone),
+          inventory:inventory(id, name, part_number, quantity)
+        `)
+        .or("procurement_started.is.null,procurement_started.eq.false")
+        .not("status", "in", '("fulfilled","rejected")')
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return (data || []) as unknown as PartsRequest[];
+    },
+  });
+};
+
+// Hook to fetch Cash Manager requests (procurement started, not yet fulfilled/allocated)
+export const useCashManagerRequests = () => {
+  return useQuery({
+    queryKey: PROCUREMENT_KEYS.cashManager,
+    queryFn: async () => {
+      // Use any-typed select to avoid excessively deep type instantiation
+      const query = supabase
+        .from("parts_requests")
+        .select("*, job_card:job_cards(id, job_number, title, status), vendor:vendors(id, vendor_name, contact_person, phone), inventory:inventory(id, name, part_number, quantity)") as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+      const { data, error } = await query
+        .eq("procurement_started", true)
+        .not("status", "eq", "fulfilled")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return (data || []) as PartsRequest[];
+    },
+  });
+};
+
+// Hook to start procurement process (create IR + quotes)
+export const useStartProcurement = () => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      ir_number,
+      quotes,
+      inventory_id,
+      is_from_inventory,
+    }: {
+      id: string;
+      ir_number: string;
+      quotes?: QuoteAttachment[];
+      inventory_id?: string | null;
+      is_from_inventory?: boolean;
+    }) => {
+      const updateData: Record<string, unknown> = {
+        ir_number,
+        procurement_started: true,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (quotes && quotes.length > 0) {
+        updateData.quotes = quotes;
+      }
+
+      if (inventory_id !== undefined) {
+        updateData.inventory_id = inventory_id;
+        updateData.is_from_inventory = is_from_inventory ?? !!inventory_id;
+      }
+
+      const { data, error } = await supabase
+        .from("parts_requests")
+        .update(updateData)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as unknown as PartsRequest;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PROCUREMENT_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: PROCUREMENT_KEYS.pending });
+      queryClient.invalidateQueries({ queryKey: PROCUREMENT_KEYS.openRequests });
+      queryClient.invalidateQueries({ queryKey: PROCUREMENT_KEYS.cashManager });
+      queryClient.invalidateQueries({ queryKey: ["procurement-stats"] });
+      toast({ title: "Procurement Started", description: "IR created and moved to Cash Manager" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+};
+
+// Hook to allocate received item to job card
+export const useAllocateToJobCard = () => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase
+        .from("parts_requests")
+        .update({
+          allocated_to_job_card: true,
+          allocated_at: new Date().toISOString(),
+          status: "fulfilled",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as unknown as PartsRequest;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PROCUREMENT_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: PROCUREMENT_KEYS.pending });
+      queryClient.invalidateQueries({ queryKey: PROCUREMENT_KEYS.openRequests });
+      queryClient.invalidateQueries({ queryKey: PROCUREMENT_KEYS.cashManager });
+      queryClient.invalidateQueries({ queryKey: PROCUREMENT_KEYS.lowStock });
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["procurement-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["parts"] });
+      toast({ title: "Allocated", description: "Item allocated to job card and marked as fulfilled" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+};
+
+// Hook to create a new inventory item and link it to a parts request
+export const useCreateInventoryAndLink = () => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      requestId,
+      name,
+      part_number,
+      category,
+      min_quantity,
+      location,
+      supplier,
+      unit_price,
+    }: {
+      requestId: string;
+      name: string;
+      part_number?: string;
+      category?: string;
+      min_quantity?: number;
+      location?: string;
+      supplier?: string;
+      unit_price?: number;
+    }) => {
+      // Create inventory item
+      const { data: inventoryItem, error: invError } = await supabase
+        .from("inventory")
+        .insert([{
+          name,
+          part_number: part_number || null,
+          category: category || "General",
+          quantity: 0,
+          min_quantity: min_quantity || 1,
+          location: location || null,
+          supplier: supplier || null,
+          unit_price: unit_price || null,
+        }])
+        .select()
+        .single();
+
+      if (invError) throw invError;
+
+      // Link to parts request
+      const { data, error } = await supabase
+        .from("parts_requests")
+        .update({
+          inventory_id: inventoryItem.id,
+          is_from_inventory: true,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", requestId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return { request: data as unknown as PartsRequest, inventoryItem };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PROCUREMENT_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      toast({ title: "Success", description: "New inventory item created and linked" });
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });

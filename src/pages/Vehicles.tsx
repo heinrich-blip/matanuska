@@ -139,14 +139,6 @@ const Vehicles = () => {
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
-              Fleet Management
-            </h1>
-            <p className="text-muted-foreground mt-2">
-              Manage your fleet vehicles and view statistics
-            </p>
-          </div>
           <Button onClick={() => setAddDialogOpen(true)} className="gap-2">
             <Plus className="h-4 w-4" />
             Add Vehicle

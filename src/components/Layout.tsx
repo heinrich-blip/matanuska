@@ -41,7 +41,7 @@ const Layout = ({ children }: LayoutProps) => {
   const operationsPaths = [
     "/admin", "/cost-management", "/performance",
     "/trip-management", "/load-management", "/driver-management",
-    "/diesel-management", "/diesel-suppliers", "/fuel-bunkers", "/invoicing", "/action-log",
+    "/diesel-management", "/fuel-bunkers", "/invoicing", "/action-log",
     "/unified-map", "/analytics"
   ];
 
@@ -86,7 +86,6 @@ const Layout = ({ children }: LayoutProps) => {
     // { path: "/load-management", label: "Load Management", icon: Package }, // Temporarily disabled
     { path: "/driver-management", label: "Driver Management", icon: Users },
     { path: "/diesel-management", label: "Diesel Management", icon: Fuel },
-    { path: "/diesel-suppliers", label: "Diesel Suppliers & Routes", icon: Store },
     { path: "/fuel-bunkers", label: "Fuel Bunkers", icon: Fuel },
     // { path: "/invoicing", label: "Invoicing", icon: FileText }, // Temporarily disabled - moved to Trip Management
     { path: "/action-log", label: "Action Log", icon: ClipboardCheck },

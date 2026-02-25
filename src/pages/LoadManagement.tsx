@@ -256,12 +256,6 @@ const LoadManagement = () => {
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
-              Load Management
-            </h1>
-            <p className="text-muted-foreground mt-1">Manage cargo shipments and assignments</p>
-          </div>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => setShowRecurringSchedules(true)}>
               <Calendar className="h-4 w-4 mr-2" />

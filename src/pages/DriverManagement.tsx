@@ -13,16 +13,6 @@ export default function DriverManagement() {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
-            Driver Management
-          </h1>
-          <p className="text-muted-foreground">
-            Monitor driver performance, behavior, and recruitment
-          </p>
-        </div>
-
         <Tabs defaultValue="registry" className="space-y-6">
           <TabsList className="flex overflow-x-auto w-full lg:grid lg:grid-cols-3">
             <TabsTrigger value="registry" className="flex items-center gap-2">

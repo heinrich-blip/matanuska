@@ -6427,6 +6427,8 @@ export type Database = {
       }
       parts_requests: {
         Row: {
+          allocated_at: string | null
+          allocated_to_job_card: boolean | null
           approved_at: string | null
           approved_by: string | null
           cash_manager_approval_date: string | null
@@ -6448,7 +6450,9 @@ export type Database = {
           ordered_by: string | null
           part_name: string
           part_number: string | null
+          procurement_started: boolean | null
           quantity: number
+          quotes: Json | null
           received_by: string | null
           received_date: string | null
           received_quantity: number | null
@@ -6467,6 +6471,8 @@ export type Database = {
           vendor_id: string | null
         }
         Insert: {
+          allocated_at?: string | null
+          allocated_to_job_card?: boolean | null
           approved_at?: string | null
           approved_by?: string | null
           cash_manager_approval_date?: string | null
@@ -6488,7 +6494,9 @@ export type Database = {
           ordered_by?: string | null
           part_name: string
           part_number?: string | null
+          procurement_started?: boolean | null
           quantity: number
+          quotes?: Json | null
           received_by?: string | null
           received_date?: string | null
           received_quantity?: number | null
@@ -6507,6 +6515,8 @@ export type Database = {
           vendor_id?: string | null
         }
         Update: {
+          allocated_at?: string | null
+          allocated_to_job_card?: boolean | null
           approved_at?: string | null
           approved_by?: string | null
           cash_manager_approval_date?: string | null
@@ -6528,7 +6538,9 @@ export type Database = {
           ordered_by?: string | null
           part_name?: string
           part_number?: string | null
+          procurement_started?: boolean | null
           quantity?: number
+          quotes?: Json | null
           received_by?: string | null
           received_date?: string | null
           received_quantity?: number | null
@@ -9521,6 +9533,7 @@ export type Database = {
         Row: {
           active: boolean | null
           created_at: string | null
+          current_odometer: number | null
           engine_specs: string | null
           fleet_number: string | null
           id: string
@@ -9537,6 +9550,7 @@ export type Database = {
         Insert: {
           active?: boolean | null
           created_at?: string | null
+          current_odometer?: number | null
           engine_specs?: string | null
           fleet_number?: string | null
           id?: string
@@ -9553,6 +9567,7 @@ export type Database = {
         Update: {
           active?: boolean | null
           created_at?: string | null
+          current_odometer?: number | null
           engine_specs?: string | null
           fleet_number?: string | null
           id?: string
@@ -11630,6 +11645,10 @@ export type Database = {
         }[]
       }
       calculate_transit_time: { Args: { p_load_id: string }; Returns: unknown }
+      cascade_driver_name_update: {
+        Args: { p_new_name: string; p_old_name: string }
+        Returns: undefined
+      }
       check_geofence_entry: {
         Args: { p_latitude: number; p_longitude: number; p_vehicle_id: string }
         Returns: boolean

@@ -106,14 +106,8 @@ export default function EnhancedRequestPartsDialog({
       return;
     }
 
-    if (hasInsufficientStock) {
-      toast({
-        variant: "destructive",
-        title: "Insufficient Stock",
-        description: `Only ${availableQuantity} units available`,
-      });
-      return;
-    }
+    // Allow insufficient stock items - they will be procured
+    // Just show a warning but don't block submission
 
     setIsSubmitting(true);
 
@@ -124,6 +118,10 @@ export default function EnhancedRequestPartsDialog({
       } = await supabase.auth.getUser();
 
       // Create parts request
+      const stockNote = hasInsufficientStock
+        ? `[OUT OF STOCK - needs procurement] Available: ${availableQuantity}, Requested: ${quantity}${notes ? '. ' + notes : ''}`
+        : notes || null;
+
       const { data: partsRequest, error: insertError } = await supabase
         .from("parts_requests")
         .insert({
@@ -131,9 +129,10 @@ export default function EnhancedRequestPartsDialog({
           part_number: partNumber || null,
           quantity,
           job_card_id: jobCardId,
-          notes: notes || null,
+          notes: stockNote,
           status: "pending",
           inventory_id: selectedInventoryId || null,
+          is_from_inventory: !!selectedInventoryId,
           unit_price: selectedInventoryId ? unitPrice : null,
           requested_by: user?.email || null,
         })
@@ -142,8 +141,8 @@ export default function EnhancedRequestPartsDialog({
 
       if (insertError) throw insertError;
 
-      // If from inventory, reserve the stock
-      if (selectedInventoryId && partsRequest) {
+      // If from inventory and there is sufficient stock, reserve it
+      if (selectedInventoryId && partsRequest && !hasInsufficientStock) {
         const { error: reserveError } = await supabase.rpc(
           "reserve_inventory",
           {
@@ -156,7 +155,6 @@ export default function EnhancedRequestPartsDialog({
 
         if (reserveError) {
           console.error("Failed to reserve inventory:", reserveError);
-          // Don't fail the whole operation, just warn
           toast({
             variant: "destructive",
             title: "Warning",
@@ -168,9 +166,11 @@ export default function EnhancedRequestPartsDialog({
 
       toast({
         title: "Success",
-        description: selectedInventoryId
-          ? "Parts request submitted and inventory reserved!"
-          : "Parts request submitted successfully!",
+        description: hasInsufficientStock
+          ? "Parts request submitted — item is short/out of stock and will need to be procured"
+          : selectedInventoryId
+            ? "Parts request submitted and inventory reserved!"
+            : "Parts request submitted successfully!",
       });
 
       onSuccess();
@@ -237,8 +237,9 @@ export default function EnhancedRequestPartsDialog({
                 <AlertDescription>
                   {hasInsufficientStock ? (
                     <>
-                      <strong>Insufficient stock!</strong> Only{" "}
-                      {availableQuantity} units available.
+                      <strong>Short — needs restock!</strong> Only{" "}
+                      {availableQuantity} units available. This item will be
+                      sent to procurement for ordering.
                     </>
                   ) : isLowStock ? (
                     <>
@@ -345,7 +346,7 @@ export default function EnhancedRequestPartsDialog({
               </Button>
               <Button
                 type="submit"
-                disabled={isSubmitting || hasInsufficientStock}
+                disabled={isSubmitting}
               >
                 {isSubmitting ? "Submitting..." : "Submit Request"}
               </Button>

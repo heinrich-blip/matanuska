@@ -365,6 +365,23 @@ const TyreInventory = () => {
     );
   };
 
+  const getInstalledTypeBadge = (type: string | null) => {
+    const normalized = (type || "unknown").toLowerCase();
+
+    const styles: Record<string, string> = {
+      new: "bg-gradient-to-r from-emerald-500 to-green-400 text-white shadow-sm",
+      retread: "bg-gradient-to-r from-amber-500 to-yellow-400 text-white shadow-sm",
+      used: "bg-gradient-to-r from-slate-600 to-gray-500 text-white shadow-sm",
+      unknown: "bg-muted text-muted-foreground",
+    };
+
+    return (
+      <Badge className={styles[normalized] || styles.unknown}>
+        {type || "unknown"}
+      </Badge>
+    );
+  };
+
   // Render tyre table for bay tabs
   const renderTyreTable = (tyres: TyreWithPosition[], _bayType: string) => {
     if (tyres.length === 0) {
@@ -769,9 +786,7 @@ const TyreInventory = () => {
                                 </span>
                               </TableCell>
                               <TableCell className="py-3.5">
-                                <Badge className={`${ tyre.type === 'new' ? 'bg-green-100 text-green-800' : tyre.type === 'retread' ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-800'} hover:${ tyre.type === 'new' ? 'bg-green-200' : tyre.type === 'retread' ? 'bg-amber-200' : 'bg-gray-200'}`}>
-                                  { tyre.type || 'unknown'}
-                                </Badge>
+                                {getInstalledTypeBadge(tyre.type)}
                               </TableCell>
                               <TableCell className="py-3.5">
                                 <div className="flex flex-col">
@@ -782,11 +797,12 @@ const TyreInventory = () => {
                               <TableCell className="py-3.5">
                                 <span className="font-mono text-sm">{ tyre.current_fleet_position || '-'}</span>
                               </TableCell>
-                              <TableCell className="py-3.5 text-center sticky right-0 bg-background">
+                              <TableCell className="py-3.5 text-center sticky right-0 bg-inherit">
                                 <div className="flex items-center justify-center gap-1">
                                   <Button
-                                    variant="ghost"
-                                    size="icon"
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-8 w-8 p-0"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setSelectedTyre( tyreWithVehicle);
@@ -794,11 +810,12 @@ const TyreInventory = () => {
                                     }}
                                     title="View tyre details"
                                   >
-                                    <Eye className="h-4 w-4" />
+                                    <Eye className="h-3.5 w-3.5" />
                                   </Button>
                                   <Button
-                                    variant="ghost"
-                                    size="icon"
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-8 w-8 p-0"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setSelectedTyre( tyreWithVehicle);
@@ -806,7 +823,7 @@ const TyreInventory = () => {
                                     }}
                                     title="Edit tyre"
                                   >
-                                    <Pencil className="h-4 w-4" />
+                                    <Pencil className="h-3.5 w-3.5" />
                                   </Button>
                                 </div>
                               </TableCell>

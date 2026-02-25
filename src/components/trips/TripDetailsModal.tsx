@@ -24,6 +24,7 @@ import EditTripDialog from './EditTripDialog';
 import FlagResolutionModal from './FlagResolutionModal';
 import TripCostManager from './TripCostManager';
 import TripCycleTrackerView from './TripCycleTrackerView';
+import { evaluateKmSchedules, updateVehicleOdometer } from '@/lib/maintenanceKmTracking';
 
 interface Trip {
   id: string;
@@ -46,6 +47,7 @@ interface Trip {
   empty_km?: number;
   empty_km_reason?: string;
   load_type?: string;
+  fleet_vehicle_id?: string;
 }
 
 interface TripDetailsModalProps {
@@ -181,6 +183,15 @@ const TripDetailsModal = ({ trip, isOpen, onClose, onRefresh }: TripDetailsModal
         .eq('id', trip.id);
 
       if (error) throw error;
+
+      // Update vehicle odometer from trip ending_km
+      if (trip.ending_km && trip.fleet_vehicle_id) {
+        const updated = await updateVehicleOdometer(trip.fleet_vehicle_id, trip.ending_km);
+        if (updated) {
+          // Evaluate KM-based maintenance schedules for this vehicle
+          await evaluateKmSchedules(trip.fleet_vehicle_id, trip.ending_km);
+        }
+      }
 
       toast({
         title: 'Success',

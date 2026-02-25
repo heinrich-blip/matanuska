@@ -12,12 +12,16 @@ import {
   CheckCircle2,
   Circle,
   Clock,
+  DollarSign,
   FileText,
   Gauge,
   LucideIcon,
   Package,
+  PackageX,
   Play,
+  Repeat,
   Settings,
+  Timer,
   Truck,
   Wrench,
   TrendingUp,
@@ -28,7 +32,13 @@ import { useNavigate } from "react-router-dom";
 import {
   Area,
   AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
   Cell,
+  Legend,
+  Line,
+  LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -432,6 +442,258 @@ const Dashboard = () => {
     refetchInterval: 300000,
   });
 
+  // ─── KPI 1: Backlog Aging Buckets ────────────────────────────────
+  const { data: backlogAging } = useQuery({
+    queryKey: ["dashboard-backlog-aging"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("job_cards")
+        .select("created_at, status")
+        .in("status", ["open", "in_progress", "on_hold"]);
+
+      if (error) throw error;
+
+      const now = getCurrentDate();
+      const buckets = { "0–2d": 0, "3–7d": 0, "8–14d": 0, "15–30d": 0, ">30d": 0 };
+
+      (data || []).forEach(jc => {
+        const age = Math.floor((now.getTime() - new Date(jc.created_at || now.toISOString()).getTime()) / 86400000);
+        if (age <= 2) buckets["0–2d"]++;
+        else if (age <= 7) buckets["3–7d"]++;
+        else if (age <= 14) buckets["8–14d"]++;
+        else if (age <= 30) buckets["15–30d"]++;
+        else buckets[">30d"]++;
+      });
+
+      return Object.entries(buckets).map(([name, count]) => ({ name, count }));
+    },
+    refetchInterval: 60000,
+  });
+
+  // ─── KPI 2: MTTR Trend (Fault-based) ────────────────────────────
+  const { data: mttrTrend } = useQuery({
+    queryKey: ["dashboard-mttr-trend"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("vehicle_faults")
+        .select("reported_date, resolved_date")
+        .not("resolved_date", "is", null)
+        .gte("resolved_date", new Date(Date.now() - 180 * 86400000).toISOString());
+
+      if (error) throw error;
+
+      // Group by month and compute average resolution time in days
+      const months: Record<string, { total: number; count: number }> = {};
+
+      (data || []).forEach(f => {
+        const resolved = new Date(f.resolved_date!);
+        const reported = new Date(f.reported_date);
+        const days = Math.max(0, (resolved.getTime() - reported.getTime()) / 86400000);
+        const monthKey = resolved.toLocaleString("en", { month: "short", year: "2-digit" });
+
+        if (!months[monthKey]) months[monthKey] = { total: 0, count: 0 };
+        months[monthKey].total += days;
+        months[monthKey].count++;
+      });
+
+      const result = Object.entries(months).map(([month, v]) => ({
+        month,
+        avgDays: Math.round((v.total / v.count) * 10) / 10,
+        count: v.count,
+      }));
+
+      // Sort chronologically
+      result.sort((a, b) => {
+        const parseDate = (s: string) => new Date(`01 ${s}`);
+        return parseDate(a.month).getTime() - parseDate(b.month).getTime();
+      });
+
+      // Current MTTR for the summary card
+      const currentMttr = result.length > 0 ? result[result.length - 1].avgDays : 0;
+      const prevMttr = result.length > 1 ? result[result.length - 2].avgDays : currentMttr;
+      const mttrDelta = prevMttr > 0 ? Math.round(((currentMttr - prevMttr) / prevMttr) * 100) : 0;
+
+      return { trend: result, currentMttr, mttrDelta };
+    },
+    refetchInterval: 300000,
+  });
+
+  // ─── KPI 3: First-Time Fix Rate ─────────────────────────────────
+  const { data: ftfrData } = useQuery({
+    queryKey: ["dashboard-ftfr"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("vehicle_faults")
+        .select("vehicle_id, fault_category, component, resolved_date, reported_date")
+        .not("resolved_date", "is", null)
+        .order("resolved_date", { ascending: true });
+
+      if (error) throw error;
+      if (!data || data.length === 0) return { rate: 100, total: 0, repeats: 0 };
+
+      // Detect repeat faults: same vehicle + category + component within 30 days
+      let repeats = 0;
+      const faultMap = new Map<string, Date[]>();
+
+      data.forEach(f => {
+        const key = `${f.vehicle_id}|${f.fault_category}|${f.component || ""}`;
+        const resolved = new Date(f.resolved_date!);
+
+        const prevDates = faultMap.get(key) || [];
+        const isRepeat = prevDates.some(
+          prev => (resolved.getTime() - prev.getTime()) / 86400000 <= 30
+        );
+        if (isRepeat) repeats++;
+
+        prevDates.push(resolved);
+        faultMap.set(key, prevDates);
+      });
+
+      const total = data.length;
+      const rate = total > 0 ? Math.round(((total - repeats) / total) * 100) : 100;
+
+      return { rate, total, repeats };
+    },
+    refetchInterval: 300000,
+  });
+
+  // ─── KPI 4: Jobs Delayed by Stockouts ───────────────────────────
+  const { data: stockoutDelays } = useQuery({
+    queryKey: ["dashboard-stockout-delays"],
+    queryFn: async () => {
+      // Active job cards with their pending/ordered parts
+      const { data: activeJobs, error: jobsErr } = await supabase
+        .from("job_cards")
+        .select("id, job_number, vehicle_id, created_at, title")
+        .in("status", ["open", "in_progress"]);
+
+      if (jobsErr) throw jobsErr;
+
+      const { data: blockingParts, error: partsErr } = await supabase
+        .from("parts_requests")
+        .select("job_card_id, status, created_at, part_name")
+        .in("status", ["pending", "requested", "ordered"]);
+
+      if (partsErr) throw partsErr;
+
+      const now = getCurrentDate();
+      const threshold48h = 48 * 60 * 60 * 1000;
+
+      // Map parts by job_card_id
+      const partsByJob = new Map<string, typeof blockingParts>();
+      (blockingParts || []).forEach(p => {
+        if (!p.job_card_id) return;
+        const list = partsByJob.get(p.job_card_id) || [];
+        list.push(p);
+        partsByJob.set(p.job_card_id, list);
+      });
+
+      // Find jobs with parts waiting > 48h
+      const delayedJobs = (activeJobs || [])
+        .filter(job => {
+          const parts = partsByJob.get(job.id) || [];
+          return parts.some(p => {
+            const age = now.getTime() - new Date(p.created_at || now.toISOString()).getTime();
+            return age > threshold48h;
+          });
+        })
+        .map(job => ({
+          jobNumber: job.job_number,
+          title: job.title,
+          partsPending: (partsByJob.get(job.id) || []).length,
+        }))
+        .slice(0, 5);
+
+      return { count: delayedJobs.length, jobs: delayedJobs };
+    },
+    refetchInterval: 60000,
+  });
+
+  // ─── KPI 5: Monthly Cost per Vehicle ────────────────────────────
+  const { data: monthlyCost } = useQuery({
+    queryKey: ["dashboard-monthly-cost"],
+    queryFn: async () => {
+      const sixMonthsAgo = new Date(Date.now() - 180 * 86400000).toISOString();
+
+      // Parts cost (non-service, non-cancelled)
+      const { data: parts, error: partsErr } = await supabase
+        .from("parts_requests")
+        .select("job_card_id, total_price, is_service, status, created_at")
+        .neq("status", "cancelled")
+        .gte("created_at", sixMonthsAgo);
+
+      if (partsErr) throw partsErr;
+
+      // Labor cost
+      const { data: labor, error: laborErr } = await supabase
+        .from("labor_entries")
+        .select("job_card_id, total_cost, work_date")
+        .gte("work_date", sixMonthsAgo);
+
+      if (laborErr) throw laborErr;
+
+      // Job cards → vehicle mapping
+      const jobIds = new Set([
+        ...(parts || []).map(p => p.job_card_id).filter(Boolean),
+        ...(labor || []).map(l => l.job_card_id).filter(Boolean),
+      ]);
+
+      const vehicleMap: Record<string, string> = {};
+      if (jobIds.size > 0) {
+        const { data: jobs } = await supabase
+          .from("job_cards")
+          .select("id, vehicle_id, vehicles!inner(fleet_number)")
+          .in("id", Array.from(jobIds));
+
+        (jobs || []).forEach(j => {
+          const v = j.vehicles as unknown as { fleet_number: string } | null;
+          if (j.vehicle_id && v?.fleet_number) {
+            vehicleMap[j.id] = v.fleet_number;
+          }
+        });
+      }
+
+      // Aggregate by month
+      const monthlyTotals: Record<string, { parts: number; labor: number }> = {};
+
+      (parts || []).filter(p => !p.is_service).forEach(p => {
+        const month = new Date(p.created_at || "").toLocaleString("en", { month: "short", year: "2-digit" });
+        if (!monthlyTotals[month]) monthlyTotals[month] = { parts: 0, labor: 0 };
+        monthlyTotals[month].parts += p.total_price || 0;
+      });
+
+      (labor || []).forEach(l => {
+        const month = new Date(l.work_date || "").toLocaleString("en", { month: "short", year: "2-digit" });
+        if (!monthlyTotals[month]) monthlyTotals[month] = { parts: 0, labor: 0 };
+        monthlyTotals[month].labor += l.total_cost || 0;
+      });
+
+      const trend = Object.entries(monthlyTotals)
+        .map(([month, costs]) => ({
+          month,
+          parts: Math.round(costs.parts),
+          labor: Math.round(costs.labor),
+          total: Math.round(costs.parts + costs.labor),
+        }))
+        .sort((a, b) => {
+          const parseDate = (s: string) => new Date(`01 ${s}`);
+          return parseDate(a.month).getTime() - parseDate(b.month).getTime();
+        });
+
+      // Get active vehicle count for per-vehicle average
+      const { count: vehicleCount } = await supabase
+        .from("vehicles")
+        .select("id", { count: "exact", head: true })
+        .eq("active", true);
+
+      const currentMonth = trend.length > 0 ? trend[trend.length - 1].total : 0;
+      const avgPerVehicle = vehicleCount && vehicleCount > 0 ? Math.round(currentMonth / vehicleCount) : 0;
+
+      return { trend, currentMonth, avgPerVehicle, vehicleCount: vehicleCount || 0 };
+    },
+    refetchInterval: 300000,
+  });
+
   // Fetch recent activity
   const { data: recentActivity = [] } = useQuery({
     queryKey: ["dashboard-recent-activity-enhanced"],
@@ -624,16 +886,6 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
-          Workshop Dashboard
-        </h1>
-        <p className="text-muted-foreground">
-          Real-time overview of workshop operations
-        </p>
-      </div>
-
       {/* Primary Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {primaryStats.map((stat) => {
@@ -858,6 +1110,277 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* ─── Workshop Performance KPIs ──────────────────────────────── */}
+      {/* Row 1: FTFR + MTTR + Stockout Delays summary cards */}
+      <div className="grid gap-4 md:grid-cols-3">
+        {/* First-Time Fix Rate */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">First-Time Fix Rate</CardTitle>
+            <Repeat className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-semibold">
+              {ftfrData?.rate ?? "–"}%
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {ftfrData?.repeats || 0} repeat fault{(ftfrData?.repeats || 0) !== 1 ? "s" : ""} out of {ftfrData?.total || 0} resolved (30-day window)
+            </p>
+            <div className="mt-3 h-2 rounded-full bg-muted overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{
+                  width: `${ftfrData?.rate ?? 0}%`,
+                  backgroundColor: (ftfrData?.rate ?? 100) >= 85
+                    ? CHART_COLORS.success
+                    : (ftfrData?.rate ?? 100) >= 70
+                    ? CHART_COLORS.warning
+                    : CHART_COLORS.danger,
+                }}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* MTTR Summary */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Mean Time to Repair</CardTitle>
+            <Timer className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-semibold">
+              {mttrTrend?.currentMttr ?? "–"} <span className="text-sm font-normal text-muted-foreground">days</span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {mttrTrend?.mttrDelta !== undefined && mttrTrend.mttrDelta !== 0 ? (
+                <span className={mttrTrend.mttrDelta < 0 ? "text-green-600" : "text-red-500"}>
+                  {mttrTrend.mttrDelta > 0 ? "+" : ""}{mttrTrend.mttrDelta}% vs prev month
+                </span>
+              ) : (
+                "Based on resolved faults"
+              )}
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Jobs Delayed by Stockouts */}
+        <Card className={
+          (stockoutDelays?.count || 0) > 0
+            ? "border-amber-500/30 bg-amber-500/5"
+            : ""
+        }>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Delayed by Parts</CardTitle>
+            <PackageX className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-semibold">
+              {stockoutDelays?.count ?? 0}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Jobs waiting on parts &gt; 48h
+            </p>
+            {(stockoutDelays?.jobs?.length || 0) > 0 && (
+              <div className="mt-3 space-y-1.5">
+                {stockoutDelays!.jobs.map((job, i) => (
+                  <div key={i} className="flex items-center justify-between text-xs">
+                    <span className="font-medium truncate max-w-[140px]">#{job.jobNumber}</span>
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                      {job.partsPending} part{job.partsPending !== 1 ? "s" : ""}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Row 2: Backlog Aging + MTTR Trend charts */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Backlog Aging Buckets */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Clock className="h-5 w-5 text-primary" />
+              Backlog Aging
+            </CardTitle>
+            <CardDescription>Open job cards by age</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[220px]">
+              {backlogAging && backlogAging.some(b => b.count > 0) ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={backlogAging} barSize={36}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12 }} allowDecimals={false} />
+                    <Tooltip
+                      content={({ active, payload, label }) => {
+                        if (active && payload && payload.length) {
+                          return (
+                            <div className="bg-popover border rounded-lg shadow-lg p-2 text-sm">
+                              <p className="font-medium">{label}</p>
+                              <p className="text-muted-foreground">{payload[0].value} job card{Number(payload[0].value) !== 1 ? "s" : ""}</p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                      {(backlogAging || []).map((entry, index) => {
+                        const colors = [CHART_COLORS.success, CHART_COLORS.info, CHART_COLORS.warning, "#f97316", CHART_COLORS.danger];
+                        return <Cell key={`cell-${index}`} fill={colors[index] || CHART_COLORS.muted} />;
+                      })}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
+                  No open backlog
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* MTTR Trend Line Chart */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Timer className="h-5 w-5 text-primary" />
+              MTTR Trend
+            </CardTitle>
+            <CardDescription>Average resolution time per month (days)</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[220px]">
+              {mttrTrend?.trend && mttrTrend.trend.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={mttrTrend.trend}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12 }} unit="d" />
+                    <Tooltip
+                      content={({ active, payload, label }) => {
+                        if (active && payload && payload.length) {
+                          return (
+                            <div className="bg-popover border rounded-lg shadow-lg p-3 text-sm">
+                              <p className="font-medium mb-1">{label}</p>
+                              <p className="text-muted-foreground">{payload[0].value} days avg ({(payload[0].payload as { count: number }).count} faults)</p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="avgDays"
+                      stroke={CHART_COLORS.primary}
+                      strokeWidth={2}
+                      dot={{ fill: CHART_COLORS.primary, r: 4 }}
+                      activeDot={{ r: 6 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
+                  No MTTR data available
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Row 3: Monthly Cost Breakdown */}
+      <Card>
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-primary" />
+                Monthly Maintenance Cost
+              </CardTitle>
+              <CardDescription>Parts + labour spend over last 6 months</CardDescription>
+            </div>
+            {monthlyCost && (
+              <div className="text-right">
+                <p className="text-2xl font-semibold">
+                  ${monthlyCost.currentMonth.toLocaleString()}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  ~${monthlyCost.avgPerVehicle.toLocaleString()}/vehicle ({monthlyCost.vehicleCount} active)
+                </p>
+              </div>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[240px]">
+            {monthlyCost?.trend && monthlyCost.trend.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={monthlyCost.trend} barGap={0}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                  <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12 }} tickFormatter={(v) => `$${v}`} />
+                  <Tooltip
+                    content={({ active, payload, label }) => {
+                      if (active && payload && payload.length) {
+                        return (
+                          <div className="bg-popover border rounded-lg shadow-lg p-3 text-sm">
+                            <p className="font-medium mb-2">{label}</p>
+                            <div className="space-y-1">
+                              <p className="flex items-center gap-2">
+                                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: CHART_COLORS.info }} />
+                                Parts: ${Number(payload[0].value).toLocaleString()}
+                              </p>
+                              <p className="flex items-center gap-2">
+                                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: CHART_COLORS.warning }} />
+                                Labour: ${Number(payload[1].value).toLocaleString()}
+                              </p>
+                              <p className="font-medium border-t pt-1 mt-1">
+                                Total: ${((Number(payload[0].value) || 0) + (Number(payload[1].value) || 0)).toLocaleString()}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Legend
+                    verticalAlign="bottom"
+                    height={30}
+                    content={() => (
+                      <div className="flex items-center justify-center gap-6 text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="h-3 w-3 rounded-sm" style={{ backgroundColor: CHART_COLORS.info }} />
+                          <span className="text-muted-foreground">Parts</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="h-3 w-3 rounded-sm" style={{ backgroundColor: CHART_COLORS.warning }} />
+                          <span className="text-muted-foreground">Labour</span>
+                        </div>
+                      </div>
+                    )}
+                  />
+                  <Bar dataKey="parts" stackId="cost" fill={CHART_COLORS.info} radius={[0, 0, 0, 0]} />
+                  <Bar dataKey="labor" stackId="cost" fill={CHART_COLORS.warning} radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
+                No cost data available
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Bottom Grid: Activity and Quick Actions */}
       <div className="grid gap-6 md:grid-cols-2">

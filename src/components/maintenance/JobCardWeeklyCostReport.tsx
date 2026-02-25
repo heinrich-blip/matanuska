@@ -6,29 +6,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { endOfWeek, format, isWithinInterval, parseISO, startOfWeek, subWeeks } from "date-fns";
+import { endOfMonth, endOfWeek, format, isWithinInterval, parseISO, startOfMonth, startOfWeek, subMonths, subWeeks } from "date-fns";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import
   {
     Calendar,
-    DollarSign,
     Download,
     FileSpreadsheet,
     FileText,
-    Package,
-    TrendingDown,
-    TrendingUp,
-    Truck,
-    Wrench
+    Truck
   } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
-interface WeeklyData {
-  weekStart: Date;
-  weekEnd: Date;
-  weekLabel: string;
+interface PeriodData {
+  periodStart: Date;
+  periodEnd: Date;
+  periodLabel: string;
   laborCost: number;
   partsCost: number;
   inventoryPartsCost: number;
@@ -64,8 +59,9 @@ interface JobCardWithCosts {
 }
 
 export default function JobCardWeeklyCostReport() {
-  const [weeksToShow, setWeeksToShow] = useState<string>("4");
-  const [viewMode, setViewMode] = useState<"weekly" | "fleet" | "details">("weekly");
+  const [periodsToShow, setPeriodsToShow] = useState<string>("4");
+  const [viewMode, setViewMode] = useState<"period" | "fleet" | "details">("period");
+  const [periodType, setPeriodType] = useState<"weekly" | "monthly">("weekly");
 
   // Fetch job cards
   const { data: jobCards = [], isLoading: loadingJobCards } = useQuery({
@@ -159,58 +155,69 @@ export default function JobCardWeeklyCostReport() {
     });
   }, [jobCards, laborEntries, partsRequests, vehicleMap]);
 
-  // Calculate weekly data
-  const weeklyData = useMemo((): WeeklyData[] => {
-    const weeks: WeeklyData[] = [];
-    const numWeeks = parseInt(weeksToShow);
+  // Calculate period data (weekly or monthly)
+  const periodData = useMemo((): PeriodData[] => {
+    const periods: PeriodData[] = [];
+    const numPeriods = parseInt(periodsToShow);
     const today = new Date();
 
-    for (let i = 0; i < numWeeks; i++) {
-      const weekStart = startOfWeek(subWeeks(today, i), { weekStartsOn: 1 });
-      const weekEnd = endOfWeek(subWeeks(today, i), { weekStartsOn: 1 });
+    for (let i = 0; i < numPeriods; i++) {
+      let periodStart: Date;
+      let periodEnd: Date;
+      let periodLabel: string;
 
-      const weekJobCards = jobCardsWithCosts.filter(jc => {
+      if (periodType === "weekly") {
+        periodStart = startOfWeek(subWeeks(today, i), { weekStartsOn: 1 });
+        periodEnd = endOfWeek(subWeeks(today, i), { weekStartsOn: 1 });
+        periodLabel = `${format(periodStart, "MMM d")} - ${format(periodEnd, "MMM d, yyyy")}`;
+      } else {
+        periodStart = startOfMonth(subMonths(today, i));
+        periodEnd = endOfMonth(subMonths(today, i));
+        periodLabel = format(periodStart, "MMMM yyyy");
+      }
+
+      const periodJobCards = jobCardsWithCosts.filter(jc => {
         if (!jc.created_at) return false;
         const createdDate = parseISO(jc.created_at);
-        return isWithinInterval(createdDate, { start: weekStart, end: weekEnd });
+        return isWithinInterval(createdDate, { start: periodStart, end: periodEnd });
       });
 
-      const laborCost = weekJobCards.reduce((sum, jc) => sum + jc.laborCost, 0);
-      const partsCost = weekJobCards.reduce((sum, jc) => sum + jc.partsCost, 0);
-      const servicesCost = weekJobCards.reduce((sum, jc) => sum + jc.servicesCost, 0);
+      const laborCost = periodJobCards.reduce((sum, jc) => sum + jc.laborCost, 0);
+      const partsCost = periodJobCards.reduce((sum, jc) => sum + jc.partsCost, 0);
+      const servicesCost = periodJobCards.reduce((sum, jc) => sum + jc.servicesCost, 0);
 
       // Calculate inventory vs external parts
-      const weekPartsRequests = partsRequests.filter(pr => {
+      const periodPartsRequests = partsRequests.filter(pr => {
         const jobCard = jobCardsWithCosts.find(jc => jc.id === pr.job_card_id);
         if (!jobCard?.created_at) return false;
         const createdDate = parseISO(jobCard.created_at);
-        return isWithinInterval(createdDate, { start: weekStart, end: weekEnd }) && !pr.is_service;
+        return isWithinInterval(createdDate, { start: periodStart, end: periodEnd }) && !pr.is_service;
       });
 
-      const inventoryPartsCost = weekPartsRequests
+      const inventoryPartsCost = periodPartsRequests
         .filter(pr => pr.inventory_id)
         .reduce((sum, pr) => sum + (pr.total_price || 0), 0);
-      const externalPartsCost = weekPartsRequests
+      const externalPartsCost = periodPartsRequests
         .filter(pr => !pr.inventory_id)
         .reduce((sum, pr) => sum + (pr.total_price || 0), 0);
 
-      weeks.push({
-        weekStart,
-        weekEnd,
-        weekLabel: `${format(weekStart, "MMM d")} - ${format(weekEnd, "MMM d, yyyy")}`,
+      periods.push({
+        periodStart,
+        periodEnd,
+        periodLabel,
         laborCost,
         partsCost,
         inventoryPartsCost,
         externalPartsCost,
         servicesCost,
         totalCost: laborCost + partsCost + servicesCost,
-        jobCardsCount: weekJobCards.length,
-        completedJobCards: weekJobCards.filter(jc => jc.status === "completed").length,
+        jobCardsCount: periodJobCards.length,
+        completedJobCards: periodJobCards.filter(jc => jc.status === "completed").length,
       });
     }
 
-    return weeks;
-  }, [jobCardsWithCosts, partsRequests, weeksToShow]);
+    return periods;
+  }, [jobCardsWithCosts, partsRequests, periodsToShow, periodType]);
 
   // Calculate fleet data
   const fleetData = useMemo((): FleetCostData[] => {
@@ -243,19 +250,19 @@ export default function JobCardWeeklyCostReport() {
 
   // Summary stats
   const summary = useMemo(() => {
-    const totalCost = weeklyData.reduce((sum, w) => sum + w.totalCost, 0);
-    const totalLaborCost = weeklyData.reduce((sum, w) => sum + w.laborCost, 0);
-    const totalPartsCost = weeklyData.reduce((sum, w) => sum + w.partsCost, 0);
-    const totalServicesCost = weeklyData.reduce((sum, w) => sum + w.servicesCost, 0);
-    const totalJobCards = weeklyData.reduce((sum, w) => sum + w.jobCardsCount, 0);
-    const avgWeeklyCost = weeklyData.length > 0 ? totalCost / weeklyData.length : 0;
+    const totalCost = periodData.reduce((sum, w) => sum + w.totalCost, 0);
+    const totalLaborCost = periodData.reduce((sum, w) => sum + w.laborCost, 0);
+    const totalPartsCost = periodData.reduce((sum, w) => sum + w.partsCost, 0);
+    const totalServicesCost = periodData.reduce((sum, w) => sum + w.servicesCost, 0);
+    const totalJobCards = periodData.reduce((sum, w) => sum + w.jobCardsCount, 0);
+    const avgPeriodCost = periodData.length > 0 ? totalCost / periodData.length : 0;
 
-    // Calculate trend (compare last 2 weeks)
+    // Calculate trend (compare last 2 periods)
     let trend = 0;
-    if (weeklyData.length >= 2) {
-      const lastWeek = weeklyData[0]?.totalCost || 0;
-      const previousWeek = weeklyData[1]?.totalCost || 0;
-      trend = previousWeek > 0 ? ((lastWeek - previousWeek) / previousWeek) * 100 : 0;
+    if (periodData.length >= 2) {
+      const lastPeriod = periodData[0]?.totalCost || 0;
+      const previousPeriod = periodData[1]?.totalCost || 0;
+      trend = previousPeriod > 0 ? ((lastPeriod - previousPeriod) / previousPeriod) * 100 : 0;
     }
 
     return {
@@ -264,10 +271,10 @@ export default function JobCardWeeklyCostReport() {
       totalPartsCost,
       totalServicesCost,
       totalJobCards,
-      avgWeeklyCost,
+      avgPeriodCost,
       trend,
     };
-  }, [weeklyData]);
+  }, [periodData]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -283,9 +290,9 @@ export default function JobCardWeeklyCostReport() {
     let rows: string[];
     let filename: string;
 
-    if (viewMode === "weekly") {
+    if (viewMode === "period") {
       headers = [
-        "Week",
+        "Period",
         "Labor Cost",
         "Parts Cost",
         "Inventory Parts",
@@ -296,8 +303,8 @@ export default function JobCardWeeklyCostReport() {
         "Completed",
       ].join("\t");
 
-      rows = weeklyData.map(w => [
-        w.weekLabel,
+      rows = periodData.map(w => [
+        w.periodLabel,
         w.laborCost.toFixed(2),
         w.partsCost.toFixed(2),
         w.inventoryPartsCost.toFixed(2),
@@ -308,7 +315,7 @@ export default function JobCardWeeklyCostReport() {
         w.completedJobCards.toString(),
       ].join("\t"));
 
-      filename = `job_card_weekly_costs_${format(new Date(), "yyyy-MM-dd")}.xls`;
+      filename = `job_card_${periodType}_costs_${format(new Date(), "yyyy-MM-dd")}.xls`;
     } else if (viewMode === "fleet") {
       headers = [
         "Fleet Number",
@@ -387,10 +394,10 @@ export default function JobCardWeeklyCostReport() {
     const summaryText = `Total: ${formatCurrency(summary.totalCost)} | Labor: ${formatCurrency(summary.totalLaborCost)} | Parts: ${formatCurrency(summary.totalPartsCost)} | Services: ${formatCurrency(summary.totalServicesCost)} | Job Cards: ${summary.totalJobCards}`;
     doc.text(summaryText, pageWidth / 2, 28, { align: "center" });
 
-    if (viewMode === "weekly") {
-      const tableHeaders = ["Week", "Labor", "Parts", "Inventory", "External", "Services", "Total", "Jobs", "Done"];
-      const tableData = weeklyData.map(w => [
-        w.weekLabel,
+    if (viewMode === "period") {
+      const tableHeaders = ["Period", "Labor", "Parts", "Inventory", "External", "Services", "Total", "Jobs", "Done"];
+      const tableData = periodData.map(w => [
+        w.periodLabel,
         formatCurrency(w.laborCost),
         formatCurrency(w.partsCost),
         formatCurrency(w.inventoryPartsCost),
@@ -504,7 +511,6 @@ export default function JobCardWeeklyCostReport() {
                   {summary.totalJobCards} job cards
                 </p>
               </div>
-              <DollarSign className="h-8 w-8 text-primary" />
             </div>
           </CardContent>
         </Card>
@@ -521,7 +527,6 @@ export default function JobCardWeeklyCostReport() {
                     : 0}% of total
                 </p>
               </div>
-              <Wrench className="h-8 w-8 text-blue-600" />
             </div>
           </CardContent>
         </Card>
@@ -538,7 +543,6 @@ export default function JobCardWeeklyCostReport() {
                     : 0}% of total
                 </p>
               </div>
-              <Package className="h-8 w-8 text-green-600" />
             </div>
           </CardContent>
         </Card>
@@ -547,19 +551,14 @@ export default function JobCardWeeklyCostReport() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Weekly Trend</p>
+                <p className="text-sm text-muted-foreground">{periodType === "weekly" ? "Weekly" : "Monthly"} Trend</p>
                 <p className={`text-2xl font-bold ${summary.trend >= 0 ? "text-red-600" : "text-green-600"}`}>
                   {summary.trend >= 0 ? "+" : ""}{summary.trend.toFixed(1)}%
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Avg: {formatCurrency(summary.avgWeeklyCost)}/week
+                  Avg: {formatCurrency(summary.avgPeriodCost)}/{periodType === "weekly" ? "week" : "month"}
                 </p>
               </div>
-              {summary.trend >= 0 ? (
-                <TrendingUp className="h-8 w-8 text-red-600" />
-              ) : (
-                <TrendingDown className="h-8 w-8 text-green-600" />
-              )}
             </div>
           </CardContent>
         </Card>
@@ -573,16 +572,49 @@ export default function JobCardWeeklyCostReport() {
             <CardDescription>Analyze maintenance costs by week, fleet, or individual job cards</CardDescription>
           </div>
           <div className="flex items-center gap-2">
-            <Select value={weeksToShow} onValueChange={setWeeksToShow}>
-              <SelectTrigger className="w-[140px]">
+            <div className="flex rounded-lg border bg-muted p-0.5">
+              <button
+                onClick={() => setPeriodType("weekly")}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                  periodType === "weekly"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Weekly
+              </button>
+              <button
+                onClick={() => setPeriodType("monthly")}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                  periodType === "monthly"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Monthly
+              </button>
+            </div>
+
+            <Select value={periodsToShow} onValueChange={setPeriodsToShow}>
+              <SelectTrigger className="w-[150px]">
                 <Calendar className="w-4 h-4 mr-2" />
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="4">Last 4 weeks</SelectItem>
-                <SelectItem value="8">Last 8 weeks</SelectItem>
-                <SelectItem value="12">Last 12 weeks</SelectItem>
-                <SelectItem value="26">Last 26 weeks</SelectItem>
+                {periodType === "weekly" ? (
+                  <>
+                    <SelectItem value="4">Last 4 weeks</SelectItem>
+                    <SelectItem value="8">Last 8 weeks</SelectItem>
+                    <SelectItem value="12">Last 12 weeks</SelectItem>
+                    <SelectItem value="26">Last 26 weeks</SelectItem>
+                  </>
+                ) : (
+                  <>
+                    <SelectItem value="3">Last 3 months</SelectItem>
+                    <SelectItem value="6">Last 6 months</SelectItem>
+                    <SelectItem value="12">Last 12 months</SelectItem>
+                  </>
+                )}
               </SelectContent>
             </Select>
 
@@ -591,7 +623,7 @@ export default function JobCardWeeklyCostReport() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="weekly">Weekly View</SelectItem>
+                <SelectItem value="period">{periodType === "weekly" ? "Weekly" : "Monthly"} View</SelectItem>
                 <SelectItem value="fleet">By Fleet</SelectItem>
                 <SelectItem value="details">Job Details</SelectItem>
               </SelectContent>
@@ -618,11 +650,11 @@ export default function JobCardWeeklyCostReport() {
           </div>
         </CardHeader>
         <CardContent>
-          {viewMode === "weekly" && (
+          {viewMode === "period" && (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Week</TableHead>
+                  <TableHead>Period</TableHead>
                   <TableHead className="text-right">Labor</TableHead>
                   <TableHead className="text-right">Parts</TableHead>
                   <TableHead className="text-right">Services</TableHead>
@@ -632,30 +664,30 @@ export default function JobCardWeeklyCostReport() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {weeklyData.map((week, idx) => (
+                {periodData.map((period, idx) => (
                   <TableRow key={idx} className={idx === 0 ? "bg-primary/5" : ""}>
                     <TableCell className="font-medium">
-                      {week.weekLabel}
+                      {period.periodLabel}
                       {idx === 0 && <Badge variant="outline" className="ml-2">Current</Badge>}
                     </TableCell>
-                    <TableCell className="text-right">{formatCurrency(week.laborCost)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(period.laborCost)}</TableCell>
                     <TableCell className="text-right">
-                      <div>{formatCurrency(week.partsCost)}</div>
+                      <div>{formatCurrency(period.partsCost)}</div>
                       <div className="text-xs text-muted-foreground">
-                        Inv: {formatCurrency(week.inventoryPartsCost)} / Ext: {formatCurrency(week.externalPartsCost)}
+                        Inv: {formatCurrency(period.inventoryPartsCost)} / Ext: {formatCurrency(period.externalPartsCost)}
                       </div>
                     </TableCell>
-                    <TableCell className="text-right">{formatCurrency(week.servicesCost)}</TableCell>
-                    <TableCell className="text-right font-semibold">{formatCurrency(week.totalCost)}</TableCell>
-                    <TableCell className="text-center">{week.jobCardsCount}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(period.servicesCost)}</TableCell>
+                    <TableCell className="text-right font-semibold">{formatCurrency(period.totalCost)}</TableCell>
+                    <TableCell className="text-center">{period.jobCardsCount}</TableCell>
                     <TableCell className="text-center">
-                      <Badge variant={week.completedJobCards === week.jobCardsCount && week.jobCardsCount > 0 ? "default" : "secondary"}>
-                        {week.completedJobCards}/{week.jobCardsCount}
+                      <Badge variant={period.completedJobCards === period.jobCardsCount && period.jobCardsCount > 0 ? "default" : "secondary"}>
+                        {period.completedJobCards}/{period.jobCardsCount}
                       </Badge>
                     </TableCell>
                   </TableRow>
                 ))}
-                {weeklyData.length === 0 && (
+                {periodData.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                       No job card data found for the selected period

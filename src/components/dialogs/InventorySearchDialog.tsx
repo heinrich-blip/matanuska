@@ -81,7 +81,9 @@ export default function InventorySearchDialog({
         (item.quantity || 0) > (item.min_quantity || 0)) ||
       (stockFilter === "low-stock" &&
         (item.quantity || 0) > 0 &&
-        (item.quantity || 0) <= (item.min_quantity || 0));
+        (item.quantity || 0) <= (item.min_quantity || 0)) ||
+      (stockFilter === "out-of-stock" &&
+        (item.quantity || 0) === 0);
 
     return matchesSearch && matchesCategory && matchesStock;
   });
@@ -172,6 +174,7 @@ export default function InventorySearchDialog({
                 <SelectItem value="all">All Stock Levels</SelectItem>
                 <SelectItem value="in-stock">In Stock</SelectItem>
                 <SelectItem value="low-stock">Low Stock</SelectItem>
+                <SelectItem value="out-of-stock">Out of Stock</SelectItem>
               </SelectContent>
             </Select>
 

@@ -22,13 +22,6 @@ const Admin = () => {
   return (
     <Layout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Operation Dashboard</h1>
-          <p className="text-muted-foreground">
-            System administration and configuration
-          </p>
-        </div>
-
         <Tabs defaultValue="deployment" className="space-y-6">
           <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="deployment">Deployment Status</TabsTrigger>

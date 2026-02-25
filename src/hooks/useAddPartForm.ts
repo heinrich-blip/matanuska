@@ -183,7 +183,7 @@ export function validateForm(state: FormState): ValidationError | null {
   if (state.quantity <= 0) {
     return { field: "quantity", message: "Quantity must be greater than 0" };
   }
-  if (state.unitPrice <= 0) {
+  if (state.unitPrice <= 0 && !(state.sourceType === "inventory" && state.selectedInventoryId && state.quantity > state.availableQuantity)) {
     return { field: "unitPrice", message: "Unit price must be greater than 0" };
   }
   if (state.sourceType === "service" && !state.serviceDescription.trim()) {
@@ -216,15 +216,7 @@ export function validateForm(state: FormState): ValidationError | null {
       message: "Please select an inventory item",
     };
   }
-  if (
-    state.selectedInventoryId &&
-    state.quantity > state.availableQuantity
-  ) {
-    return {
-      field: "quantity",
-      message: `Only ${state.availableQuantity} units available in inventory`,
-    };
-  }
+  // Allow insufficient stock - item will flow to procurement as a request
   return null;
 }
 
@@ -446,6 +438,17 @@ export function useAddPartForm(
             : repeatNote;
         }
 
+        // Mark as out-of-stock in notes if insufficient inventory
+        const isOutOfStock = state.sourceType === "inventory" &&
+          !!state.selectedInventoryId &&
+          state.quantity > state.availableQuantity;
+        if (isOutOfStock) {
+          const stockNote = `[OUT OF STOCK - needs procurement] Available: ${state.availableQuantity}, Requested: ${state.quantity}`;
+          finalNotes = finalNotes
+            ? `${stockNote}\n${finalNotes}`
+            : stockNote;
+        }
+
         const insertData: Record<string, unknown> = {
           job_card_id: jobCardId,
           part_name: state.partName,
@@ -491,7 +494,9 @@ export function useAddPartForm(
 
         toast({
           title: "Success",
-          description: `${state.sourceType === "service" ? "Service" : "Part"} added successfully`,
+          description: isOutOfStock
+            ? `${state.sourceType === "service" ? "Service" : "Part"} added — item is short/out of stock and has been sent to procurement`
+            : `${state.sourceType === "service" ? "Service" : "Part"} added successfully`,
         });
 
         onSuccess();

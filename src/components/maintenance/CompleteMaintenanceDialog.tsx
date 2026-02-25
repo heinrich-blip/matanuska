@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { MaintenanceSchedule } from "@/types/maintenance";
+import { updateVehicleOdometer, evaluateKmSchedules } from "@/lib/maintenanceKmTracking";
 
 interface CompleteMaintenanceDialogProps {
   open: boolean;
@@ -56,6 +57,24 @@ export function CompleteMaintenanceDialog({
         });
 
       if (historyError) throw historyError;
+
+      // Update schedule's last_odometer_reading if odometer was recorded
+      if (odometerReading && schedule.odometer_based) {
+        const odoValue = parseInt(odometerReading);
+        
+        // Update the schedule's last_odometer_reading
+        await supabase
+          .from("maintenance_schedules")
+          .update({ last_odometer_reading: odoValue })
+          .eq("id", schedule.id);
+
+        // Update vehicle's current_odometer if vehicle is linked
+        if (schedule.vehicle_id) {
+          await updateVehicleOdometer(schedule.vehicle_id, odoValue);
+          // Re-evaluate KM schedules for this vehicle
+          await evaluateKmSchedules(schedule.vehicle_id, odoValue);
+        }
+      }
 
       // The trigger will handle updating next_due_date
       toast.success("Maintenance completed successfully");

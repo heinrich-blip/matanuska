@@ -10,14 +10,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
+// Separator removed – no longer needed
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { addDays, format, getISOWeek, parseISO, startOfWeek } from 'date-fns';
 import { 
   AlertTriangle, 
   Building, 
-  Calendar, 
   ChevronDown, 
   ChevronRight, 
   DollarSign, 
@@ -27,7 +26,6 @@ import {
   Filter, 
   FilterX, 
   Gauge, 
-  MapPin, 
   MoreVertical, 
   Plus, 
   RefreshCw, 
@@ -734,218 +732,145 @@ const ActiveTrips = ({
                                   </div>
                                 </CollapsibleTrigger>
 
-                                <CollapsibleContent className="mt-2">
-                                  <div className="space-y-2 pl-12">
-                                    {fleetTrips.map((trip) => {
-                                      const profit = calculateProfit(trip);
-                                      const isDuplicate = duplicatePods.includes(trip.trip_number);
-                                      const needsAttention = trip.hasFlaggedCosts || trip.hasPendingCosts || trip.hasNoCosts;
+                                <CollapsibleContent className="mt-1">
+                                  <div className="ml-10 border rounded-lg overflow-hidden bg-card">
+                                    <table className="w-full text-sm">
+                                      <thead>
+                                        <tr className="bg-muted/40 border-b">
+                                          <th className="text-left py-2 px-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider w-[80px]">POD</th>
+                                          <th className="text-left py-2 px-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Route</th>
+                                          <th className="text-left py-2 px-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Driver</th>
+                                          <th className="text-left py-2 px-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Client</th>
+                                          <th className="text-left py-2 px-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider w-[90px]">Date</th>
+                                          <th className="text-right py-2 px-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider w-[85px]">Distance</th>
+                                          <th className="text-right py-2 px-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider w-[100px]">Revenue</th>
+                                          <th className="text-right py-2 px-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider w-[100px]">Expenses</th>
+                                          <th className="text-right py-2 px-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider w-[90px]">Profit</th>
+                                          <th className="text-center py-2 px-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider w-[60px]"></th>
+                                        </tr>
+                                      </thead>
+                                      <tbody className="divide-y divide-border/50">
+                                        {fleetTrips.map((trip) => {
+                                          const profit = calculateProfit(trip);
+                                          const isDuplicate = duplicatePods.includes(trip.trip_number);
+                                          const needsAttention = trip.hasFlaggedCosts || trip.hasPendingCosts || trip.hasNoCosts;
+                                          const expenses = [...(trip.costs || []), ...(trip.additional_costs || [])].reduce((s, c) => s + (c.amount || 0), 0);
 
-                                      return (
-                                        <Card key={trip.id} className={`overflow-hidden transition-all hover:shadow-md ${
-                                          isDuplicate ? 'border-destructive/30 bg-destructive/5' : 
-                                          needsAttention ? 'border-amber-300 bg-amber-50/30' : ''
-                                        }`}>
-                                          <div className="p-5">
-                                            {/* Header */}
-                                            <div className="flex items-start justify-between mb-4">
-                                              <div className="flex items-start gap-4">
-                                                <div className={`flex flex-col items-center justify-center w-14 h-14 rounded-xl ${
-                                                  trip.hasFlaggedCosts ? 'bg-amber-100 ring-2 ring-amber-400' :
-                                                  trip.hasNoCosts ? 'bg-rose-100 ring-2 ring-rose-300' :
-                                                  'bg-primary/10'
-                                                }`}>
-                                                  <span className="text-xs text-muted-foreground">POD</span>
-                                                  <span className="text-lg font-bold text-primary leading-none">{trip.trip_number}</span>
-                                                </div>
-                                                <div>
-                                                  <div className="flex items-center gap-2 mb-1">
-                                                    <h4 className="font-semibold text-lg">{trip.route || 'No route specified'}</h4>
-                                                    {/* Warning indicators */}
-                                                    {trip.hasFlaggedCosts && (
-                                                      <Tooltip>
-                                                        <TooltipTrigger>
-                                                          <Badge variant="outline" className="bg-amber-100 text-amber-700 border-amber-300 gap-1 text-xs">
-                                                            <AlertTriangle className="h-3 w-3" />
-                                                            {trip.flaggedCostCount} flagged
-                                                          </Badge>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>
-                                                          <p>{trip.flaggedCostCount} cost{trip.flaggedCostCount === 1 ? '' : 's'} flagged for review</p>
-                                                        </TooltipContent>
-                                                      </Tooltip>
-                                                    )}
-                                                    {trip.hasPendingCosts && !trip.hasFlaggedCosts && (
-                                                      <Tooltip>
-                                                        <TooltipTrigger>
-                                                          <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300 gap-1 text-xs">
-                                                            <RefreshCw className="h-3 w-3" />
-                                                            {trip.pendingCostCount} pending
-                                                          </Badge>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>
-                                                          <p>{trip.pendingCostCount} cost{trip.pendingCostCount === 1 ? '' : 's'} under investigation</p>
-                                                        </TooltipContent>
-                                                      </Tooltip>
-                                                    )}
-                                                    {trip.hasNoCosts && (
-                                                      <Tooltip>
-                                                        <TooltipTrigger>
-                                                          <Badge variant="outline" className="bg-rose-100 text-rose-700 border-rose-300 gap-1 text-xs">
-                                                            <AlertTriangle className="h-3 w-3" />
-                                                            No costs
-                                                          </Badge>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>
-                                                          <p>No cost entries recorded for this trip</p>
-                                                        </TooltipContent>
-                                                      </Tooltip>
-                                                    )}
-                                                    {isDuplicate && (
-                                                      <Tooltip>
-                                                        <TooltipTrigger>
-                                                          <AlertTriangle className="h-4 w-4 text-destructive" />
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>
-                                                          <p>Duplicate POD number</p>
-                                                        </TooltipContent>
-                                                      </Tooltip>
-                                                    )}
-                                                  </div>
-                                                  <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
-                                                    <span className="flex items-center gap-1">
-                                                      <Calendar className="h-3.5 w-3.5" />
-                                                      {trip.departure_date ? format(parseISO(trip.departure_date), 'dd MMM yyyy') : 'No date'}
-                                                    </span>
-                                                    <span>•</span>
-                                                    <span className="flex items-center gap-1">
-                                                      <MapPin className="h-3.5 w-3.5" />
-                                                      {trip.client_name || 'No client'}
-                                                    </span>
-                                                    {/* Days in progress indicator */}
-                                                    {trip.daysInProgress && trip.daysInProgress > 0 && (
-                                                      <>
-                                                        <span>•</span>
-                                                        <Badge variant="outline" className={`text-xs px-1.5 py-0 ${
-                                                          trip.daysInProgress > 14 ? 'bg-amber-100 text-amber-700 border-amber-300' :
-                                                          trip.daysInProgress > 7 ? 'bg-blue-100 text-blue-700 border-blue-300' :
-                                                          'bg-muted text-muted-foreground'
-                                                        }`}>
-                                                          {trip.daysInProgress}d
-                                                        </Badge>
-                                                      </>
-                                                    )}
-                                                    {/* Payment status badge */}
-                                                    {trip.payment_status && (
-                                                      <Badge variant="outline" className={`text-xs px-1.5 py-0 ${
-                                                        trip.payment_status === 'paid' ? 'bg-emerald-100 text-emerald-700 border-emerald-300' :
-                                                        trip.payment_status === 'partial' ? 'bg-amber-100 text-amber-700 border-amber-300' :
-                                                        'bg-slate-100 text-slate-600 border-slate-300'
-                                                      }`}>
-                                                        {trip.payment_status === 'paid' ? 'Paid' :
-                                                         trip.payment_status === 'partial' ? 'Partial' : 'Unpaid'}
-                                                      </Badge>
-                                                    )}
-                                                  </div>
-                                                </div>
-                                              </div>
-
-                                              <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                  <Button variant="ghost" size="icon" className="h-9 w-9">
-                                                    <MoreVertical className="h-4 w-4" />
-                                                  </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end" className="w-56">
-                                                  <DropdownMenuItem onClick={() => onView(trip)} className="gap-2">
-                                                    <Eye className="h-4 w-4" /> View Details
-                                                  </DropdownMenuItem>
-                                                  <DropdownMenuItem onClick={() => onEdit(trip)} className="gap-2">
-                                                    <Edit className="h-4 w-4" /> Edit Trip
-                                                  </DropdownMenuItem>
-                                                  <DropdownMenuSeparator />
-                                                  <DropdownMenuItem onClick={() => handleDelete(trip.id)} className="gap-2 text-destructive">
-                                                    <Trash2 className="h-4 w-4" /> Delete Trip
-                                                  </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                              </DropdownMenu>
-                                            </div>
-
-                                            {/* Metrics Grid */}
-                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                                              <div className="bg-muted/30 rounded-lg p-3">
-                                                <p className="text-xs text-muted-foreground mb-1">Driver</p>
-                                                <div className="flex items-center gap-2">
-                                                  <User className="h-4 w-4 text-muted-foreground" />
-                                                  <span className="font-medium truncate">{trip.driver_name || '—'}</span>
-                                                </div>
-                                              </div>
-
-                                              <div className="bg-muted/30 rounded-lg p-3">
-                                                <p className="text-xs text-muted-foreground mb-1">Fleet</p>
-                                                <div className="flex items-center gap-2">
-                                                  <Truck className="h-4 w-4 text-muted-foreground" />
-                                                  <span className="font-mono font-medium">{trip.fleet_number || '—'}</span>
-                                                </div>
-                                              </div>
-
-                                              <div className="bg-muted/30 rounded-lg p-3">
-                                                <p className="text-xs text-muted-foreground mb-1">Distance</p>
-                                                <div className="flex items-center gap-2">
-                                                  <Gauge className="h-4 w-4 text-muted-foreground" />
-                                                  <span className="font-medium">
-                                                    {trip.distance_km ? `${trip.distance_km.toLocaleString()} km` : '—'}
-                                                    {trip.empty_km ? ` (${trip.empty_km} empty)` : ''}
-                                                  </span>
-                                                </div>
-                                              </div>
-
-                                              <div className="bg-muted/30 rounded-lg p-3">
-                                                <p className="text-xs text-muted-foreground mb-1">Profit</p>
-                                                <div className="flex items-center gap-2">
-                                                  <DollarSign className={`h-4 w-4 ${profit?.amount && profit.amount >= 0 ? 'text-emerald-500' : 'text-rose-500'}`} />
-                                                  <span className={`font-semibold ${
-                                                    profit?.amount && profit.amount >= 0 ? 'text-emerald-600' : 'text-rose-600'
-                                                  }`}>
-                                                    {profit ? formatCurrency(profit.amount, profit.currency) : '—'}
-                                                  </span>
-                                                </div>
-                                              </div>
-                                            </div>
-
-                                            {/* Financial Details */}
-                                            <div className="flex flex-wrap items-center gap-4 text-sm border-t pt-3">
-                                              <div className="flex items-center gap-2">
-                                                <span className="text-muted-foreground">Revenue:</span>
-                                                <span className="font-semibold text-emerald-600">
-                                                  {formatCurrency(trip.base_revenue || 0, trip.revenue_currency)}
-                                                </span>
-                                              </div>
-                                              <Separator orientation="vertical" className="h-4" />
-                                              <div className="flex items-center gap-2">
-                                                <span className="text-muted-foreground">Expenses:</span>
-                                                <span className="font-semibold text-rose-600">
-                                                  {formatCurrency(
-                                                    [...(trip.costs || []), ...(trip.additional_costs || [])].reduce((s, c) => s + (c.amount || 0), 0)
+                                          return (
+                                            <tr
+                                              key={trip.id}
+                                              className={`group transition-colors cursor-pointer ${
+                                                isDuplicate ? 'bg-destructive/5 hover:bg-destructive/10' :
+                                                needsAttention ? 'bg-amber-50/40 hover:bg-amber-50/70' :
+                                                'hover:bg-muted/40'
+                                              }`}
+                                              onClick={() => onView(trip)}
+                                            >
+                                              <td className="py-2.5 px-3">
+                                                <div className="flex items-center gap-1.5">
+                                                  <span className="font-semibold text-primary tabular-nums">{trip.trip_number}</span>
+                                                  {isDuplicate && (
+                                                    <Tooltip>
+                                                      <TooltipTrigger><AlertTriangle className="h-3 w-3 text-destructive shrink-0" /></TooltipTrigger>
+                                                      <TooltipContent><p>Duplicate POD</p></TooltipContent>
+                                                    </Tooltip>
                                                   )}
-                                                </span>
-                                              </div>
-                                              {trip.notes && (
-                                                <>
-                                                  <Separator orientation="vertical" className="h-4" />
-                                                  <div className="flex items-center gap-2">
-                                                    <span className="text-muted-foreground">Notes:</span>
-                                                    <span className="text-sm text-muted-foreground italic truncate max-w-[200px]">
-                                                      {trip.notes}
-                                                    </span>
-                                                  </div>
-                                                </>
-                                              )}
-                                            </div>
-                                          </div>
-                                        </Card>
-                                      );
-                                    })}
+                                                </div>
+                                              </td>
+                                              <td className="py-2.5 px-3">
+                                                <div className="flex items-center gap-1.5 min-w-0">
+                                                  <span className="font-medium truncate max-w-[180px]">{trip.route || '—'}</span>
+                                                  {trip.hasFlaggedCosts && (
+                                                    <Tooltip>
+                                                      <TooltipTrigger>
+                                                        <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-amber-700 bg-amber-100 rounded px-1 py-0.5 shrink-0">
+                                                          <AlertTriangle className="h-2.5 w-2.5" />{trip.flaggedCostCount}
+                                                        </span>
+                                                      </TooltipTrigger>
+                                                      <TooltipContent><p>{trip.flaggedCostCount} cost{trip.flaggedCostCount === 1 ? '' : 's'} flagged</p></TooltipContent>
+                                                    </Tooltip>
+                                                  )}
+                                                  {trip.hasPendingCosts && !trip.hasFlaggedCosts && (
+                                                    <Tooltip>
+                                                      <TooltipTrigger>
+                                                        <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-blue-700 bg-blue-100 rounded px-1 py-0.5 shrink-0">
+                                                          <RefreshCw className="h-2.5 w-2.5" />{trip.pendingCostCount}
+                                                        </span>
+                                                      </TooltipTrigger>
+                                                      <TooltipContent><p>{trip.pendingCostCount} cost{trip.pendingCostCount === 1 ? '' : 's'} pending</p></TooltipContent>
+                                                    </Tooltip>
+                                                  )}
+                                                  {trip.hasNoCosts && (
+                                                    <Tooltip>
+                                                      <TooltipTrigger>
+                                                        <span className="inline-flex items-center text-[10px] font-medium text-rose-700 bg-rose-100 rounded px-1 py-0.5 shrink-0">!</span>
+                                                      </TooltipTrigger>
+                                                      <TooltipContent><p>No costs recorded</p></TooltipContent>
+                                                    </Tooltip>
+                                                  )}
+                                                </div>
+                                              </td>
+                                              <td className="py-2.5 px-3 text-muted-foreground truncate max-w-[120px]">{trip.driver_name || '—'}</td>
+                                              <td className="py-2.5 px-3 text-muted-foreground truncate max-w-[120px]">
+                                                <div className="flex items-center gap-1.5">
+                                                  <span className="truncate">{trip.client_name || '—'}</span>
+                                                  {trip.payment_status && (
+                                                    <span className={`inline-block w-1.5 h-1.5 rounded-full shrink-0 ${
+                                                      trip.payment_status === 'paid' ? 'bg-emerald-500' :
+                                                      trip.payment_status === 'partial' ? 'bg-amber-500' :
+                                                      'bg-slate-400'
+                                                    }`} title={trip.payment_status === 'paid' ? 'Paid' : trip.payment_status === 'partial' ? 'Partial' : 'Unpaid'} />
+                                                  )}
+                                                </div>
+                                              </td>
+                                              <td className="py-2.5 px-3 text-muted-foreground tabular-nums text-xs">
+                                                {trip.departure_date ? format(parseISO(trip.departure_date), 'dd MMM') : '—'}
+                                                {trip.daysInProgress && trip.daysInProgress > 7 && (
+                                                  <span className={`ml-1 text-[10px] font-medium ${trip.daysInProgress > 14 ? 'text-amber-600' : 'text-blue-600'}`}>
+                                                    {trip.daysInProgress}d
+                                                  </span>
+                                                )}
+                                              </td>
+                                              <td className="py-2.5 px-3 text-right tabular-nums text-muted-foreground">
+                                                {trip.distance_km ? `${trip.distance_km.toLocaleString()}` : '—'}
+                                              </td>
+                                              <td className="py-2.5 px-3 text-right tabular-nums font-medium text-emerald-600">
+                                                {formatCurrency(trip.base_revenue || 0, trip.revenue_currency)}
+                                              </td>
+                                              <td className="py-2.5 px-3 text-right tabular-nums font-medium text-rose-600">
+                                                {expenses > 0 ? formatCurrency(expenses) : '—'}
+                                              </td>
+                                              <td className={`py-2.5 px-3 text-right tabular-nums font-semibold ${
+                                                profit?.amount && profit.amount >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                                              }`}>
+                                                {profit ? formatCurrency(profit.amount, profit.currency) : '—'}
+                                              </td>
+                                              <td className="py-2.5 px-2 text-center" onClick={(e) => e.stopPropagation()}>
+                                                <DropdownMenu>
+                                                  <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                      <MoreVertical className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                  </DropdownMenuTrigger>
+                                                  <DropdownMenuContent align="end" className="w-48">
+                                                    <DropdownMenuItem onClick={() => onView(trip)} className="gap-2 text-xs">
+                                                      <Eye className="h-3.5 w-3.5" /> View Details
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => onEdit(trip)} className="gap-2 text-xs">
+                                                      <Edit className="h-3.5 w-3.5" /> Edit Trip
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem onClick={() => handleDelete(trip.id)} className="gap-2 text-xs text-destructive">
+                                                      <Trash2 className="h-3.5 w-3.5" /> Delete
+                                                    </DropdownMenuItem>
+                                                  </DropdownMenuContent>
+                                                </DropdownMenu>
+                                              </td>
+                                            </tr>
+                                          );
+                                        })}
+                                      </tbody>
+                                    </table>
                                   </div>
                                 </CollapsibleContent>
                               </Collapsible>
@@ -962,62 +887,111 @@ const ActiveTrips = ({
 
         {/* Trip List - List View */}
         {!isLoading && viewMode === 'list' && filteredTrips.length > 0 && (
-          <div className="bg-card border rounded-xl overflow-hidden">
+          <div className="bg-card border rounded-xl overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-muted/50 border-b">
-                  <tr>
-                    <th className="text-left p-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">POD</th>
-                    <th className="text-left p-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fleet</th>
-                    <th className="text-left p-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Driver</th>
-                    <th className="text-left p-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Client</th>
-                    <th className="text-left p-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Route</th>
-                    <th className="text-right p-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Revenue</th>
-                    <th className="text-right p-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Expenses</th>
-                    <th className="text-right p-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Distance</th>
-                    <th className="text-right p-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Actions</th>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-muted/40 border-b">
+                    <th className="text-left py-2.5 px-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">POD</th>
+                    <th className="text-left py-2.5 px-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Fleet</th>
+                    <th className="text-left py-2.5 px-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Driver</th>
+                    <th className="text-left py-2.5 px-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Client</th>
+                    <th className="text-left py-2.5 px-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Route</th>
+                    <th className="text-left py-2.5 px-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Date</th>
+                    <th className="text-right py-2.5 px-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Distance</th>
+                    <th className="text-right py-2.5 px-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Revenue</th>
+                    <th className="text-right py-2.5 px-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Expenses</th>
+                    <th className="text-right py-2.5 px-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Profit</th>
+                    <th className="text-center py-2.5 px-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider w-[60px]"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y">
+                <tbody className="divide-y divide-border/50">
                   {filteredTrips.map((trip) => {
                     const profit = calculateProfit(trip);
+                    const isDuplicate = duplicatePods.includes(trip.trip_number);
+                    const needsAttention = trip.hasFlaggedCosts || trip.hasPendingCosts || trip.hasNoCosts;
+                    const expenses = [...(trip.costs || []), ...(trip.additional_costs || [])].reduce((s, c) => s + (c.amount || 0), 0);
                     return (
-                      <tr key={trip.id} className="hover:bg-muted/30 transition-colors">
-                        <td className="p-3">
-                          <span className="font-medium text-sm">{trip.trip_number}</span>
-                          {duplicatePods.includes(trip.trip_number) && (
-                            <AlertTriangle className="h-3 w-3 text-amber-500 ml-2 inline" />
-                          )}
-                        </td>
-                        <td className="p-3">
-                          <Badge variant="outline" className="text-xs">{trip.fleet_number || '-'}</Badge>
-                        </td>
-                        <td className="p-3 text-sm">{trip.driver_name || '-'}</td>
-                        <td className="p-3 text-sm">{trip.client_name || '-'}</td>
-                        <td className="p-3 text-sm max-w-[150px] truncate">{trip.route || '-'}</td>
-                        <td className="p-3 text-right">
-                          <span className="text-sm font-medium text-emerald-600">
-                            {formatCurrency(trip.base_revenue || 0)}
-                          </span>
-                        </td>
-                        <td className="p-3 text-right">
-                          <span className="text-sm font-medium text-rose-600">
-                            {formatCurrency(profit ? profit.amount - (trip.base_revenue || 0) : 0)}
-                          </span>
-                        </td>
-                        <td className="p-3 text-right text-sm">{trip.distance_km?.toLocaleString() || 0} km</td>
-                        <td className="p-3 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => onView(trip)} title="View">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => onEdit(trip)} title="Edit">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive" onClick={() => handleDelete(trip.id)} title="Delete">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                      <tr
+                        key={trip.id}
+                        className={`group transition-colors cursor-pointer ${
+                          isDuplicate ? 'bg-destructive/5 hover:bg-destructive/10' :
+                          needsAttention ? 'bg-amber-50/40 hover:bg-amber-50/70' :
+                          'hover:bg-muted/40'
+                        }`}
+                        onClick={() => onView(trip)}
+                      >
+                        <td className="py-2.5 px-3">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-semibold text-primary tabular-nums">{trip.trip_number}</span>
+                            {isDuplicate && <AlertTriangle className="h-3 w-3 text-destructive" />}
                           </div>
+                        </td>
+                        <td className="py-2.5 px-3">
+                          <span className="font-mono text-xs text-muted-foreground">{trip.fleet_number || '—'}</span>
+                        </td>
+                        <td className="py-2.5 px-3 text-muted-foreground truncate max-w-[120px]">{trip.driver_name || '—'}</td>
+                        <td className="py-2.5 px-3 text-muted-foreground truncate max-w-[120px]">
+                          <div className="flex items-center gap-1.5">
+                            <span className="truncate">{trip.client_name || '—'}</span>
+                            {trip.payment_status && (
+                              <span className={`inline-block w-1.5 h-1.5 rounded-full shrink-0 ${
+                                trip.payment_status === 'paid' ? 'bg-emerald-500' :
+                                trip.payment_status === 'partial' ? 'bg-amber-500' : 'bg-slate-400'
+                              }`} title={trip.payment_status === 'paid' ? 'Paid' : trip.payment_status === 'partial' ? 'Partial' : 'Unpaid'} />
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-2.5 px-3">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="truncate max-w-[150px]">{trip.route || '—'}</span>
+                            {trip.hasFlaggedCosts && (
+                              <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-amber-700 bg-amber-100 rounded px-1 py-0.5 shrink-0">
+                                <AlertTriangle className="h-2.5 w-2.5" />{trip.flaggedCostCount}
+                              </span>
+                            )}
+                            {trip.hasNoCosts && (
+                              <span className="inline-flex items-center text-[10px] font-medium text-rose-700 bg-rose-100 rounded px-1 py-0.5 shrink-0">!</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-2.5 px-3 text-muted-foreground tabular-nums text-xs">
+                          {trip.departure_date ? format(parseISO(trip.departure_date), 'dd MMM') : '—'}
+                        </td>
+                        <td className="py-2.5 px-3 text-right tabular-nums text-muted-foreground">
+                          {trip.distance_km ? `${trip.distance_km.toLocaleString()}` : '—'}
+                        </td>
+                        <td className="py-2.5 px-3 text-right tabular-nums font-medium text-emerald-600">
+                          {formatCurrency(trip.base_revenue || 0, trip.revenue_currency)}
+                        </td>
+                        <td className="py-2.5 px-3 text-right tabular-nums font-medium text-rose-600">
+                          {expenses > 0 ? formatCurrency(expenses) : '—'}
+                        </td>
+                        <td className={`py-2.5 px-3 text-right tabular-nums font-semibold ${
+                          profit?.amount && profit.amount >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                        }`}>
+                          {profit ? formatCurrency(profit.amount, profit.currency) : '—'}
+                        </td>
+                        <td className="py-2.5 px-2 text-center" onClick={(e) => e.stopPropagation()}>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <MoreVertical className="h-3.5 w-3.5" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                              <DropdownMenuItem onClick={() => onView(trip)} className="gap-2 text-xs">
+                                <Eye className="h-3.5 w-3.5" /> View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => onEdit(trip)} className="gap-2 text-xs">
+                                <Edit className="h-3.5 w-3.5" /> Edit Trip
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => handleDelete(trip.id)} className="gap-2 text-xs text-destructive">
+                                <Trash2 className="h-3.5 w-3.5" /> Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </td>
                       </tr>
                     );

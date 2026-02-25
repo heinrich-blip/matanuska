@@ -101,9 +101,9 @@ export const useDrivers = () => {
     },
   });
 
-  // Update driver mutation
+  // Update driver mutation — cascades name changes across all tables
   const updateDriverMutation = useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: DriverUpdate }) => {
+    mutationFn: async ({ id, updates, previousName }: { id: string; updates: DriverUpdate; previousName?: string }) => {
       const { data, error } = await supabase
         .from('drivers')
         .update({ ...updates, updated_at: new Date().toISOString() })
@@ -112,10 +112,34 @@ export const useDrivers = () => {
         .single();
 
       if (error) throw error;
-      return data as Driver;
+
+      const updatedDriver = data as Driver;
+      const newName = `${updatedDriver.first_name} ${updatedDriver.last_name}`.trim();
+
+      // Cascade name change across all tables if name was modified
+      if (previousName && previousName.toLowerCase().trim() !== newName.toLowerCase().trim()) {
+        const { error: rpcError } = await supabase.rpc('cascade_driver_name_update', {
+          p_old_name: previousName,
+          p_new_name: newName,
+        });
+        if (rpcError) {
+          console.error('Failed to cascade driver name update:', rpcError);
+          // Don't throw — the driver itself was updated successfully
+        }
+      }
+
+      return updatedDriver;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['drivers'] });
+      // Also invalidate queries that display driver_name from other tables
+      queryClient.invalidateQueries({ queryKey: ['trips'] });
+      queryClient.invalidateQueries({ queryKey: ['diesel-records'] });
+      queryClient.invalidateQueries({ queryKey: ['reefer-diesel-records'] });
+      queryClient.invalidateQueries({ queryKey: ['fuel-transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['incidents'] });
+      queryClient.invalidateQueries({ queryKey: ['driver-behavior'] });
+      queryClient.invalidateQueries({ queryKey: ['coaching-sessions'] });
       toast({
         title: 'Success',
         description: `Driver "${data.first_name} ${data.last_name}" updated successfully`,

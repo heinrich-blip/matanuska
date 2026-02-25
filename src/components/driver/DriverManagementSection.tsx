@@ -137,9 +137,11 @@ const DriverManagementSection = () => {
 
     try {
       if (editingDriver) {
+        const previousName = `${editingDriver.first_name} ${editingDriver.last_name}`.trim();
         await updateDriver({
           id: editingDriver.id,
           updates: formData,
+          previousName,
         });
       } else {
         await createDriver(formData as DriverInsert);

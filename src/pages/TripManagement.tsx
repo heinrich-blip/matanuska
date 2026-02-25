@@ -18,7 +18,6 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Trip } from "@/types/operations";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, BarChart3, CheckCircle2, CreditCard, FileText, LineChart, Receipt, Zap } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const TripManagement = () => {
@@ -143,7 +142,7 @@ const TripManagement = () => {
     placeholderData: (previousData) => previousData,
     // Don't show error toast on background refetch failures
     retry: 2,
-    staleTime: 10000, // Consider data fresh for 10 seconds
+    staleTime: 15000, // Consider data fresh for 15 seconds (prevents duplicate refetches from real-time + manual invalidation)
   });
 
   // Memoize filtered trips to prevent unnecessary re-renders
@@ -157,24 +156,18 @@ const TripManagement = () => {
     [allTrips]
   );
 
-  // Check if any dialog is open (prevents DOM conflicts during animations)
-  const isAnyDialogOpen = showEditDialog || showTripDetails || isAddDialogOpen || isImportModalOpen;
-
-  // Debounced refetch function that respects dialog state
+  // Debounced refetch function that coalesces rapid updates
   const debouncedRefetch = useCallback(() => {
-    // Clear any pending refetch
+    // Clear any pending refetch to coalesce rapid-fire events
     if (pendingRefetchRef.current) {
       clearTimeout(pendingRefetchRef.current);
     }
-    // If a dialog is open, delay the refetch to prevent portal issues
-    if (isAnyDialogOpen) {
-      pendingRefetchRef.current = setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ['trips'] });
-      }, 500);
-    } else {
+    // Always debounce real-time events by 1.5s to avoid redundant refetches
+    // after manual invalidateQueries (edit/save already invalidates immediately)
+    pendingRefetchRef.current = setTimeout(() => {
       queryClient.invalidateQueries({ queryKey: ['trips'] });
-    }
-  }, [queryClient, isAnyDialogOpen]);
+    }, 1500);
+  }, [queryClient]);
 
   // Real-time subscription for instant updates
   useEffect(() => {
@@ -220,7 +213,9 @@ const TripManagement = () => {
         title: 'Success',
         description: 'Trip deleted successfully',
       });
-      fetchTrips();
+      queryClient.invalidateQueries({ queryKey: ['trips'] });
+      queryClient.invalidateQueries({ queryKey: ['delivery-dashboard-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['recent-delivery-performance'] });
     } catch (error) {
       console.error('Error deleting trip:', error);
       toast({
@@ -249,47 +244,34 @@ const TripManagement = () => {
   return (
     <Layout>
       <div className="space-y-5">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Trip Management</h1>
-          <p className="text-muted-foreground mt-1">Plan, track, and manage fleet trips and expenses</p>
-        </div>
-
         <Tabs defaultValue="active" className="space-y-5">
           <div className="bg-card/80 backdrop-blur-sm border border-border/60 rounded-xl p-1.5 shadow-sm">
-            <TabsList className="inline-flex w-full bg-transparent gap-1 h-auto p-0 flex-wrap">
-              <TabsTrigger value="active" className="rounded-lg px-3.5 py-2 text-sm font-medium gap-2 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all duration-200">
-                <Zap className="h-3.5 w-3.5" />
+            <TabsList className="inline-flex w-full bg-transparent gap-2 h-auto p-1 flex-wrap">
+              <TabsTrigger value="active" className="rounded-lg px-5 py-2.5 text-base font-medium data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all duration-200">
                 Active
                 {activeTrips.length > 0 && <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-bold rounded-full">{activeTrips.length}</Badge>}
               </TabsTrigger>
-              <TabsTrigger value="completed" className="rounded-lg px-3.5 py-2 text-sm font-medium gap-2 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all duration-200">
-                <CheckCircle2 className="h-3.5 w-3.5" />
+              <TabsTrigger value="completed" className="rounded-lg px-5 py-2.5 text-base font-medium data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all duration-200">
                 Completed
                 {completedTrips.length > 0 && <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-bold rounded-full">{completedTrips.length}</Badge>}
               </TabsTrigger>
-              <TabsTrigger value="expenses" className="rounded-lg px-3.5 py-2 text-sm font-medium gap-2 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all duration-200">
-                <Receipt className="h-3.5 w-3.5" />
+              <TabsTrigger value="expenses" className="rounded-lg px-5 py-2.5 text-base font-medium data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all duration-200">
                 Expenses
               </TabsTrigger>
-              <TabsTrigger value="reports" className="rounded-lg px-3.5 py-2 text-sm font-medium gap-2 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all duration-200">
-                <BarChart3 className="h-3.5 w-3.5" />
+              <TabsTrigger value="reports" className="rounded-lg px-5 py-2.5 text-base font-medium data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all duration-200">
                 Reports
               </TabsTrigger>
-              <TabsTrigger value="invoices" className="rounded-lg px-3.5 py-2 text-sm font-medium gap-2 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all duration-200">
-                <FileText className="h-3.5 w-3.5" />
+              <TabsTrigger value="invoices" className="rounded-lg px-5 py-2.5 text-base font-medium data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all duration-200">
                 Invoices
               </TabsTrigger>
-              <TabsTrigger value="analytics" className="rounded-lg px-3.5 py-2 text-sm font-medium gap-2 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all duration-200">
-                <LineChart className="h-3.5 w-3.5" />
+              <TabsTrigger value="analytics" className="rounded-lg px-5 py-2.5 text-base font-medium data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all duration-200">
                 Analytics
               </TabsTrigger>
-              <TabsTrigger value="ytd" className="rounded-lg px-3.5 py-2 text-sm font-medium gap-2 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all duration-200">
-                <CreditCard className="h-3.5 w-3.5" />
+              <TabsTrigger value="ytd" className="rounded-lg px-5 py-2.5 text-base font-medium data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all duration-200">
                 YTD
               </TabsTrigger>
-              <TabsTrigger value="missed-loads" className="rounded-lg px-3.5 py-2 text-sm font-medium gap-2 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all duration-200">
-                <AlertCircle className="h-3.5 w-3.5" />
-                Missed
+              <TabsTrigger value="missed-loads" className="rounded-lg px-5 py-2.5 text-base font-medium data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all duration-200">
+                Missed Loads
               </TabsTrigger>
             </TabsList>
           </div>

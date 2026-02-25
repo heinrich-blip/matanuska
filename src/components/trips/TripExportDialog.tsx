@@ -37,6 +37,8 @@ export interface ExportableTrip {
   ending_km?: number;
   status?: string;
   load_type?: string;
+  costs?: { amount: number; currency?: string }[];
+  additional_costs?: { amount: number; currency?: string }[];
 }
 
 type ExportFilterType = 'all' | 'client' | 'driver' | 'fleet';
@@ -128,11 +130,23 @@ const TripExportDialog = ({ isOpen, onClose, trips, tripType }: TripExportDialog
       let exportData;
       let colWidths;
 
+      // Helper to calculate total expenses for a trip, filtered by currency
+      // so that Revenue - Expenses = Profit is meaningful (same currency)
+      const calcExpenses = (trip: typeof tripsToExport[0], currency?: string) => {
+        const tripCurrency = currency || trip.revenue_currency || 'USD';
+        return [...(trip.costs || []), ...(trip.additional_costs || [])]
+          .filter(c => (c.currency || 'USD') === tripCurrency)
+          .reduce((s, c) => s + (c.amount || 0), 0);
+      };
+
       if (exportFormat === 'marketing') {
         // Marketing format with specific headers
         exportData = tripsToExport.map(trip => {
           const loadSpan = trip.distance_km ||
             (trip.ending_km && trip.starting_km ? trip.ending_km - trip.starting_km : '');
+          const tripCurrency = trip.revenue_currency || 'USD';
+          const expenses = calcExpenses(trip, tripCurrency);
+          const revenue = trip.base_revenue || 0;
 
           return {
             'Delivery Book': trip.trip_number || '',
@@ -148,7 +162,10 @@ const TripExportDialog = ({ isOpen, onClose, trips, tripType }: TripExportDialog
             'Closing Odo': trip.ending_km || '',
             'Load Span': loadSpan,
             'Unit Type': trip.load_type || '',
-            'Tariff': trip.base_revenue || '',
+            'Currency': tripCurrency,
+            'Tariff': revenue,
+            'Expenses': expenses,
+            'Profit': revenue - expenses,
           };
         });
 
@@ -166,29 +183,39 @@ const TripExportDialog = ({ isOpen, onClose, trips, tripType }: TripExportDialog
           { wch: 12 }, // Closing Odo
           { wch: 12 }, // Load Span
           { wch: 12 }, // Unit Type
+          { wch: 8 },  // Currency
           { wch: 12 }, // Tariff
+          { wch: 12 }, // Expenses
+          { wch: 12 }, // Profit
         ];
       } else {
         // Standard format
-        exportData = tripsToExport.map(trip => ({
-          'POD Number': trip.trip_number,
-          'Fleet Number': trip.fleet_number || '',
-          'Driver': trip.driver_name || '',
-          'Client': trip.client_name || '',
-          'Route': trip.route || '',
-          'Origin': trip.origin || '',
-          'Destination': trip.destination || '',
-          'Departure Date': formatDate(trip.departure_date),
-          ...(tripType === 'completed' ? { 'Arrival Date': formatDate(trip.arrival_date) } : {}),
-          ...(tripType === 'completed' ? { 'Completed Date': formatDate(trip.completed_at) } : {}),
-          'Revenue': trip.base_revenue || 0,
-          'Currency': trip.revenue_currency || 'ZAR',
-          'Starting KM': trip.starting_km || '',
-          'Ending KM': trip.ending_km || '',
-          'Distance (km)': trip.distance_km || '',
-          'Empty KM': trip.empty_km || '',
-          'Status': trip.status || (tripType === 'active' ? 'Active' : 'Completed'),
-        }));
+        exportData = tripsToExport.map(trip => {
+          const tripCurrency = trip.revenue_currency || 'ZAR';
+          const expenses = calcExpenses(trip, tripCurrency);
+          const revenue = trip.base_revenue || 0;
+          return {
+            'POD Number': trip.trip_number,
+            'Fleet Number': trip.fleet_number || '',
+            'Driver': trip.driver_name || '',
+            'Client': trip.client_name || '',
+            'Route': trip.route || '',
+            'Origin': trip.origin || '',
+            'Destination': trip.destination || '',
+            'Departure Date': formatDate(trip.departure_date),
+            ...(tripType === 'completed' ? { 'Arrival Date': formatDate(trip.arrival_date) } : {}),
+            ...(tripType === 'completed' ? { 'Completed Date': formatDate(trip.completed_at) } : {}),
+            'Revenue': revenue,
+            'Expenses': expenses,
+            'Profit': revenue - expenses,
+            'Currency': tripCurrency,
+            'Starting KM': trip.starting_km || '',
+            'Ending KM': trip.ending_km || '',
+            'Distance (km)': trip.distance_km || '',
+            'Empty KM': trip.empty_km || '',
+            'Status': trip.status || (tripType === 'active' ? 'Active' : 'Completed'),
+          };
+        });
 
         colWidths = [
           { wch: 15 }, // POD Number
@@ -201,6 +228,8 @@ const TripExportDialog = ({ isOpen, onClose, trips, tripType }: TripExportDialog
           { wch: 12 }, // Departure Date
           ...(tripType === 'completed' ? [{ wch: 12 }, { wch: 12 }] : []), // Arrival/Completed dates
           { wch: 12 }, // Revenue
+          { wch: 12 }, // Expenses
+          { wch: 12 }, // Profit
           { wch: 8 },  // Currency
           { wch: 12 }, // Starting KM
           { wch: 12 }, // Ending KM
