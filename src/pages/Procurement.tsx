@@ -108,6 +108,7 @@ import
     Store,
     Trash2,
     Truck,
+    Wrench,
     X
   } from "lucide-react";
 import React, { useMemo, useState } from "react";
@@ -1096,7 +1097,7 @@ const Procurement = () => {
                       Job Card Requests
                     </CardTitle>
                     <CardDescription>
-                      Parts requested through job cards for out-of-stock items
+                      Parts, external items, and services requested through job cards
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -1135,7 +1136,31 @@ const Procurement = () => {
                                       {request.part_number}
                                     </div>
                                   )}
-                                  {request.inventory_id && request.is_from_inventory && (
+                                  {request.is_service ? (
+                                    <>
+                                      <Badge variant="outline" className="mt-1 text-[10px] px-1.5 py-0 border-purple-500 text-purple-600">
+                                        <Wrench className="h-3 w-3 mr-0.5" />
+                                        Service
+                                      </Badge>
+                                      {request.service_description && (
+                                        <div className="text-xs text-muted-foreground mt-1">
+                                          {request.service_description}
+                                        </div>
+                                      )}
+                                    </>
+                                  ) : !request.is_from_inventory && !request.inventory_id ? (
+                                    <>
+                                      <Badge variant="outline" className="mt-1 text-[10px] px-1.5 py-0 border-orange-500 text-orange-600">
+                                        <DollarSign className="h-3 w-3 mr-0.5" />
+                                        External
+                                      </Badge>
+                                      {request.vendor && (
+                                        <div className="text-xs text-muted-foreground mt-1">
+                                          Vendor: {request.vendor?.vendor_name || 'Unknown'}
+                                        </div>
+                                      )}
+                                    </>
+                                  ) : request.inventory_id && request.is_from_inventory ? (
                                     request.notes?.includes('[OUT OF STOCK') ? (
                                       <Badge variant="destructive" className="mt-1 text-[10px] px-1.5 py-0">
                                         <AlertTriangle className="h-3 w-3 mr-0.5" />
@@ -1147,7 +1172,7 @@ const Procurement = () => {
                                         From Inventory
                                       </Badge>
                                     )
-                                  )}
+                                  ) : null}
                                 </div>
                               </TableCell>
                               <TableCell className="font-mono">{request.quantity}</TableCell>

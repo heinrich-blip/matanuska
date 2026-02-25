@@ -24,6 +24,7 @@ export interface PartsRequest {
   inventory_id: string | null;
   is_from_inventory: boolean | null;
   is_service: boolean | null;
+  service_description: string | null;
   unit_price: number | null;
   total_price: number | null;
   requested_by: string | null;

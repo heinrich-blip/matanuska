@@ -2,6 +2,7 @@ import { useToast } from "@/hooks/use-toast";
 import { requestGoogleSheetsSync } from "@/hooks/useGoogleSheetsSync";
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useReducer } from "react";
 
 type InventoryItem = Database["public"]["Tables"]["inventory"]["Row"];
@@ -228,6 +229,7 @@ export function useAddPartForm(
   onOpenChange: (open: boolean) => void
 ) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [state, dispatch] = useReducer(formReducer, initialState);
 
   // Computed values
@@ -501,6 +503,9 @@ export function useAddPartForm(
         });
         requestGoogleSheetsSync('workshop');
 
+        // Invalidate procurement cache so the new request appears immediately on the Procurement page
+        queryClient.invalidateQueries({ queryKey: ["procurement-requests"] });
+
         onSuccess();
         onOpenChange(false);
       } catch (error) {
@@ -521,6 +526,7 @@ export function useAddPartForm(
       totalPrice,
       jobCardId,
       toast,
+      queryClient,
       onSuccess,
       onOpenChange,
       checkForRepeatedUsage,
