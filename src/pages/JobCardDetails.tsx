@@ -361,6 +361,8 @@ const JobCardDetails = () => {
               jobCardId={jobCard.id}
               parts={parts}
               onRefresh={handleRefresh}
+              fleetNumber={vehicle?.fleet_number}
+              jobNumber={jobCard.job_number}
             />
           </CardContent>
         </Card>

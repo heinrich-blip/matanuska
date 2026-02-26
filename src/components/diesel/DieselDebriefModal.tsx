@@ -2,9 +2,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import Button from '@/components/ui/button-variants';
 import { Input, TextArea } from '@/components/ui/form-elements';
 import Modal from '@/components/ui/modal';
-import { generateDieselDebriefPDF } from '@/lib/dieselDebriefExport';
+import { generateDieselDebriefPDF, generateDieselDebriefPDFBlob } from '@/lib/dieselDebriefExport';
 import { formatCurrency, formatDate, formatNumber } from '@/lib/formatters';
-import { AlertCircle, CheckCircle2, FileText } from 'lucide-react';
+import { useDrivers } from '@/hooks/useDrivers';
+import { AlertCircle, CheckCircle2, FileText, Share2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 export interface TrailerFuelData {
@@ -48,13 +49,24 @@ interface DieselDebriefModalProps {
   onClose: () => void;
   dieselRecord: DieselRecord;
   onDebrief: (debriefData: DebriefData) => Promise<void>;
+  /** Called with the record ID when a WhatsApp share succeeds */
+  onWhatsappShared?: (recordId: string) => void;
 }
+
+/** Normalise a phone number to E.164 digits-only (no + or spaces). */
+const normalisePhone = (raw: string): string => {
+  const digits = raw.replace(/\D/g, '');
+  // South-African local numbers: leading 0 → replace with 27
+  if (digits.startsWith('0') && digits.length === 10) return '27' + digits.slice(1);
+  return digits;
+};
 
 const DieselDebriefModal = ({
   isOpen,
   onClose,
   dieselRecord,
   onDebrief,
+  onWhatsappShared,
 }: DieselDebriefModalProps) => {
   const [formData, setFormData] = useState({
     debrief_notes: '',
@@ -66,6 +78,14 @@ const DieselDebriefModal = ({
   const [operationError, setOperationError] = useState<string | null>(null);
   const [operationSuccess, setOperationSuccess] = useState(false);
 
+  // WhatsApp share state
+  const [whatsappPanelOpen, setWhatsappPanelOpen] = useState(false);
+  const [whatsappPhone, setWhatsappPhone] = useState('');
+  const [isSharingWhatsApp, setIsSharingWhatsApp] = useState(false);
+  const [whatsappStatus, setWhatsappStatus] = useState<'idle' | 'success' | 'error'>('idle');
+
+  const { drivers } = useDrivers();
+
   useEffect(() => {
     if (isOpen && dieselRecord) {
       setFormData({
@@ -75,8 +95,77 @@ const DieselDebriefModal = ({
       setErrors({});
       setOperationError(null);
       setOperationSuccess(false);
+      setWhatsappPanelOpen(false);
+      setWhatsappStatus('idle');
+
+      // Pre-fill driver phone from drivers list
+      if (dieselRecord.driver_name && drivers.length > 0) {
+        const name = dieselRecord.driver_name.toLowerCase();
+        const match = drivers.find(
+          d =>
+            `${d.first_name} ${d.last_name}`.toLowerCase() === name ||
+            d.first_name.toLowerCase() === name ||
+            d.last_name.toLowerCase() === name
+        );
+        setWhatsappPhone(match?.phone || '');
+      }
     }
-  }, [isOpen, dieselRecord]);
+  }, [isOpen, dieselRecord, drivers]);
+
+  const handleSendWhatsApp = async () => {
+    setIsSharingWhatsApp(true);
+    setWhatsappStatus('idle');
+    try {
+      const { blob, fileName } = generateDieselDebriefPDFBlob(dieselRecord);
+
+      const message = [
+        '🚛 *Diesel Debrief Report*',
+        `Fleet: ${dieselRecord.fleet_number}`,
+        `Driver: ${dieselRecord.driver_name || 'N/A'}`,
+        `Date: ${formatDate(dieselRecord.date)}`,
+        `Station: ${dieselRecord.fuel_station}`,
+        `Litres: ${formatNumber(dieselRecord.litres_filled)} L`,
+        `Cost: ${formatCurrency(dieselRecord.total_cost, dieselRecord.currency)}`,
+        dieselRecord.distance_travelled ? `Distance: ${formatNumber(dieselRecord.distance_travelled)} km` : null,
+        dieselRecord.km_per_litre ? `Efficiency: ${formatNumber(dieselRecord.km_per_litre, 2)} km/L` : null,
+        dieselRecord.debrief_signed ? `\n✅ Debrief signed by ${dieselRecord.debrief_signed_by}` : null,
+        dieselRecord.debrief_notes ? `\nNotes: ${dieselRecord.debrief_notes}` : null,
+        '\n_PDF report attached._',
+      ]
+        .filter(Boolean)
+        .join('\n');
+
+      // Try Web Share API (works natively on Android/mobile)
+      const file = new File([blob], fileName, { type: 'application/pdf' });
+      if (typeof navigator.share === 'function' && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ title: 'Diesel Debrief', text: message, files: [file] });
+        onWhatsappShared?.(dieselRecord.id);
+        setWhatsappStatus('success');
+      } else {
+        // Desktop fallback: download PDF + open WhatsApp Web with text
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        a.click();
+        URL.revokeObjectURL(url);
+
+        const phone = normalisePhone(whatsappPhone);
+        const waUrl = phone
+          ? `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
+          : `https://wa.me/?text=${encodeURIComponent(message)}`;
+        window.open(waUrl, '_blank', 'noopener,noreferrer');
+        onWhatsappShared?.(dieselRecord.id);
+        setWhatsappStatus('success');
+      }
+    } catch (err) {
+      if ((err as Error).name !== 'AbortError') {
+        setWhatsappStatus('error');
+      }
+    } finally {
+      setIsSharingWhatsApp(false);
+    }
+  };
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
@@ -134,7 +223,9 @@ const DieselDebriefModal = ({
       title="Diesel Debrief"
       maxWidth="2xl"
     >
-      <div className="space-y-4">
+      <div className="flex flex-col gap-0">
+        {/* ── Scrollable body ── */}
+        <div className="overflow-y-auto max-h-[55vh] space-y-4 pr-1 min-h-0 pb-2">
         {operationSuccess && (
           <Alert className="bg-success/10 border-success">
             <CheckCircle2 className="h-4 w-4 text-success" />
@@ -273,25 +364,85 @@ const DieselDebriefModal = ({
             By signing this debrief, you confirm that you have reviewed the diesel record and any issues have been noted.
           </AlertDescription>
         </Alert>
+        </div>{/* end scrollable body */}
 
-        <div className="flex justify-end gap-2 pt-4">
+        {/* ── Sticky footer ── */}
+        <div className="border-t pt-4 mt-2 space-y-3">
+        <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={onClose} disabled={isProcessing}>
             Cancel
           </Button>
-          {dieselRecord.debrief_signed && (
-            <Button
-              variant="outline"
-              onClick={() => generateDieselDebriefPDF(dieselRecord)}
-              disabled={isProcessing}
-            >
-              <FileText className="h-4 w-4 mr-2" />
-              Export PDF
-            </Button>
-          )}
+          <Button
+            variant="outline"
+            onClick={() => generateDieselDebriefPDF(dieselRecord)}
+            disabled={isProcessing}
+          >
+            <FileText className="h-4 w-4 mr-2" />
+            Export PDF
+          </Button>
+          <Button
+            variant="outline"
+            className="gap-2 border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950"
+            onClick={() => {
+              setWhatsappPanelOpen(prev => !prev);
+              setWhatsappStatus('idle');
+            }}
+            disabled={isProcessing}
+          >
+            <Share2 className="h-4 w-4" />
+            WhatsApp
+          </Button>
           <Button onClick={handleDebrief} disabled={isProcessing}>
             {isProcessing ? 'Signing...' : 'Sign Debrief'}
           </Button>
         </div>
+
+        {/* WhatsApp share panel */}
+        {whatsappPanelOpen && (
+          <div className="rounded-lg border border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/30 p-4 space-y-3">
+            <p className="text-sm font-semibold text-green-700 dark:text-green-400 flex items-center gap-2">
+              <Share2 className="h-4 w-4" />
+              Share Debrief via WhatsApp
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Enter the driver's WhatsApp number. The PDF will be downloaded and WhatsApp will open with a pre-filled summary message.
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="tel"
+                value={whatsappPhone}
+                onChange={e => setWhatsappPhone(e.target.value)}
+                placeholder="+27 82 123 4567"
+                className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+              <Button
+                onClick={handleSendWhatsApp}
+                disabled={isSharingWhatsApp}
+                className="gap-2 bg-green-600 hover:bg-green-700 text-white"
+              >
+                {isSharingWhatsApp ? (
+                  <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full inline-block" />
+                ) : (
+                  <Share2 className="h-4 w-4" />
+                )}
+                {isSharingWhatsApp ? 'Sharing...' : 'Send'}
+              </Button>
+            </div>
+            {whatsappStatus === 'success' && (
+              <p className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                WhatsApp opened. The PDF has been downloaded — attach it to the message.
+              </p>
+            )}
+            {whatsappStatus === 'error' && (
+              <p className="text-xs text-destructive flex items-center gap-1">
+                <AlertCircle className="h-3.5 w-3.5" />
+                Sharing failed. Please try again or copy the number manually.
+              </p>
+            )}
+          </div>
+        )}
+        </div>{/* end sticky footer */}
       </div>
     </Modal>
   );

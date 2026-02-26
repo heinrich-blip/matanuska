@@ -172,7 +172,82 @@ const JobCardPartsTable = ({ jobCardId, parts, onRefresh }: JobCardPartsTablePro
             No parts or services added yet. Click "Add Part/Service" to get started.
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+            {/* Mobile card view */}
+            <div className="sm:hidden space-y-3">
+              {parts.map((part) => (
+                <div key={part.id} className="border rounded-lg p-3 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="space-y-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <div
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${getSourceColor(part)} ${
+                            part.is_from_inventory ? 'cursor-pointer' : ''
+                          }`}
+                          onClick={() => part.is_from_inventory && handleInventoryClick(part.inventory_id || null)}
+                        >
+                          {getSourceIcon(part)}
+                          {getSourceLabel(part)}
+                        </div>
+                        <Badge variant={getStatusVariant(part.status)} className="text-xs">
+                          {part.status}
+                        </Badge>
+                      </div>
+                      <p className="font-medium text-sm">{part.part_name}</p>
+                      {part.is_service && part.service_description && (
+                        <p className="text-xs text-muted-foreground italic">{part.service_description}</p>
+                      )}
+                    </div>
+                    <div className="flex gap-0.5 shrink-0">
+                      <Button
+                        variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary"
+                        onClick={() => setEditPart({ ...part })}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                        onClick={() => setDeletePartId(part.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                    {part.part_number && (
+                      <div><span className="text-muted-foreground">Part # </span>{part.part_number}</div>
+                    )}
+                    {part.vendors?.name && (
+                      <div><span className="text-muted-foreground">Vendor: </span>{part.vendors.name}</div>
+                    )}
+                    <div><span className="text-muted-foreground">Qty: </span>{part.quantity}</div>
+                    {part.total_price != null && (
+                      <div>
+                        <span className="text-muted-foreground">Total: </span>
+                        <span className="font-semibold text-primary">${part.total_price.toFixed(2)}</span>
+                        {part.unit_price && (
+                          <span className="text-muted-foreground"> (${part.unit_price.toFixed(2)}/ea)</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {part.notes && (
+                    <p className="text-xs text-muted-foreground border-t pt-1.5">{part.notes}</p>
+                  )}
+                  {part.document_url && (
+                    <a
+                      href={part.document_url} target="_blank" rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"
+                    >
+                      <FileText className="h-3 w-3" />
+                      {part.document_name || 'View Document'}
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
+            {/* Desktop table view */}
+            <div className="hidden sm:block overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -340,7 +415,8 @@ const JobCardPartsTable = ({ jobCardId, parts, onRefresh }: JobCardPartsTablePro
                 ))}
               </TableBody>
             </Table>
-          </div>
+            </div>
+          </>
         )}
 
         <AddPartWithCostDialog

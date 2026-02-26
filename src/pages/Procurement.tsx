@@ -78,13 +78,17 @@ import
     useUpdateProcurementRequest,
     useUpdateRequestStatus,
     useUpdateSageRequisition,
+    useMoveBackToRequests,
+    useUpdateUrgencyLevel,
     useVendors
   } from "@/hooks/useProcurement";
 import StartProcurementDialog from "@/components/dialogs/StartProcurementDialog";
+import EditCashManagerItemDialog from "@/components/dialogs/EditCashManagerItemDialog";
 import { formatDate } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import
   {
+    AlertOctagon,
     AlertTriangle,
     BookOpen,
     Check,
@@ -97,12 +101,14 @@ import
     Download,
     Edit,
     FileDown,
+    FileSpreadsheet,
     FileText,
     Loader2,
     MoreHorizontal,
     Package,
     PackagePlus,
     Plus,
+    RotateCcw,
     ShoppingBag,
     ShoppingCart,
     Store,
@@ -136,6 +142,8 @@ const Procurement = () => {
   const markAsOrdered = useMarkAsOrdered();
   const markAsReceived = useMarkAsReceived();
   const allocateToJobCard = useAllocateToJobCard();
+  const updateUrgencyLevel = useUpdateUrgencyLevel();
+  const moveBackToRequests = useMoveBackToRequests();
 
   // Dialog states
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -152,6 +160,10 @@ const Procurement = () => {
   const [orderDialogOpen, setOrderDialogOpen] = useState(false);
   const [receiveDialogOpen, setReceiveDialogOpen] = useState(false);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [editCashManagerOpen, setEditCashManagerOpen] = useState(false);
+  const [editCashManagerRequest, setEditCashManagerRequest] = useState<PartsRequest | null>(null);
+  const [moveBackDialogOpen, setMoveBackDialogOpen] = useState(false);
+  const [moveBackRequest, setMoveBackRequest] = useState<PartsRequest | null>(null);
   const [selectedRequest, setSelectedRequest] = useState<PartsRequest | null>(null);
   const [selectedLowStockItem, setSelectedLowStockItem] = useState<LowStockItem | null>(null);
 
@@ -159,8 +171,9 @@ const Procurement = () => {
   const [selectedRestockItems, setSelectedRestockItems] = useState<Set<string>>(new Set());
   const [restockPriorities, setRestockPriorities] = useState<Record<string, string>>({});
 
-  // Status filter for All Requests tab
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  // Status filters — separate per tab so they don't interfere with each other
+  const [allRequestsFilter, setAllRequestsFilter] = useState<string>("all");
+  const [cmStatusFilter, setCmStatusFilter] = useState<string>("all");
 
   // Priority options
   type PriorityLevel = "urgent" | "2-weeks" | "4-weeks";
@@ -578,9 +591,9 @@ const Procurement = () => {
   };
 
   // Group cash manager requests by IR number for collapsible view
-  const filteredCashManager = statusFilter === "all"
+  const filteredCashManager = cmStatusFilter === "all"
     ? cashManagerRequests
-    : cashManagerRequests.filter(r => r.status.toLowerCase() === statusFilter);
+    : cashManagerRequests.filter(r => r.status.toLowerCase() === cmStatusFilter);
 
   const irGroups = useMemo(() => {
     const groups = new Map<string, PartsRequest[]>();
@@ -614,9 +627,9 @@ const Procurement = () => {
   };
 
   // Filtered requests for All Requests tab
-  const filteredRequests = statusFilter === "all"
+  const filteredRequests = allRequestsFilter === "all"
     ? allRequests
-    : allRequests.filter(r => r.status.toLowerCase() === statusFilter);
+    : allRequests.filter(r => r.status.toLowerCase() === allRequestsFilter);
 
   // Restock item selection handlers
   const toggleRestockItem = (itemId: string) => {
@@ -913,6 +926,134 @@ const Procurement = () => {
     doc.save(`Procurement_Restock_Requests_${new Date().toISOString().split("T")[0]}.pdf`);
   };
 
+  // ── Cash Manager urgency helpers ────────────────────────────────────────
+
+  type UrgencyLevel = "urgent" | "1-week" | "2-weeks" | null;
+
+  const URGENCY_OPTIONS: { value: UrgencyLevel; label: string; color: string; bg: string }[] = [
+    { value: "urgent",  label: "Urgent",   color: "text-red-700",    bg: "bg-red-100 dark:bg-red-950/30" },
+    { value: "1-week",  label: "1 Week",   color: "text-orange-700", bg: "bg-orange-100 dark:bg-orange-950/30" },
+    { value: "2-weeks", label: "2 Weeks",  color: "text-yellow-700", bg: "bg-yellow-100 dark:bg-yellow-950/30" },
+  ];
+
+  const isEffectivelyUrgent = (req: PartsRequest): boolean => {
+    if (req.urgency_level === "urgent") return true;
+    if (req.urgency_level === "1-week" && req.created_at) {
+      const diffMs = Date.now() - new Date(req.created_at).getTime();
+      return diffMs >= 7 * 24 * 60 * 60 * 1000;
+    }
+    return false;
+  };
+
+  const getEffectiveUrgencyLevel = (req: PartsRequest): UrgencyLevel => {
+    if (isEffectivelyUrgent(req)) return "urgent";
+    return (req.urgency_level ?? null) as UrgencyLevel;
+  };
+
+  const getUrgencyBadge = (req: PartsRequest) => {
+    const level = getEffectiveUrgencyLevel(req);
+    if (!level) return null;
+    const opt = URGENCY_OPTIONS.find((o) => o.value === level);
+    if (!opt) return null;
+    const autoEscalated = level === "urgent" && req.urgency_level !== "urgent";
+    return (
+      <Badge className={`text-[10px] px-1.5 py-0 ${opt.bg} ${opt.color} border-0`}>
+        {level === "urgent" && <AlertOctagon className="h-2.5 w-2.5 mr-1 inline" />}
+        {opt.label}{autoEscalated ? " ↑" : ""}
+      </Badge>
+    );
+  };
+
+  // Export Cash Manager to Excel
+  const exportCashManagerToExcel = (urgentOnly = false) => {
+    const today = new Date().toISOString().split("T")[0];
+    const source = urgentOnly
+      ? cashManagerRequests.filter(isEffectivelyUrgent)
+      : cashManagerRequests;
+    if (source.length === 0) return;
+
+    const rows = source.map((r) => ({
+      "IR Number":        r.ir_number || "-",
+      "Part Name":        r.part_name,
+      "Part Number":      r.part_number || "-",
+      "Quantity":         r.quantity,
+      "Unit Price":       r.unit_price != null ? r.unit_price : "-",
+      "Total Price":      r.total_price != null ? r.total_price : "-",
+      "Vendor":           r.vendor?.vendor_name || "-",
+      "Job Card":         r.job_card?.job_number || "-",
+      "Fleet Number":     (r.job_card as { vehicle?: { fleet_number?: string } } | undefined)?.vehicle?.fleet_number || "-",
+      "Urgency":          getEffectiveUrgencyLevel(r) ?? "Not Set",
+      "Status":           r.status,
+      "CM Reference":     r.cash_manager_reference || "-",
+      "CM Approval Date": r.cash_manager_approval_date ? formatDate(r.cash_manager_approval_date) : "-",
+      "Ordered Date":     r.ordered_at ? formatDate(r.ordered_at) : "-",
+      "Received Date":    r.received_date ? formatDate(r.received_date) : "-",
+      "Notes":            r.notes || "-",
+    }));
+
+    const ws = XLSX.utils.json_to_sheet([]);
+    // Title rows
+    XLSX.utils.sheet_add_aoa(ws, [
+      ["Car Craft Co — Fleet Management System"],
+      [urgentOnly ? "Cash Manager — Urgent Items Only" : "Cash Manager — All Procurement Items"],
+      [`Generated: ${new Date().toLocaleString()}`],
+      [],
+    ]);
+    XLSX.utils.sheet_add_json(ws, rows, { origin: "A5" });
+    ws["!cols"] = [
+      { wch: 18 }, { wch: 30 }, { wch: 15 }, { wch: 8 }, { wch: 12 }, { wch: 12 },
+      { wch: 22 }, { wch: 14 }, { wch: 14 }, { wch: 10 }, { wch: 12 }, { wch: 18 },
+      { wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 30 },
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, urgentOnly ? "Urgent Items" : "Cash Manager");
+    XLSX.writeFile(wb, `CashManager_${urgentOnly ? "Urgent_" : ""}${today}.xlsx`);
+  };
+
+  // Export Cash Manager to PDF
+  const exportCashManagerToPDF = (urgentOnly = false) => {
+    const today = new Date().toISOString().split("T")[0];
+    const source = urgentOnly
+      ? cashManagerRequests.filter(isEffectivelyUrgent)
+      : cashManagerRequests;
+    if (source.length === 0) return;
+
+    const doc = new jsPDF({ orientation: "landscape" });
+    doc.setFontSize(18);
+    doc.text("Car Craft Co — Fleet Management System", 14, 14);
+    doc.setFontSize(12);
+    doc.text(urgentOnly ? "Cash Manager — Urgent Items Only" : "Cash Manager — All Procurement Items", 14, 22);
+    doc.setFontSize(9);
+    doc.text(`Generated: ${new Date().toLocaleString()}    Total items: ${source.length}`, 14, 28);
+
+    autoTable(doc, {
+      startY: 34,
+      head: [[
+        "IR #", "Part Name", "Part #", "Qty", "Vendor",
+        "Job Card", "Fleet", "Urgency", "Status", "CM Ref", "Ordered", "Received"
+      ]],
+      body: source.map((r) => [
+        r.ir_number || "-",
+        r.part_name,
+        r.part_number || "-",
+        r.quantity,
+        r.vendor?.vendor_name || "-",
+        r.job_card?.job_number || "-",
+        (r.job_card as { vehicle?: { fleet_number?: string } } | undefined)?.vehicle?.fleet_number || "-",
+        getEffectiveUrgencyLevel(r) ?? "-",
+        r.status,
+        r.cash_manager_reference || "-",
+        r.ordered_at ? formatDate(r.ordered_at) : "-",
+        r.received_date ? formatDate(r.received_date) : "-",
+      ]),
+      styles: { fontSize: 7, cellPadding: 2 },
+      headStyles: { fillColor: urgentOnly ? [220, 38, 38] : [59, 130, 246] },
+    });
+
+    doc.save(`CashManager_${urgentOnly ? "Urgent_" : ""}${today}.pdf`);
+  };
+
   if (loadingRequests) {
     return (
       <Layout>
@@ -1177,11 +1318,21 @@ const Procurement = () => {
                               </TableCell>
                               <TableCell className="font-mono">{request.quantity}</TableCell>
                               <TableCell>
-                                <div className="flex items-center gap-1">
-                                  <FileText className="h-3 w-3 text-muted-foreground" />
-                                  <span className="font-mono text-sm">
-                                    {request.job_card?.job_number || "—"}
-                                  </span>
+                                <div className="space-y-0.5">
+                                  <div className="flex items-center gap-1">
+                                    <FileText className="h-3 w-3 text-muted-foreground" />
+                                    <span className="font-mono text-sm">
+                                      {request.job_card?.job_number || "—"}
+                                    </span>
+                                  </div>
+                                  {request.job_card?.vehicle?.fleet_number && (
+                                    <div className="flex items-center gap-1">
+                                      <Truck className="h-3 w-3 text-muted-foreground" />
+                                      <span className="text-xs text-muted-foreground font-mono">
+                                        {request.job_card.vehicle.fleet_number}
+                                      </span>
+                                    </div>
+                                  )}
                                 </div>
                               </TableCell>
                               <TableCell className="text-sm text-muted-foreground">
@@ -1462,8 +1613,8 @@ const Procurement = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <Select
-                      value={statusFilter}
-                      onValueChange={setStatusFilter}
+                      value={cmStatusFilter}
+                      onValueChange={setCmStatusFilter}
                     >
                       <SelectTrigger className="w-[150px]">
                         <SelectValue placeholder="Filter status" />
@@ -1476,12 +1627,36 @@ const Procurement = () => {
                         <SelectItem value="received">Received</SelectItem>
                       </SelectContent>
                     </Select>
+                    {/* Export dropdown */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm" className="gap-2">
+                          <Download className="h-4 w-4" />
+                          Export
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => exportCashManagerToExcel(false)} disabled={cashManagerRequests.length === 0}>
+                          <FileSpreadsheet className="h-4 w-4 mr-2 text-green-600" />Excel — All Items
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => exportCashManagerToExcel(true)} disabled={cashManagerRequests.filter(isEffectivelyUrgent).length === 0}>
+                          <FileSpreadsheet className="h-4 w-4 mr-2 text-red-600" />Excel — Urgent Only
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => exportCashManagerToPDF(false)} disabled={cashManagerRequests.length === 0}>
+                          <FileDown className="h-4 w-4 mr-2 text-blue-600" />PDF — All Items
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => exportCashManagerToPDF(true)} disabled={cashManagerRequests.filter(isEffectivelyUrgent).length === 0}>
+                          <FileDown className="h-4 w-4 mr-2 text-red-600" />PDF — Urgent Only
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
               </CardHeader>
               <CardContent>
                 <ScrollArea className="h-[600px]">
-                  <Table className="min-w-[900px]">
+                  <Table className="min-w-[1050px]">
                     <TableHeader>
                       <TableRow>
                         <TableHead>Part</TableHead>
@@ -1490,6 +1665,7 @@ const Procurement = () => {
                         <TableHead>Source</TableHead>
                         <TableHead>Workflow Progress</TableHead>
                         <TableHead>Lead Time</TableHead>
+                        <TableHead>Urgency</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="w-[180px]">Actions</TableHead>
                       </TableRow>
@@ -1526,10 +1702,20 @@ const Procurement = () => {
                               <TableCell className="font-mono">{request.quantity}</TableCell>
                               <TableCell>
                                 {request.job_card_id ? (
-                                  <Badge variant="outline" className="text-xs">
-                                    <FileText className="h-3 w-3 mr-1" />
-                                    {request.job_card?.job_number || "Job Card"}
-                                  </Badge>
+                                  <div className="space-y-0.5">
+                                    <Badge variant="outline" className="text-xs">
+                                      <FileText className="h-3 w-3 mr-1" />
+                                      {request.job_card?.job_number || "Job Card"}
+                                    </Badge>
+                                    {request.job_card?.vehicle?.fleet_number && (
+                                      <div className="flex items-center gap-1">
+                                        <Truck className="h-3 w-3 text-muted-foreground" />
+                                        <span className="text-xs text-muted-foreground font-mono">
+                                          {request.job_card.vehicle.fleet_number}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
                                 ) : request.inventory_id ? (
                                   <Badge variant="outline" className="text-xs">
                                     <Package className="h-3 w-3 mr-1" />
@@ -1598,6 +1784,23 @@ const Procurement = () => {
                                   <span className="text-xs text-muted-foreground">—</span>
                                 )}
                               </TableCell>
+                              <TableCell>
+                                <div className="space-y-1">
+                                  {getUrgencyBadge(request)}
+                                  <Select
+                                    value={request.urgency_level ?? "__none__"}
+                                    onValueChange={(v) => updateUrgencyLevel.mutate({ id: request.id, urgency_level: v === "__none__" ? null : v })}
+                                  >
+                                    <SelectTrigger className="h-7 text-xs w-[88px]"><SelectValue placeholder="Set…" /></SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="__none__"><span className="text-muted-foreground">Not set</span></SelectItem>
+                                      <SelectItem value="urgent">🔴 Urgent</SelectItem>
+                                      <SelectItem value="1-week">🟠 1 Week</SelectItem>
+                                      <SelectItem value="2-weeks">🟡 2 Weeks</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </TableCell>
                               <TableCell>{getStatusBadge(request.status)}</TableCell>
                               <TableCell>
                                 <div className="flex gap-1 flex-wrap">
@@ -1622,10 +1825,12 @@ const Procurement = () => {
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
                                       <DropdownMenuItem onClick={() => openDetailDialog(request)}><FileText className="h-4 w-4 mr-2" />View Details</DropdownMenuItem>
-                                      <DropdownMenuItem onClick={() => openEditDialog(request)}><Edit className="h-4 w-4 mr-2" />Edit</DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => { setEditCashManagerRequest(request); setEditCashManagerOpen(true); }}><Edit className="h-4 w-4 mr-2" />Edit IR / Vendor / Quote</DropdownMenuItem>
                                       {!request.sage_requisition_date && !request.ir_number && (
                                         <><DropdownMenuSeparator /><DropdownMenuItem onClick={() => openSageDialog(request)}><BookOpen className="h-4 w-4 mr-2" />Add IR Number</DropdownMenuItem></>
                                       )}
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem onClick={() => { setMoveBackRequest(request); setMoveBackDialogOpen(true); }}><RotateCcw className="h-4 w-4 mr-2" />Move Back to Requests</DropdownMenuItem>
                                       <DropdownMenuSeparator />
                                       <DropdownMenuItem onClick={() => openDeleteDialog(request)} className="text-red-600"><Trash2 className="h-4 w-4 mr-2" />Delete</DropdownMenuItem>
                                     </DropdownMenuContent>
@@ -1670,6 +1875,16 @@ const Procurement = () => {
                                 <Badge variant={groupStep!.variant}>{groupStep!.label}</Badge>
                               </TableCell>
                               <TableCell>—</TableCell>
+                              <TableCell>
+                                {/* Urgency summary for group */}
+                                {(() => {
+                                  const urgentCount = items.filter(isEffectivelyUrgent).length;
+                                  const weekCount = items.filter(r => r.urgency_level === "1-week" && !isEffectivelyUrgent(r)).length;
+                                  if (urgentCount > 0) return <Badge className="text-[10px] bg-red-100 text-red-700 border-0">{urgentCount} Urgent</Badge>;
+                                  if (weekCount > 0) return <Badge className="text-[10px] bg-orange-100 text-orange-700 border-0">{weekCount} × 1W</Badge>;
+                                  return <span className="text-xs text-muted-foreground">—</span>;
+                                })()}
+                              </TableCell>
                               <TableCell>
                                 <Badge variant={groupStep!.variant}>{groupStep!.label}</Badge>
                               </TableCell>
@@ -1726,10 +1941,20 @@ const Procurement = () => {
                                 <TableCell className="font-mono">{request.quantity}</TableCell>
                                 <TableCell>
                                   {request.job_card_id ? (
-                                    <Badge variant="outline" className="text-xs">
-                                      <FileText className="h-3 w-3 mr-1" />
-                                      {request.job_card?.job_number || "Job Card"}
-                                    </Badge>
+                                    <div className="space-y-0.5">
+                                      <Badge variant="outline" className="text-xs">
+                                        <FileText className="h-3 w-3 mr-1" />
+                                        {request.job_card?.job_number || "Job Card"}
+                                      </Badge>
+                                      {request.job_card?.vehicle?.fleet_number && (
+                                        <div className="flex items-center gap-1">
+                                          <Truck className="h-3 w-3 text-muted-foreground" />
+                                          <span className="text-xs text-muted-foreground font-mono">
+                                            {request.job_card.vehicle.fleet_number}
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
                                   ) : request.inventory_id ? (
                                     <Badge variant="outline" className="text-xs">
                                       <Package className="h-3 w-3 mr-1" />
@@ -1793,6 +2018,23 @@ const Procurement = () => {
                                     <span className="text-xs text-muted-foreground">—</span>
                                   )}
                                 </TableCell>
+                                <TableCell>
+                                  <div className="space-y-1">
+                                    {getUrgencyBadge(request)}
+                                    <Select
+                                      value={request.urgency_level ?? "__none__"}
+                                      onValueChange={(v) => updateUrgencyLevel.mutate({ id: request.id, urgency_level: v === "__none__" ? null : v })}
+                                    >
+                                      <SelectTrigger className="h-7 text-xs w-[88px]"><SelectValue placeholder="Set…" /></SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="__none__"><span className="text-muted-foreground">Not set</span></SelectItem>
+                                        <SelectItem value="urgent">🔴 Urgent</SelectItem>
+                                        <SelectItem value="1-week">🟠 1 Week</SelectItem>
+                                        <SelectItem value="2-weeks">🟡 2 Weeks</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                </TableCell>
                                 <TableCell>{getStatusBadge(request.status)}</TableCell>
                                 <TableCell>
                                   <div className="flex gap-1 flex-wrap">
@@ -1817,7 +2059,9 @@ const Procurement = () => {
                                       </DropdownMenuTrigger>
                                       <DropdownMenuContent align="end">
                                         <DropdownMenuItem onClick={() => openDetailDialog(request)}><FileText className="h-4 w-4 mr-2" />View Details</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => openEditDialog(request)}><Edit className="h-4 w-4 mr-2" />Edit</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => { setEditCashManagerRequest(request); setEditCashManagerOpen(true); }}><Edit className="h-4 w-4 mr-2" />Edit IR / Vendor / Quote</DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem onClick={() => { setMoveBackRequest(request); setMoveBackDialogOpen(true); }}><RotateCcw className="h-4 w-4 mr-2" />Move Back to Requests</DropdownMenuItem>
                                         <DropdownMenuSeparator />
                                         <DropdownMenuItem onClick={() => openDeleteDialog(request)} className="text-red-600"><Trash2 className="h-4 w-4 mr-2" />Delete</DropdownMenuItem>
                                       </DropdownMenuContent>
@@ -1831,8 +2075,15 @@ const Procurement = () => {
                       })}
                       {cashManagerRequests.length === 0 && (
                         <TableRow>
-                          <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                          <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                             No items in procurement workflow yet. Start procurement from the All Requests tab.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      {cashManagerRequests.length > 0 && irGroups.size === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                            No items match the selected filter. Change the status filter to "All Statuses" to see all {cashManagerRequests.length} item{cashManagerRequests.length !== 1 ? "s" : ""}.
                           </TableCell>
                         </TableRow>
                       )}
@@ -2499,6 +2750,39 @@ const Procurement = () => {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Move Back to Requests Confirmation */}
+      <AlertDialog open={moveBackDialogOpen} onOpenChange={setMoveBackDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Move Back to All Requests?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove the item from the Cash Manager and clear its IR number and procurement status. It will return to the All Requests tab as a pending request.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {moveBackRequest && (
+            <div className="bg-muted/50 rounded-lg p-4 my-2">
+              <div className="font-medium">{moveBackRequest.part_name}</div>
+              <div className="text-sm text-muted-foreground">
+                IR: {moveBackRequest.ir_number ?? "None"} &nbsp;·&nbsp; Qty: {moveBackRequest.quantity}
+              </div>
+            </div>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (moveBackRequest) moveBackToRequests.mutate(moveBackRequest.id);
+                setMoveBackDialogOpen(false);
+              }}
+              className="bg-orange-600 hover:bg-orange-700"
+            >
+              {moveBackToRequests.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Move Back
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* IR (Internal Requisition) Dialog */}
       <Dialog open={sageDialogOpen} onOpenChange={setSageDialogOpen}>
         <DialogContent>
@@ -2945,6 +3229,13 @@ const Procurement = () => {
           if (!open) setSelectedRequestIds(new Set());
         }}
         requests={selectedRequestIds.size > 0 ? selectedRequests : selectedRequest ? [selectedRequest] : []}
+      />
+
+      {/* Edit Cash Manager Item Dialog */}
+      <EditCashManagerItemDialog
+        open={editCashManagerOpen}
+        onOpenChange={setEditCashManagerOpen}
+        request={editCashManagerRequest}
       />
     </Layout>
   );

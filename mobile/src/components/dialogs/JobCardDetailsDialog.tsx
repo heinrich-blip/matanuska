@@ -255,15 +255,15 @@ const JobCardDetailsDialog = ({ open, onOpenChange, jobCard, onUpdate }: JobCard
           </DialogHeader>
         </VisuallyHidden>
         <ScrollArea className="h-full">
-          <div className="p-6 space-y-6">
-            <div className="flex items-center justify-between">
+          <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
+            <div className="space-y-3">
               <JobCardHeader
                 jobCard={jobCard}
                 onClose={() => onOpenChange(false)}
                 onStatusChange={handleStatusChange}
                 onPriorityChange={(priority) => handleJobCardUpdate({ priority })}
               />
-              <Button onClick={handleExportPDF} className="gap-2">
+              <Button onClick={handleExportPDF} size="sm" variant="outline" className="gap-2 w-full sm:w-auto">
                 <FileText className="h-4 w-4" />
                 Export PDF
               </Button>
@@ -276,12 +276,12 @@ const JobCardDetailsDialog = ({ open, onOpenChange, jobCard, onUpdate }: JobCard
             />
 
             <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="grid w-full grid-cols-5">
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="tasks">Tasks</TabsTrigger>
-                <TabsTrigger value="parts">Parts</TabsTrigger>
-                <TabsTrigger value="labor">Labor</TabsTrigger>
-                <TabsTrigger value="notes">Notes</TabsTrigger>
+              <TabsList className="flex w-full overflow-x-auto h-auto flex-nowrap">
+                <TabsTrigger value="overview" className="flex-1 min-w-[70px] text-xs sm:text-sm">Overview</TabsTrigger>
+                <TabsTrigger value="tasks" className="flex-1 min-w-[55px] text-xs sm:text-sm">Tasks</TabsTrigger>
+                <TabsTrigger value="parts" className="flex-1 min-w-[55px] text-xs sm:text-sm">Parts</TabsTrigger>
+                <TabsTrigger value="labor" className="flex-1 min-w-[55px] text-xs sm:text-sm">Labor</TabsTrigger>
+                <TabsTrigger value="notes" className="flex-1 min-w-[55px] text-xs sm:text-sm">Notes</TabsTrigger>
               </TabsList>
 
               <TabsContent value="overview" className="space-y-4">

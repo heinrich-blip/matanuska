@@ -80,9 +80,11 @@ interface JobCardPartsTableProps {
   jobCardId: string;
   parts: PartsRequest[];
   onRefresh: () => void;
+  fleetNumber?: string | null;
+  jobNumber?: string | null;
 }
 
-const JobCardPartsTable = ({ jobCardId, parts, onRefresh }: JobCardPartsTableProps) => {
+const JobCardPartsTable = ({ jobCardId, parts, onRefresh, fleetNumber, jobNumber }: JobCardPartsTableProps) => {
   const [showRequestParts, setShowRequestParts] = useState(false);
   const [selectedInventoryId, setSelectedInventoryId] = useState<string | null>(null);
   const [showInventoryDetail, setShowInventoryDetail] = useState(false);
@@ -196,7 +198,25 @@ const JobCardPartsTable = ({ jobCardId, parts, onRefresh }: JobCardPartsTablePro
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Parts & Services</CardTitle>
+        <div className="space-y-1">
+          <CardTitle>Parts &amp; Services</CardTitle>
+          {(fleetNumber || jobNumber) && (
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              {fleetNumber && (
+                <span className="inline-flex items-center gap-1">
+                  <Package className="h-3 w-3" />
+                  Fleet: <span className="font-mono font-medium text-foreground">{fleetNumber}</span>
+                </span>
+              )}
+              {jobNumber && (
+                <span className="inline-flex items-center gap-1">
+                  <DollarSign className="h-3 w-3" />
+                  Job Card: <span className="font-mono font-medium text-foreground">{jobNumber}</span>
+                </span>
+              )}
+            </div>
+          )}
+        </div>
         <Button onClick={() => setShowRequestParts(true)} size="sm">
           <Plus className="h-4 w-4 mr-1" />
           Add Part/Service

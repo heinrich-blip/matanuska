@@ -41,10 +41,11 @@ const JobCardHeader = ({ jobCard, onClose, onStatusChange, onPriorityChange: _on
   };
 
   return (
-    <div className="flex items-start justify-between pb-4 border-b">
-      <div className="flex-1">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-sm text-muted-foreground">#{jobCard.job_number}</span>
+    <div className="pb-4 border-b space-y-3 w-full">
+      {/* Top row: job number, priority/status badges, close button */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm text-muted-foreground font-mono">#{jobCard.job_number}</span>
           <Badge variant={getPriorityVariant(jobCard.priority)}>
             {jobCard.priority}
           </Badge>
@@ -52,42 +53,46 @@ const JobCardHeader = ({ jobCard, onClose, onStatusChange, onPriorityChange: _on
             {jobCard.status.replace('_', ' ')}
           </Badge>
         </div>
-        <h2 className="text-2xl font-semibold mb-3">{jobCard.title}</h2>
-        <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-          {jobCard.assignee && (
-            <div className="flex items-center gap-1">
-              <User className="h-4 w-4" />
-              <span>{jobCard.assignee}</span>
-            </div>
-          )}
-          {jobCard.due_date && (
-            <div className="flex items-center gap-1">
-              <Calendar className="h-4 w-4" />
-              <span>{new Date(jobCard.due_date).toLocaleDateString()}</span>
-            </div>
-          )}
-          <div className="flex items-center gap-1">
-            <Clock className="h-4 w-4" />
-            <span>Created {new Date(jobCard.created_at).toLocaleDateString()}</span>
-          </div>
-        </div>
-      </div>
-      <div className="flex items-center gap-2">
-        <Select value={jobCard.status} onValueChange={onStatusChange}>
-          <SelectTrigger className="w-[140px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="in_progress">In Progress</SelectItem>
-            <SelectItem value="on_hold">On Hold</SelectItem>
-            <SelectItem value="completed">Completed</SelectItem>
-          </SelectContent>
-        </Select>
-        <Button variant="ghost" size="icon" onClick={onClose}>
+        <Button variant="ghost" size="icon" onClick={onClose} className="shrink-0">
           <X className="h-4 w-4" />
         </Button>
       </div>
+
+      {/* Title */}
+      <h2 className="text-xl sm:text-2xl font-semibold leading-tight">{jobCard.title}</h2>
+
+      {/* Meta info */}
+      <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+        {jobCard.assignee && (
+          <div className="flex items-center gap-1">
+            <User className="h-4 w-4" />
+            <span>{jobCard.assignee}</span>
+          </div>
+        )}
+        {jobCard.due_date && (
+          <div className="flex items-center gap-1">
+            <Calendar className="h-4 w-4" />
+            <span>{new Date(jobCard.due_date).toLocaleDateString()}</span>
+          </div>
+        )}
+        <div className="flex items-center gap-1">
+          <Clock className="h-4 w-4" />
+          <span>Created {new Date(jobCard.created_at).toLocaleDateString()}</span>
+        </div>
+      </div>
+
+      {/* Status select — full width on mobile, auto on larger screens */}
+      <Select value={jobCard.status} onValueChange={onStatusChange}>
+        <SelectTrigger className="w-full sm:w-[180px]">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="pending">Pending</SelectItem>
+          <SelectItem value="in_progress">In Progress</SelectItem>
+          <SelectItem value="on_hold">On Hold</SelectItem>
+          <SelectItem value="completed">Completed</SelectItem>
+        </SelectContent>
+      </Select>
     </div>
   );
 };

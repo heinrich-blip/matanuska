@@ -26,7 +26,6 @@ import
     DollarSign,
     Download,
     Edit,
-    Eye,
     FileText,
     Navigation,
     Save,
@@ -109,6 +108,51 @@ const YearToDateKPIs: React.FC<YearToDateKPIsProps> = ({ trips }) => {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState<string>('overview');
+
+  // Auto-calculate 2026 metrics from live trip and diesel data
+  const computed2026Metrics = useMemo(() => {
+    const year2026Trips = trips.filter(trip => {
+      if (trip.status !== 'completed' && trip.status !== 'paid') return false;
+      if (!trip.arrival_date) return false;
+      return new Date(trip.arrival_date).getFullYear() === 2026;
+    });
+
+    const year2026Diesel = dieselRecords.filter(record => {
+      if (!record.date) return false;
+      return new Date(record.date).getFullYear() === 2026;
+    });
+
+    const totalRevenue = year2026Trips.reduce((sum, trip) => sum + (trip.base_revenue || 0), 0);
+    const totalKms = year2026Trips.reduce((sum, trip) => sum + (trip.distance_km || 0), 0);
+    const tripCosts = year2026Trips.reduce((sum, trip) => {
+      const costs = calculateTotalCosts(trip.costs);
+      const additionalCosts = trip.additional_costs?.reduce((s, c) => s + (c.amount || 0), 0) || 0;
+      return sum + costs + additionalCosts;
+    }, 0);
+    const dieselCosts = year2026Diesel.reduce((sum, record) => sum + (record.total_cost || 0), 0);
+    const totalCosts = tripCosts + dieselCosts;
+
+    const ipk = totalKms > 0 ? totalRevenue / totalKms : 0;
+    const operationalCpk = totalKms > 0 ? totalCosts / totalKms : 0;
+    const grossProfit = totalRevenue - totalCosts;
+    const ebitMargin = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
+    const netProfitMargin = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
+
+    return {
+      totalKms,
+      revenue: totalRevenue,
+      ipk,
+      operationalCpk,
+      ebit: grossProfit,
+      ebitMargin,
+      netProfit: grossProfit,
+      netProfitMargin,
+      tripCount: year2026Trips.length,
+      totalCosts,
+      dieselCosts,
+      tripCosts,
+    };
+  }, [trips, dieselRecords]);
 
   // Fetch YTD metrics
   const { data: dbYtdMetrics = [], isLoading } = useQuery({
@@ -194,8 +238,24 @@ const YearToDateKPIs: React.FC<YearToDateKPIsProps> = ({ trips }) => {
       }
     });
 
+    // Override 2026 auto-computable fields with live data from trips & diesel records.
+    // ROE and ROIC require balance-sheet data so they remain from the DB (manually entered).
+    defaultData[2026] = {
+      ...defaultData[2026],
+      totalKms: computed2026Metrics.totalKms,
+      revenue: computed2026Metrics.revenue,
+      ipk: computed2026Metrics.ipk,
+      operationalCpk: computed2026Metrics.operationalCpk,
+      ebit: computed2026Metrics.ebit,
+      ebitMargin: computed2026Metrics.ebitMargin,
+      netProfit: computed2026Metrics.netProfit,
+      netProfitMargin: computed2026Metrics.netProfitMargin,
+      lastUpdated: new Date().toISOString(),
+      updatedBy: `Auto-calculated · ${computed2026Metrics.tripCount} trips`,
+    };
+
     return defaultData;
-  }, [dbYtdMetrics]);
+  }, [dbYtdMetrics, computed2026Metrics]);
 
   const saveYtdMutation = useMutation({
     mutationFn: async (data: YTDMetrics) => {
@@ -410,17 +470,20 @@ const YearToDateKPIs: React.FC<YearToDateKPIsProps> = ({ trips }) => {
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.totalKms || formData.totalKms <= 0) {
-      newErrors.totalKms = 'Total KMs must be greater than 0';
-    }
-    if (!formData.revenue || formData.revenue <= 0) {
-      newErrors.revenue = 'Revenue must be greater than 0';
-    }
-    if (!formData.ipk || formData.ipk <= 0) {
-      newErrors.ipk = 'IPK must be greater than 0';
-    }
-    if (!formData.operationalCpk || formData.operationalCpk <= 0) {
-      newErrors.operationalCpk = 'Operational CPK must be greater than 0';
+    // For 2026, core metrics are auto-calculated from trips — only validate ROE/ROIC if provided
+    if (editingYear !== 2026) {
+      if (!formData.totalKms || formData.totalKms <= 0) {
+        newErrors.totalKms = 'Total KMs must be greater than 0';
+      }
+      if (!formData.revenue || formData.revenue <= 0) {
+        newErrors.revenue = 'Revenue must be greater than 0';
+      }
+      if (!formData.ipk || formData.ipk <= 0) {
+        newErrors.ipk = 'IPK must be greater than 0';
+      }
+      if (!formData.operationalCpk || formData.operationalCpk <= 0) {
+        newErrors.operationalCpk = 'Operational CPK must be greater than 0';
+      }
     }
 
     setErrors(newErrors);
@@ -637,11 +700,11 @@ const YearToDateKPIs: React.FC<YearToDateKPIsProps> = ({ trips }) => {
             <span className="text-sm text-muted-foreground">Year-to-Date KPIs & Metrics</span>
             <Badge variant="secondary" className="text-xs">
               <Calendar className="w-3 h-3 mr-1" />
-              Updated monthly
+              2024 & 2025 manual
             </Badge>
-            <Badge variant="outline" className="text-xs">
-              <Eye className="w-3 h-3 mr-1" />
-              Live Data
+            <Badge className="text-xs bg-blue-500/10 text-blue-700 hover:bg-blue-500/10 border-blue-300/40" variant="outline">
+              <Zap className="w-3 h-3 mr-1" />
+              2026 live · {computed2026Metrics.tripCount} trips
             </Badge>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -670,12 +733,12 @@ const YearToDateKPIs: React.FC<YearToDateKPIsProps> = ({ trips }) => {
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button size="sm" className="h-9 gap-2 text-sm" onClick={() => handleEdit(2026)}>
+                  <Button size="sm" className="h-9 gap-2 text-sm bg-blue-600 hover:bg-blue-700" onClick={() => handleEdit(2026)}>
                     <Edit className="w-4 h-4" />
-                    2026
+                    2026 Returns
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Edit current year metrics</TooltipContent>
+                <TooltipContent>Enter ROE & ROIC for 2026 (other fields are auto-calculated)</TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </div>
@@ -1210,54 +1273,87 @@ const YearToDateKPIs: React.FC<YearToDateKPIsProps> = ({ trips }) => {
       <Dialog open={showEditModal} onOpenChange={(open) => !open && handleClose()}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Edit {editingYear} YTD Metrics</DialogTitle>
+            <DialogTitle>
+              {editingYear === 2026 ? '2026 Returns — Manual Entry' : `Edit ${editingYear} YTD Metrics`}
+            </DialogTitle>
             <DialogDescription>
-              Update strategic metrics for {editingYear}. These values are updated monthly on the 15th.
+              {editingYear === 2026
+                ? 'Revenue, KMs and costs are auto-calculated from completed trips. Enter Return on Equity and ROIC below.'
+                : `Update strategic metrics for ${editingYear}. These values are updated monthly on the 15th.`}
             </DialogDescription>
           </DialogHeader>
 
           {formData && editingYear && (
             <div className="space-y-6">
-              <div className="bg-amber-500/5 border border-amber-300/30 rounded-xl p-4">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5" />
-                  <div>
-                    <h4 className="text-sm font-semibold">Monthly Strategic Update</h4>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      These metrics are independent of trip-based calculations and should reflect comprehensive financial analysis.
-                    </p>
+              {editingYear === 2026 ? (
+                <div className="bg-blue-500/5 border border-blue-300/30 rounded-xl p-4">
+                  <div className="flex items-start gap-3">
+                    <Zap className="w-5 h-5 text-blue-600 mt-0.5" />
+                    <div>
+                      <h4 className="text-sm font-semibold">2026 — Live Auto-Calculated Data</h4>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Revenue, KMs, costs, IPK, CPK and profit figures are computed automatically from {computed2026Metrics.tripCount} completed trip{computed2026Metrics.tripCount !== 1 ? 's' : ''} and diesel records.
+                        Only <strong>Return on Equity</strong> and <strong>Return on Invested Capital</strong> require manual entry (balance-sheet data).
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="bg-amber-500/5 border border-amber-300/30 rounded-xl p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5" />
+                    <div>
+                      <h4 className="text-sm font-semibold">Monthly Strategic Update</h4>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        These metrics are independent of trip-based calculations and should reflect comprehensive financial analysis.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {[
-                  { id: 'totalKms', label: 'Total Kilometers', type: 'number', step: '1' },
-                  { id: 'ipk', label: 'Income Per KM (USD)', type: 'number', step: '0.01' },
-                  { id: 'operationalCpk', label: 'Operational Cost Per KM (USD)', type: 'number', step: '0.01' },
-                  { id: 'revenue', label: 'Total Revenue (USD)', type: 'number', step: '0.01' },
-                  { id: 'ebit', label: 'EBIT (USD)', type: 'number', step: '0.01' },
-                  { id: 'ebitMargin', label: 'EBIT Margin (%)', type: 'number', step: '0.01' },
-                  { id: 'netProfit', label: 'Net Profit (USD)', type: 'number', step: '0.01' },
-                  { id: 'netProfitMargin', label: 'Net Profit Margin (%)', type: 'number', step: '0.01' },
-                  { id: 'roe', label: 'Return on Equity (%)', type: 'number', step: '0.01' },
-                  { id: 'roic', label: 'Return on Invested Capital (%)', type: 'number', step: '0.01' },
-                ].map((field) => (
-                  <div key={field.id} className="space-y-2">
-                    <Label htmlFor={field.id}>{field.label}</Label>
-                    <Input
-                      id={field.id}
-                      type={field.type}
-                      step={field.step}
-                      value={formData[field.id as keyof YTDMetrics]?.toString() || ''}
-                      onChange={(e) => handleChange(field.id, e.target.value)}
-                      className={errors[field.id] ? 'border-destructive' : ''}
-                    />
-                    {errors[field.id] && (
-                      <p className="text-sm text-destructive">{errors[field.id]}</p>
-                    )}
-                  </div>
-                ))}
+                  { id: 'totalKms', label: 'Total Kilometers', type: 'number', step: '1', autoCalc: true },
+                  { id: 'ipk', label: 'Income Per KM (USD)', type: 'number', step: '0.01', autoCalc: true },
+                  { id: 'operationalCpk', label: 'Operational Cost Per KM (USD)', type: 'number', step: '0.01', autoCalc: true },
+                  { id: 'revenue', label: 'Total Revenue (USD)', type: 'number', step: '0.01', autoCalc: true },
+                  { id: 'ebit', label: 'EBIT (USD)', type: 'number', step: '0.01', autoCalc: true },
+                  { id: 'ebitMargin', label: 'EBIT Margin (%)', type: 'number', step: '0.01', autoCalc: true },
+                  { id: 'netProfit', label: 'Net Profit (USD)', type: 'number', step: '0.01', autoCalc: true },
+                  { id: 'netProfitMargin', label: 'Net Profit Margin (%)', type: 'number', step: '0.01', autoCalc: true },
+                  { id: 'roe', label: 'Return on Equity (%)', type: 'number', step: '0.01', autoCalc: false },
+                  { id: 'roic', label: 'Return on Invested Capital (%)', type: 'number', step: '0.01', autoCalc: false },
+                ].map((field) => {
+                  const isReadOnly = editingYear === 2026 && field.autoCalc;
+                  return (
+                    <div key={field.id} className="space-y-2">
+                      <Label htmlFor={field.id} className="flex items-center gap-2">
+                        {field.label}
+                        {isReadOnly && (
+                          <Badge variant="secondary" className="text-xs font-normal py-0">
+                            <Zap className="w-2.5 h-2.5 mr-1" />Auto
+                          </Badge>
+                        )}
+                      </Label>
+                      <Input
+                        id={field.id}
+                        type={field.type}
+                        step={field.step}
+                        value={isReadOnly
+                          ? (computed2026Metrics as Record<string, number>)[field.id]?.toFixed(field.step === '1' ? 0 : 2) || '0'
+                          : formData[field.id as keyof YTDMetrics]?.toString() || ''
+                        }
+                        onChange={(e) => !isReadOnly && handleChange(field.id, e.target.value)}
+                        readOnly={isReadOnly}
+                        className={`${errors[field.id] ? 'border-destructive' : ''} ${isReadOnly ? 'bg-muted/40 text-muted-foreground cursor-default' : ''}`}
+                      />
+                      {errors[field.id] && (
+                        <p className="text-sm text-destructive">{errors[field.id]}</p>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
 
               <Separator />
@@ -1284,7 +1380,7 @@ const YearToDateKPIs: React.FC<YearToDateKPIsProps> = ({ trips }) => {
                   ) : (
                     <>
                       <Save className="w-4 h-4 mr-2" />
-                      Save {editingYear} Metrics
+                      {editingYear === 2026 ? 'Save 2026 Returns' : `Save ${editingYear} Metrics`}
                     </>
                   )}
                 </Button>

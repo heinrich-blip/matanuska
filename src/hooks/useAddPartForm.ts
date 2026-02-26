@@ -460,33 +460,24 @@ export function useAddPartForm(
           quantity: state.quantity,
           notes: finalNotes,
           status: "pending",
-          unit_price: state.unitPrice,
-          total_price: totalPrice,
+          // Procurement team will fill in price, vendor, and IR later
+          unit_price: null,
+          total_price: null,
+          vendor_id: null,
+          ir_number: null,
           is_service: state.sourceType === "service",
           is_from_inventory: state.sourceType === "inventory",
-          ir_number:
-            state.sourceType === "external" ||
-            state.sourceType === "service"
-              ? state.irNumber.trim()
-              : null,
           service_description:
             state.sourceType === "service"
               ? state.serviceDescription
               : null,
           document_url: uploadedDocUrl,
           document_name: state.documentFile?.name || null,
+          inventory_id:
+            state.sourceType === "inventory"
+              ? state.selectedInventoryId || null
+              : null,
         };
-
-        if (state.sourceType === "service") {
-          insertData.inventory_id = null;
-          insertData.vendor_id = null;
-        } else if (state.sourceType === "inventory") {
-          insertData.inventory_id = state.selectedInventoryId || null;
-          insertData.vendor_id = null;
-        } else {
-          insertData.inventory_id = null;
-          insertData.vendor_id = state.selectedVendorId || null;
-        }
 
         const { error } = await supabase
           .from("parts_requests")
@@ -523,7 +514,6 @@ export function useAddPartForm(
     },
     [
       state,
-      totalPrice,
       jobCardId,
       toast,
       queryClient,

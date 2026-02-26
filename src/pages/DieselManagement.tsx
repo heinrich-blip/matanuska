@@ -1,4 +1,5 @@
 import DieselDebriefModal from '@/components/diesel/DieselDebriefModal';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import DieselImportModal from '@/components/diesel/DieselImportModal';
 import DieselNormsModal from '@/components/diesel/DieselNormsModal';
 import DieselTransactionViewModal from '@/components/diesel/DieselTransactionViewModal';
@@ -13,15 +14,27 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useOperations } from '@/contexts/OperationsContext';
 import { useReeferConsumptionSummary, useReeferDieselRecords, type ReeferDieselRecordRow } from '@/hooks/useReeferDiesel';
 import { generateDieselDebriefPDF, generateFleetDebriefSummaryPDF, generateSelectedTransactionsPDF } from '@/lib/dieselDebriefExport';
-import { generateAllFleetsDieselExcel, generateAllFleetsDieselPDF, generateFleetDieselExcel, generateFleetDieselPDF, type DieselExportRecord } from '@/lib/dieselFleetExport';
+import {
+  generateAllFleetsDieselExcel,
+  generateAllFleetsDieselPDF,
+  generateFleetDieselExcel,
+  generateFleetDieselPDF,
+  generateStyledDieselExcel,
+  generateComprehensiveDieselPDF,
+  type DieselExportRecord,
+  type ExportSheetSelection,
+} from '@/lib/dieselFleetExport';
 import { formatCurrency, formatDate, formatNumber } from '@/lib/formatters';
 import type { DieselConsumptionRecord, DieselNorms } from '@/types/operations';
-import { AlertCircle, BarChart3, CheckCircle, ChevronDown, ChevronRight, Download, Edit, Eye, FileSpreadsheet, FileText, Filter, Fuel, Link, Plus, Settings, Snowflake, Trash2, Truck, Upload, User } from 'lucide-react';
+import { AlertCircle, BarChart3, CheckCircle, ChevronDown, ChevronRight, Download, Edit, Eye, FileSpreadsheet, FileText, Filter, Fuel, Link, MessageCircle, Plus, Settings, Snowflake, Trash2, Truck, Upload, User } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 // Report data types
@@ -127,6 +140,26 @@ const getWeekNumberForDateString = (dateStr: string): number => {
   return Math.ceil((days + startOfYear.getDay() + 1) / 7);
 };
 
+// Shared week-boundary helpers for breakdown memos
+const _wkStart = (date: Date): Date => {
+  const d = new Date(date);
+  const day = d.getDay();
+  d.setDate(d.getDate() - day + (day === 0 ? -6 : 1));
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+const _wkNumber = (date: Date): number => {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dn = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dn);
+  const ys = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil((((d.getTime() - ys.getTime()) / 86400000) + 1) / 7);
+};
+const _wkLabel = (start: Date, end: Date): string => {
+  const o: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' };
+  return `${start.toLocaleDateString('en-ZA', o)} – ${end.toLocaleDateString('en-ZA', o)}`;
+};
+
 const DieselManagement = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [fleetFilter, _setFleetFilter] = useState<string>('');
@@ -209,6 +242,7 @@ const DieselManagement = () => {
 
   // Modal states
   const [isManualEntryOpen, setIsManualEntryOpen] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isTripLinkageOpen, setIsTripLinkageOpen] = useState(false);
   const [isProbeVerificationOpen, setIsProbeVerificationOpen] = useState(false);
@@ -227,6 +261,29 @@ const DieselManagement = () => {
   const [expandedFleets, setExpandedFleets] = useState<Set<string>>(new Set());
   const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(new Set());
   const [expandedReportWeeks, setExpandedReportWeeks] = useState<Set<string>>(new Set());
+
+  // Export dialog state
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportFormat, setExportFormat] = useState<'excel' | 'pdf'>('excel');
+  const [exportSel, setExportSel] = useState<ExportSheetSelection>({
+    overview: true, truckByDriver: true, truckByFleet: true, truckByStation: true,
+    weekly: true, reeferByFleet: true, reeferByDriver: true, reeferByStation: true,
+    truckTransactions: false, reeferTransactions: false,
+  });
+  const [isExporting, setIsExporting] = useState(false);
+
+  const toggleSheet = (key: keyof ExportSheetSelection) =>
+    setExportSel(prev => ({ ...prev, [key]: !prev[key] }));
+
+  // Weekly breakdown view toggle (applies to all report sub-views)
+  const [weeklyView, setWeeklyView] = useState(false);
+  const [expandedBreakdownWeeks, setExpandedBreakdownWeeks] = useState<Set<string>>(new Set());
+  const toggleBreakdownWeek = (weekKey: string) =>
+    setExpandedBreakdownWeeks(prev => {
+      const n = new Set(prev);
+      if (n.has(weekKey)) { n.delete(weekKey); } else { n.add(weekKey); }
+      return n;
+    });
 
   // Toggle week expansion in weekly report
   const toggleReportWeekExpanded = (weekKey: string) => {
@@ -275,6 +332,23 @@ const DieselManagement = () => {
 
   // Debrief fleet filter for PDF export
   const [debriefFleetFilter, setDebriefFleetFilter] = useState<string>('');
+  // Completed debrief fleet filter
+  const [completedDebriefFleetFilter, setCompletedDebriefFleetFilter] = useState<string>('');
+  // Pending debrief accordion — tracks which fleet groups are expanded
+  const [expandedPendingFleets, setExpandedPendingFleets] = useState<Set<string>>(new Set());
+  // WhatsApp-shared record IDs, persisted in localStorage
+  const [whatsappSharedIds, setWhatsappSharedIds] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('diesel-wa-shared') || '[]'); } catch { return []; }
+  });
+  const whatsappSharedSet = useMemo(() => new Set(whatsappSharedIds), [whatsappSharedIds]);
+  const handleWhatsappShared = (recordId: string) => {
+    setWhatsappSharedIds(prev => {
+      if (prev.includes(recordId)) return prev;
+      const next = [...prev, recordId];
+      try { localStorage.setItem('diesel-wa-shared', JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  };
 
   // Calculate summary statistics (trucks)
   const totalRecords = truckRecords.length;
@@ -938,194 +1012,247 @@ const DieselManagement = () => {
     return reports;
   }, [dieselRecords, reeferRecords, reeferFleetNumbers]);
 
-  // Export report to Excel
-  const exportReportToExcel = () => {
-    let rows: string[] = [];
-    let filename = '';
+  // ── Weekly breakdowns for each individual report type (Mon–Sun grouping) ──
 
-    if (reportType === 'reefer') {
-      // Delegate to reefer export
-      exportReeferReportToExcel();
-      return;
-    }
-
-    if (reportType === 'weekly') {
-      // Weekly report export with all sections including reefer L/H
-      weeklyReports.forEach(weekReport => {
-        rows.push(`Week ${weekReport.weekNumber} — ${weekReport.weekLabel}`);
-        rows.push('');
-
-        weekReport.sections.forEach(section => {
-          rows.push(section.name);
-          if (section.isReeferSection) {
-            rows.push(['Fleet', 'Litres', 'Hours', 'L/H', 'Cost (ZAR)', 'Cost (USD)'].join('\t'));
-            section.data.forEach(d => {
-              rows.push([
-                d.fleet,
-                d.totalLitres > 0 ? d.totalLitres.toFixed(2) : '0',
-                d.totalHours > 0 ? d.totalHours.toFixed(1) : '—',
-                d.reeferConsumption !== null ? d.reeferConsumption.toFixed(2) : '—',
-                d.totalCostZAR.toFixed(2),
-                d.totalCostUSD.toFixed(2),
-              ].join('\t'));
-            });
-            rows.push([
-              'Section Total',
-              section.sectionTotal.totalLitres.toFixed(2),
-              section.sectionTotal.totalHours > 0 ? section.sectionTotal.totalHours.toFixed(1) : '—',
-              section.sectionTotal.reeferConsumption !== null ? section.sectionTotal.reeferConsumption.toFixed(2) : '—',
-              section.sectionTotal.totalCostZAR.toFixed(2),
-              section.sectionTotal.totalCostUSD.toFixed(2),
-            ].join('\t'));
-          } else {
-            rows.push(['Fleet', 'Litres', 'Km', 'km/L', 'Cost (ZAR)', 'Cost (USD)'].join('\t'));
-            section.data.forEach(d => {
-              rows.push([
-                d.fleet,
-                d.totalLitres > 0 ? d.totalLitres.toFixed(2) : '0',
-                d.totalKm > 0 ? d.totalKm.toString() : '—',
-                d.consumption !== null ? d.consumption.toFixed(2) : '—',
-                d.totalCostZAR.toFixed(2),
-                d.totalCostUSD.toFixed(2),
-              ].join('\t'));
-            });
-            rows.push([
-              'Section Total',
-              section.sectionTotal.totalLitres.toFixed(2),
-              section.sectionTotal.totalKm.toString(),
-              section.sectionTotal.consumption !== null ? section.sectionTotal.consumption.toFixed(2) : '—',
-              section.sectionTotal.totalCostZAR.toFixed(2),
-              section.sectionTotal.totalCostUSD.toFixed(2),
-            ].join('\t'));
-          }
-          rows.push('');
-        });
-
-        rows.push([
-          'GRAND TOTAL (Trucks)',
-          weekReport.grandTotal.totalLitres.toFixed(2),
-          weekReport.grandTotal.totalKm.toString(),
-          weekReport.grandTotal.consumption !== null ? weekReport.grandTotal.consumption.toFixed(2) : '—',
-          weekReport.grandTotal.totalCostZAR.toFixed(2),
-          weekReport.grandTotal.totalCostUSD.toFixed(2),
-        ].join('\t'));
-        rows.push('');
-        rows.push('');
+  /** One entry per ISO week, containing FleetReport rows for that week's truck records. */
+  const weeklyFleetBreakdown = useMemo(() => {
+    const weekMap = new Map<string, { ws: Date; we: Date; recs: typeof truckRecords }>();
+    truckRecords.forEach(r => {
+      const ws = _wkStart(new Date(r.date));
+      const we = new Date(ws); we.setDate(we.getDate() + 6);
+      const k = ws.toISOString().split('T')[0];
+      if (!weekMap.has(k)) weekMap.set(k, { ws, we, recs: [] });
+      weekMap.get(k)!.recs.push(r);
+    });
+    return Array.from(weekMap.entries()).sort((a, b) => b[0].localeCompare(a[0])).map(([weekKey, { ws, we, recs }]) => {
+      const fm = new Map<string, FleetReport>();
+      recs.forEach(r => {
+        const fl = r.fleet_number; const dr = r.driver_name || 'Unknown';
+        const ex = fm.get(fl);
+        if (ex) {
+          ex.totalLitres += r.litres_filled || 0;
+          ex.totalCostZAR += (r.currency || 'ZAR') === 'ZAR' ? (r.total_cost || 0) : 0;
+          ex.totalCostUSD += r.currency === 'USD' ? (r.total_cost || 0) : 0;
+          ex.totalDistance += r.distance_travelled || 0;
+          ex.fillCount += 1;
+          if (!ex.drivers.includes(dr)) ex.drivers.push(dr);
+        } else {
+          fm.set(fl, { fleet: fl, totalLitres: r.litres_filled || 0, totalCostZAR: (r.currency || 'ZAR') === 'ZAR' ? (r.total_cost || 0) : 0, totalCostUSD: r.currency === 'USD' ? (r.total_cost || 0) : 0, totalDistance: r.distance_travelled || 0, avgKmPerLitre: 0, fillCount: 1, drivers: [dr] });
+        }
       });
-      filename = `diesel_weekly_consumption_${new Date().toISOString().split('T')[0]}.xls`;
-    } else if (reportType === 'driver') {
-      const headers = ['Driver', 'Total Litres', 'Total Cost (ZAR)', 'Total Cost (USD)', 'Total Distance (km)', 'Avg km/L', 'Fill Count', 'Last Fill Date'].join('\t');
-      rows = [headers, ...driverReports.map(r => [
-        r.driver,
-        r.totalLitres.toFixed(2),
-        r.totalCostZAR.toFixed(2),
-        r.totalCostUSD.toFixed(2),
-        r.totalDistance.toString(),
-        r.avgKmPerLitre.toFixed(2),
-        r.fillCount.toString(),
-        r.lastFillDate,
-      ].join('\t'))];
-      filename = `diesel_report_by_driver_${new Date().toISOString().split('T')[0]}.xls`;
-    } else if (reportType === 'fleet') {
-      const headers = ['Fleet', 'Total Litres', 'Total Cost (ZAR)', 'Total Cost (USD)', 'Total Distance (km)', 'Avg km/L', 'Fill Count', 'Drivers'].join('\t');
-      rows = [headers, ...fleetReports.map(r => [
-        r.fleet,
-        r.totalLitres.toFixed(2),
-        r.totalCostZAR.toFixed(2),
-        r.totalCostUSD.toFixed(2),
-        r.totalDistance.toString(),
-        r.avgKmPerLitre.toFixed(2),
-        r.fillCount.toString(),
-        r.drivers.join(', '),
-      ].join('\t'))];
-      filename = `diesel_report_by_fleet_${new Date().toISOString().split('T')[0]}.xls`;
-    } else {
-      const headers = ['Station', 'Total Litres', 'Total Cost (ZAR)', 'Total Cost (USD)', 'Avg Cost/L', 'Fill Count', 'Fleets Served'].join('\t');
-      rows = [headers, ...stationReports.map(r => [
-        r.station,
-        r.totalLitres.toFixed(2),
-        r.totalCostZAR.toFixed(2),
-        r.totalCostUSD.toFixed(2),
-        r.avgCostPerLitre.toFixed(2),
-        r.fillCount.toString(),
-        r.fleetsServed.join(', '),
-      ].join('\t'))];
-      filename = `diesel_report_by_station_${new Date().toISOString().split('T')[0]}.xls`;
-    }
+      fm.forEach(rp => { rp.avgKmPerLitre = rp.totalLitres > 0 ? rp.totalDistance / rp.totalLitres : 0; });
+      const data = Array.from(fm.values()).sort((a, b) => b.totalLitres - a.totalLitres);
+      return { weekKey, weekNumber: _wkNumber(ws), weekLabel: _wkLabel(ws, we), weekStart: ws.toISOString().split('T')[0], weekEnd: we.toISOString().split('T')[0], data, totals: { totalLitres: data.reduce((s, r) => s + r.totalLitres, 0), totalCostZAR: data.reduce((s, r) => s + r.totalCostZAR, 0), totalCostUSD: data.reduce((s, r) => s + r.totalCostUSD, 0), totalDistance: data.reduce((s, r) => s + r.totalDistance, 0), fillCount: data.reduce((s, r) => s + r.fillCount, 0) } };
+    });
+  }, [truckRecords]);
 
-    const tsvContent = '\uFEFF' + rows.join('\n');
-    const blob = new Blob([tsvContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = filename;
-    link.click();
+  /** One entry per ISO week, containing DriverReport rows for that week's truck records. */
+  const weeklyDriverBreakdown = useMemo(() => {
+    const weekMap = new Map<string, { ws: Date; we: Date; recs: typeof truckRecords }>();
+    truckRecords.forEach(r => {
+      const ws = _wkStart(new Date(r.date));
+      const we = new Date(ws); we.setDate(we.getDate() + 6);
+      const k = ws.toISOString().split('T')[0];
+      if (!weekMap.has(k)) weekMap.set(k, { ws, we, recs: [] });
+      weekMap.get(k)!.recs.push(r);
+    });
+    return Array.from(weekMap.entries()).sort((a, b) => b[0].localeCompare(a[0])).map(([weekKey, { ws, we, recs }]) => {
+      const dm = new Map<string, DriverReport>();
+      recs.forEach(r => {
+        const dr = r.driver_name || 'Unknown Driver';
+        const ex = dm.get(dr);
+        if (ex) {
+          ex.totalLitres += r.litres_filled || 0;
+          ex.totalCostZAR += (r.currency || 'ZAR') === 'ZAR' ? (r.total_cost || 0) : 0;
+          ex.totalCostUSD += r.currency === 'USD' ? (r.total_cost || 0) : 0;
+          ex.totalDistance += r.distance_travelled || 0;
+          ex.fillCount += 1;
+          if (r.date > ex.lastFillDate) ex.lastFillDate = r.date;
+        } else {
+          dm.set(dr, { driver: dr, totalLitres: r.litres_filled || 0, totalCostZAR: (r.currency || 'ZAR') === 'ZAR' ? (r.total_cost || 0) : 0, totalCostUSD: r.currency === 'USD' ? (r.total_cost || 0) : 0, totalDistance: r.distance_travelled || 0, avgKmPerLitre: 0, fillCount: 1, lastFillDate: r.date });
+        }
+      });
+      dm.forEach(rp => { rp.avgKmPerLitre = rp.totalLitres > 0 ? rp.totalDistance / rp.totalLitres : 0; });
+      const data = Array.from(dm.values()).sort((a, b) => b.totalLitres - a.totalLitres);
+      return { weekKey, weekNumber: _wkNumber(ws), weekLabel: _wkLabel(ws, we), weekStart: ws.toISOString().split('T')[0], weekEnd: we.toISOString().split('T')[0], data, totals: { totalLitres: data.reduce((s, r) => s + r.totalLitres, 0), totalCostZAR: data.reduce((s, r) => s + r.totalCostZAR, 0), totalCostUSD: data.reduce((s, r) => s + r.totalCostUSD, 0), totalDistance: data.reduce((s, r) => s + r.totalDistance, 0), fillCount: data.reduce((s, r) => s + r.fillCount, 0) } };
+    });
+  }, [truckRecords]);
+
+  /** One entry per ISO week, containing StationReport rows for that week's truck records. */
+  const weeklyStationBreakdown = useMemo(() => {
+    const weekMap = new Map<string, { ws: Date; we: Date; recs: typeof truckRecords }>();
+    truckRecords.forEach(r => {
+      const ws = _wkStart(new Date(r.date));
+      const we = new Date(ws); we.setDate(we.getDate() + 6);
+      const k = ws.toISOString().split('T')[0];
+      if (!weekMap.has(k)) weekMap.set(k, { ws, we, recs: [] });
+      weekMap.get(k)!.recs.push(r);
+    });
+    return Array.from(weekMap.entries()).sort((a, b) => b[0].localeCompare(a[0])).map(([weekKey, { ws, we, recs }]) => {
+      const sm = new Map<string, StationReport>();
+      recs.forEach(r => {
+        const st = r.fuel_station || 'Unknown Station'; const fl = r.fleet_number;
+        const ex = sm.get(st);
+        if (ex) {
+          ex.totalLitres += r.litres_filled || 0;
+          ex.totalCostZAR += (r.currency || 'ZAR') === 'ZAR' ? (r.total_cost || 0) : 0;
+          ex.totalCostUSD += r.currency === 'USD' ? (r.total_cost || 0) : 0;
+          ex.fillCount += 1;
+          if (!ex.fleetsServed.includes(fl)) ex.fleetsServed.push(fl);
+        } else {
+          sm.set(st, { station: st, totalLitres: r.litres_filled || 0, totalCostZAR: (r.currency || 'ZAR') === 'ZAR' ? (r.total_cost || 0) : 0, totalCostUSD: r.currency === 'USD' ? (r.total_cost || 0) : 0, avgCostPerLitre: 0, fillCount: 1, fleetsServed: [fl] });
+        }
+      });
+      sm.forEach(rp => { rp.avgCostPerLitre = rp.totalLitres > 0 ? (rp.totalCostZAR + rp.totalCostUSD) / rp.totalLitres : 0; });
+      const data = Array.from(sm.values()).sort((a, b) => b.totalLitres - a.totalLitres);
+      return { weekKey, weekNumber: _wkNumber(ws), weekLabel: _wkLabel(ws, we), weekStart: ws.toISOString().split('T')[0], weekEnd: we.toISOString().split('T')[0], data, totals: { totalLitres: data.reduce((s, r) => s + r.totalLitres, 0), totalCostZAR: data.reduce((s, r) => s + r.totalCostZAR, 0), totalCostUSD: data.reduce((s, r) => s + r.totalCostUSD, 0), fillCount: data.reduce((s, r) => s + r.fillCount, 0) } };
+    });
+  }, [truckRecords]);
+
+  /** One entry per ISO week, containing ReeferFleetReport rows for that week's reefer records. */
+  const weeklyReeferFleetBreakdown = useMemo(() => {
+    const weekMap = new Map<string, { ws: Date; we: Date; recs: typeof reeferRecords }>();
+    reeferRecords.forEach(r => {
+      const ws = _wkStart(new Date(r.date));
+      const we = new Date(ws); we.setDate(we.getDate() + 6);
+      const k = ws.toISOString().split('T')[0];
+      if (!weekMap.has(k)) weekMap.set(k, { ws, we, recs: [] });
+      weekMap.get(k)!.recs.push(r);
+    });
+    return Array.from(weekMap.entries()).sort((a, b) => b[0].localeCompare(a[0])).map(([weekKey, { ws, we, recs }]) => {
+      const fm = new Map<string, ReeferFleetReport>();
+      recs.forEach(r => {
+        const fl = r.fleet_number; const dr = r.driver_name || 'Unknown';
+        const ex = fm.get(fl);
+        if (ex) {
+          ex.totalLitres += r.litres_filled || 0;
+          ex.totalCostZAR += (r.currency || 'ZAR') === 'ZAR' ? (r.total_cost || 0) : 0;
+          ex.totalCostUSD += r.currency === 'USD' ? (r.total_cost || 0) : 0;
+          ex.fillCount += 1;
+          if (!ex.drivers.includes(dr)) ex.drivers.push(dr);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const hrs = (r as any).hours_operated as number | null;
+          if (hrs && hrs > 0) ex.totalHoursOperated += hrs;
+        } else {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const hrs = (r as any).hours_operated as number | null;
+          fm.set(fl, { fleet: fl, totalLitres: r.litres_filled || 0, totalCostZAR: (r.currency || 'ZAR') === 'ZAR' ? (r.total_cost || 0) : 0, totalCostUSD: r.currency === 'USD' ? (r.total_cost || 0) : 0, fillCount: 1, drivers: [dr], avgLitresPerHour: 0, totalHoursOperated: (hrs && hrs > 0) ? hrs : 0 });
+        }
+      });
+      fm.forEach(rp => { rp.avgLitresPerHour = rp.totalHoursOperated > 0 ? rp.totalLitres / rp.totalHoursOperated : 0; });
+      const data = Array.from(fm.values()).sort((a, b) => b.totalLitres - a.totalLitres);
+      return { weekKey, weekNumber: _wkNumber(ws), weekLabel: _wkLabel(ws, we), weekStart: ws.toISOString().split('T')[0], weekEnd: we.toISOString().split('T')[0], data, totals: { totalLitres: data.reduce((s, r) => s + r.totalLitres, 0), totalCostZAR: data.reduce((s, r) => s + r.totalCostZAR, 0), totalCostUSD: data.reduce((s, r) => s + r.totalCostUSD, 0), totalHoursOperated: data.reduce((s, r) => s + r.totalHoursOperated, 0), fillCount: data.reduce((s, r) => s + r.fillCount, 0) } };
+    });
+  }, [reeferRecords]);
+
+  /** One entry per ISO week, containing ReeferDriverReport rows for that week's reefer records. */
+  const weeklyReeferDriverBreakdown = useMemo(() => {
+    const weekMap = new Map<string, { ws: Date; we: Date; recs: typeof reeferRecords }>();
+    reeferRecords.forEach(r => {
+      const ws = _wkStart(new Date(r.date));
+      const we = new Date(ws); we.setDate(we.getDate() + 6);
+      const k = ws.toISOString().split('T')[0];
+      if (!weekMap.has(k)) weekMap.set(k, { ws, we, recs: [] });
+      weekMap.get(k)!.recs.push(r);
+    });
+    return Array.from(weekMap.entries()).sort((a, b) => b[0].localeCompare(a[0])).map(([weekKey, { ws, we, recs }]) => {
+      const dm = new Map<string, ReeferDriverReport>();
+      recs.forEach(r => {
+        const dr = r.driver_name || 'Unknown Driver'; const fl = r.fleet_number;
+        const ex = dm.get(dr);
+        if (ex) {
+          ex.totalLitres += r.litres_filled || 0;
+          ex.totalCostZAR += (r.currency || 'ZAR') === 'ZAR' ? (r.total_cost || 0) : 0;
+          ex.totalCostUSD += r.currency === 'USD' ? (r.total_cost || 0) : 0;
+          ex.fillCount += 1;
+          if (r.date > ex.lastFillDate) ex.lastFillDate = r.date;
+          if (fl && !ex.fleets.includes(fl)) ex.fleets.push(fl);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const hrs = (r as any).hours_operated as number | null;
+          if (hrs && hrs > 0) ex.totalHoursOperated += hrs;
+        } else {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const hrs = (r as any).hours_operated as number | null;
+          dm.set(dr, { driver: dr, totalLitres: r.litres_filled || 0, totalCostZAR: (r.currency || 'ZAR') === 'ZAR' ? (r.total_cost || 0) : 0, totalCostUSD: r.currency === 'USD' ? (r.total_cost || 0) : 0, fillCount: 1, lastFillDate: r.date, fleets: fl ? [fl] : [], avgLitresPerHour: 0, totalHoursOperated: (hrs && hrs > 0) ? hrs : 0 });
+        }
+      });
+      dm.forEach(rp => { rp.avgLitresPerHour = rp.totalHoursOperated > 0 ? rp.totalLitres / rp.totalHoursOperated : 0; });
+      const data = Array.from(dm.values()).sort((a, b) => b.totalLitres - a.totalLitres);
+      return { weekKey, weekNumber: _wkNumber(ws), weekLabel: _wkLabel(ws, we), weekStart: ws.toISOString().split('T')[0], weekEnd: we.toISOString().split('T')[0], data, totals: { totalLitres: data.reduce((s, r) => s + r.totalLitres, 0), totalCostZAR: data.reduce((s, r) => s + r.totalCostZAR, 0), totalCostUSD: data.reduce((s, r) => s + r.totalCostUSD, 0), totalHoursOperated: data.reduce((s, r) => s + r.totalHoursOperated, 0), fillCount: data.reduce((s, r) => s + r.fillCount, 0) } };
+    });
+  }, [reeferRecords]);
+
+  /** One entry per ISO week, containing StationReport rows for that week's reefer records. */
+  const weeklyReeferStationBreakdown = useMemo(() => {
+    const weekMap = new Map<string, { ws: Date; we: Date; recs: typeof reeferRecords }>();
+    reeferRecords.forEach(r => {
+      const ws = _wkStart(new Date(r.date));
+      const we = new Date(ws); we.setDate(we.getDate() + 6);
+      const k = ws.toISOString().split('T')[0];
+      if (!weekMap.has(k)) weekMap.set(k, { ws, we, recs: [] });
+      weekMap.get(k)!.recs.push(r);
+    });
+    return Array.from(weekMap.entries()).sort((a, b) => b[0].localeCompare(a[0])).map(([weekKey, { ws, we, recs }]) => {
+      const sm = new Map<string, StationReport>();
+      recs.forEach(r => {
+        const st = r.fuel_station || 'Unknown Station'; const fl = r.fleet_number;
+        const ex = sm.get(st);
+        if (ex) {
+          ex.totalLitres += r.litres_filled || 0;
+          ex.totalCostZAR += (r.currency || 'ZAR') === 'ZAR' ? (r.total_cost || 0) : 0;
+          ex.totalCostUSD += r.currency === 'USD' ? (r.total_cost || 0) : 0;
+          ex.fillCount += 1;
+          if (!ex.fleetsServed.includes(fl)) ex.fleetsServed.push(fl);
+        } else {
+          sm.set(st, { station: st, totalLitres: r.litres_filled || 0, totalCostZAR: (r.currency || 'ZAR') === 'ZAR' ? (r.total_cost || 0) : 0, totalCostUSD: r.currency === 'USD' ? (r.total_cost || 0) : 0, avgCostPerLitre: 0, fillCount: 1, fleetsServed: [fl] });
+        }
+      });
+      sm.forEach(rp => { rp.avgCostPerLitre = rp.totalLitres > 0 ? (rp.totalCostZAR + rp.totalCostUSD) / rp.totalLitres : 0; });
+      const data = Array.from(sm.values()).sort((a, b) => b.totalLitres - a.totalLitres);
+      return { weekKey, weekNumber: _wkNumber(ws), weekLabel: _wkLabel(ws, we), weekStart: ws.toISOString().split('T')[0], weekEnd: we.toISOString().split('T')[0], data, totals: { totalLitres: data.reduce((s, r) => s + r.totalLitres, 0), totalCostZAR: data.reduce((s, r) => s + r.totalCostZAR, 0), totalCostUSD: data.reduce((s, r) => s + r.totalCostUSD, 0), fillCount: data.reduce((s, r) => s + r.fillCount, 0) } };
+    });
+  }, [reeferRecords]);
+
+  const buildExportInput = () => ({
+    driverReports,
+    reeferDriverReports,
+    fleetReports,
+    reeferFleetReports,
+    stationReports,
+    reeferStationReports,
+    weeklyReports,
+    truckRecords: truckRecords as unknown as DieselExportRecord[],
+    reeferRecords: reeferRecords as unknown as DieselExportRecord[],
+  });
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      if (exportFormat === 'pdf') {
+        generateComprehensiveDieselPDF(buildExportInput(), exportSel);
+      } else {
+        await generateStyledDieselExcel(buildExportInput(), exportSel);
+      }
+      setExportOpen(false);
+    } catch (e) {
+      console.error('Export failed:', e);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
-  // Export reefer report to Excel (separate from truck export)
-  const exportReeferReportToExcel = () => {
-    const rows: string[] = [];
-
-    // Fleet section
-    if (reeferFleetReports.length > 0) {
-      rows.push('REEFER FLEET REPORT');
-      rows.push(['Fleet', 'Total Litres', 'Total Cost (ZAR)', 'Total Cost (USD)', 'Avg L/hr', 'Hours Operated', 'Fill Count', 'Drivers'].join('\t'));
-      reeferFleetReports.forEach(r => {
-        rows.push([
-          r.fleet,
-          r.totalLitres.toFixed(2),
-          r.totalCostZAR.toFixed(2),
-          r.totalCostUSD.toFixed(2),
-          r.avgLitresPerHour > 0 ? r.avgLitresPerHour.toFixed(2) : '—',
-          r.totalHoursOperated > 0 ? r.totalHoursOperated.toFixed(1) : '—',
-          r.fillCount.toString(),
-          r.drivers.join(', '),
-        ].join('\t'));
-      });
-      rows.push('');
-    }
-
-    // Driver section
-    if (reeferDriverReports.length > 0) {
-      rows.push('REEFER DRIVER REPORT');
-      rows.push(['Driver', 'Total Litres', 'Total Cost (ZAR)', 'Total Cost (USD)', 'Avg L/hr', 'Fill Count', 'Last Fill Date', 'Fleets'].join('\t'));
-      reeferDriverReports.forEach(r => {
-        rows.push([
-          r.driver,
-          r.totalLitres.toFixed(2),
-          r.totalCostZAR.toFixed(2),
-          r.totalCostUSD.toFixed(2),
-          r.avgLitresPerHour > 0 ? r.avgLitresPerHour.toFixed(2) : '—',
-          r.fillCount.toString(),
-          r.lastFillDate,
-          r.fleets.join(', '),
-        ].join('\t'));
-      });
-      rows.push('');
-    }
-
-    // Station section
-    if (reeferStationReports.length > 0) {
-      rows.push('REEFER STATION REPORT');
-      rows.push(['Station', 'Total Litres', 'Total Cost (ZAR)', 'Total Cost (USD)', 'Avg Cost/L', 'Fill Count', 'Fleets Served'].join('\t'));
-      reeferStationReports.forEach(r => {
-        rows.push([
-          r.station,
-          r.totalLitres.toFixed(2),
-          r.totalCostZAR.toFixed(2),
-          r.totalCostUSD.toFixed(2),
-          r.avgCostPerLitre.toFixed(2),
-          r.fillCount.toString(),
-          r.fleetsServed.join(', '),
-        ].join('\t'));
-      });
-    }
-
-    const tsvContent = '\uFEFF' + rows.join('\n');
-    const blob = new Blob([tsvContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `reefer_diesel_report_${new Date().toISOString().split('T')[0]}.xls`;
-    link.click();
+  /**
+   * Open the export dialog pre-configured for a specific tab.
+   * All sheets default to false; only the supplied overrides are enabled.
+   */
+  const openTabExport = (overrides: Partial<ExportSheetSelection>) => {
+    setExportSel({
+      overview: false, truckByDriver: false, truckByFleet: false, truckByStation: false,
+      weekly: false, reeferByFleet: false, reeferByDriver: false, reeferByStation: false,
+      truckTransactions: false, reeferTransactions: false,
+      ...overrides,
+    });
+    setExportOpen(true);
   };
 
   // Export all diesel transactions to Excel (XLSX format using CSV with Excel compatibility)
@@ -1326,7 +1453,7 @@ const DieselManagement = () => {
     }
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
   const handleImport = async (records: any[]) => {
     for (const record of records) {
       await addDieselRecord(record as unknown as Omit<DieselConsumptionRecord, 'id' | 'created_at' | 'updated_at'>);
@@ -1514,26 +1641,7 @@ const DieselManagement = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex gap-2">
-            <Button
-              className="gap-2"
-              onClick={() => {
-                setSelectedRecord(null);
-                setIsManualEntryOpen(true);
-              }}
-            >
-              <Plus className="h-4 w-4" />
-              Add Truck Entry
-            </Button>
-            <Button
-              className="gap-2 bg-cyan-600 hover:bg-cyan-700"
-              onClick={() => {
-                setSelectedReeferEditRecord(null);
-                setIsReeferEntryOpen(true);
-              }}
-            >
-              <Snowflake className="h-4 w-4" />
-              Add Reefer Entry
-            </Button>
+{/* Import Data button hidden
             <Button
               variant="outline"
               className="gap-2"
@@ -1542,6 +1650,7 @@ const DieselManagement = () => {
               <Upload className="h-4 w-4" />
               Import Data
             </Button>
+            */}
             <Button
               variant="outline"
               className="gap-2"
@@ -1658,6 +1767,7 @@ const DieselManagement = () => {
                 <Snowflake className="h-4 w-4" />
                 Add Reefer Entry
               </Button>
+{/* Import CSV button hidden
               <Button
                 variant="outline"
                 className="gap-2"
@@ -1666,6 +1776,7 @@ const DieselManagement = () => {
                 <Upload className="h-4 w-4" />
                 Import CSV
               </Button>
+              */}
             </div>
 
             {/* TRUCKS section */}
@@ -2240,12 +2351,12 @@ const DieselManagement = () => {
 
               {/* Pending Debriefs */}
               <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
+                <CardHeader className="pb-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <CardTitle>Pending Debriefs</CardTitle>
                       <CardDescription>
-                        Records with fuel efficiency outside acceptable norms requiring driver debrief
+                        Grouped by fleet — records with fuel efficiency outside acceptable norms
                       </CardDescription>
                     </div>
                     {recordsRequiringDebrief.length > 0 && (
@@ -2263,51 +2374,127 @@ const DieselManagement = () => {
                 </CardHeader>
                 <CardContent>
                   {recordsRequiringDebrief.length > 0 ? (
-                    <div className="space-y-3">
-                      {recordsRequiringDebrief.map((record) => {
-                        const kmPerLitre = calculateKmPerLitre(record);
-                        const norm = getNormForFleet(record.fleet_number);
-                        return (
-                          <div key={record.id} className="border rounded-lg p-4">
-                            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                              <div>
-                                <p className="text-sm text-muted-foreground">Fleet</p>
-                                <p className="font-medium">{record.fleet_number}</p>
+                    <div className="space-y-2">
+                      {(() => {
+                        const fleetMap: Record<string, typeof recordsRequiringDebrief> = {};
+                        for (const r of recordsRequiringDebrief) {
+                          const fleet = r.fleet_number || 'Unknown';
+                          if (!fleetMap[fleet]) fleetMap[fleet] = [];
+                          fleetMap[fleet].push(r);
+                        }
+                        return Object.entries(fleetMap)
+                          .sort(([a], [b]) => a.localeCompare(b))
+                          .map(([fleet, records]) => {
+                            const isOpen = expandedPendingFleets.has(fleet);
+                            const sentCount = records.filter(r => whatsappSharedSet.has(r.id)).length;
+                            const allSent = sentCount === records.length;
+                            const someSent = sentCount > 0 && !allSent;
+                            return (
+                              <div key={fleet} className="border rounded-lg overflow-hidden">
+                                {/* Fleet header row */}
+                                <button
+                                  type="button"
+                                  className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-muted/40 transition-colors text-left"
+                                  onClick={() =>
+                                    setExpandedPendingFleets(prev => {
+                                      const next = new Set(prev);
+                                      if (next.has(fleet)) {
+                                        next.delete(fleet);
+                                      } else {
+                                        next.add(fleet);
+                                      }
+                                      return next;
+                                    })
+                                  }
+                                >
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <Truck className="h-4 w-4 text-muted-foreground shrink-0" />
+                                    <span className="font-semibold text-sm">{fleet}</span>
+                                    <Badge variant="destructive" className="text-xs px-1.5 py-0">
+                                      {records.length} pending
+                                    </Badge>
+                                    {allSent && (
+                                      <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-0.5 rounded-full">
+                                        <CheckCircle className="h-3 w-3" />
+                                        All WA Sent
+                                      </span>
+                                    )}
+                                    {someSent && (
+                                      <span className="inline-flex items-center gap-1 text-xs font-medium text-yellow-700 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-900/30 px-2 py-0.5 rounded-full">
+                                        {sentCount}/{records.length} WA Sent
+                                      </span>
+                                    )}
+                                  </div>
+                                  <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
+                                </button>
+
+                                {/* Expanded rows */}
+                                {isOpen && (
+                                  <div className="border-t divide-y">
+                                    {records.map(record => {
+                                      const kmPerLitre = calculateKmPerLitre(record);
+                                      const norm = getNormForFleet(record.fleet_number);
+                                      const waSent = whatsappSharedSet.has(record.id);
+                                      return (
+                                        <div key={record.id} className="px-3 py-2 flex items-center gap-2 bg-muted/10 hover:bg-muted/25 transition-colors">
+                                          <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-0.5 flex-1 text-xs">
+                                            <div>
+                                              <span className="text-muted-foreground">Date </span>
+                                              <span className="font-medium">{formatDate(record.date)}</span>
+                                            </div>
+                                            <div>
+                                              <span className="text-muted-foreground">Driver </span>
+                                              <span className="font-medium">{record.driver_name || 'N/A'}</span>
+                                            </div>
+                                            <div>
+                                              <span className="text-muted-foreground">Actual </span>
+                                              <span className="font-medium text-destructive">
+                                                {kmPerLitre ? `${formatNumber(kmPerLitre, 2)} km/L` : 'N/A'}
+                                              </span>
+                                            </div>
+                                            <div>
+                                              <span className="text-muted-foreground">Norm </span>
+                                              <span className="font-medium">
+                                                {norm ? `${formatNumber(norm.expected_km_per_litre, 2)} km/L` : '—'}
+                                              </span>
+                                            </div>
+                                          </div>
+                                          {/* WhatsApp status badge */}
+                                          {waSent ? (
+                                            <span
+                                              title="Debriefed via WhatsApp"
+                                              className="shrink-0 inline-flex items-center gap-1 text-xs font-medium text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-0.5 rounded-full"
+                                            >
+                                              <CheckCircle className="h-3 w-3" />
+                                              WA Sent
+                                            </span>
+                                          ) : (
+                                            <span
+                                              title="WhatsApp debrief not yet sent"
+                                              className="shrink-0 inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full"
+                                            >
+                                              <MessageCircle className="h-3 w-3" />
+                                              WA Pending
+                                            </span>
+                                          )}
+                                          <Button
+                                            size="sm"
+                                            variant="destructive"
+                                            className="shrink-0 text-xs h-7 px-2"
+                                            onClick={() => openDebrief(record)}
+                                          >
+                                            <FileText className="h-3.5 w-3.5 mr-1" />
+                                            Debrief
+                                          </Button>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
                               </div>
-                              <div>
-                                <p className="text-sm text-muted-foreground">Date</p>
-                                <p className="font-medium">{formatDate(record.date)}</p>
-                              </div>
-                              <div>
-                                <p className="text-sm text-muted-foreground">Driver</p>
-                                <p className="font-medium">{record.driver_name || 'N/A'}</p>
-                              </div>
-                              <div>
-                                <p className="text-sm text-muted-foreground">Actual</p>
-                                <p className="font-medium text-destructive">
-                                  {kmPerLitre ? `${formatNumber(kmPerLitre, 2)} km/L` : 'N/A'}
-                                </p>
-                              </div>
-                              <div>
-                                <p className="text-sm text-muted-foreground">Expected</p>
-                                <p className="font-medium">
-                                  {norm ? `${formatNumber(norm.expected_km_per_litre, 2)} km/L` : 'No norm set'}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="mt-3 pt-3 border-t flex justify-end">
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => openDebrief(record)}
-                              >
-                                <FileText className="h-4 w-4 mr-1" />
-                                Complete Debrief
-                              </Button>
-                            </div>
-                          </div>
-                        );
-                      })}
+                            );
+                          });
+                      })()}
                     </div>
                   ) : (
                     <div className="text-center py-8">
@@ -2323,15 +2510,26 @@ const DieselManagement = () => {
 
               {/* Completed Debriefs */}
               <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
+                <CardHeader className="pb-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <CardTitle>Completed Debriefs</CardTitle>
                       <CardDescription>
                         Records that have been debriefed and signed off
                       </CardDescription>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-2">
+                      <select
+                        title="Filter by fleet"
+                        value={completedDebriefFleetFilter}
+                        onChange={e => setCompletedDebriefFleetFilter(e.target.value)}
+                        className="px-2 py-1 border rounded-md bg-background text-xs min-w-[130px]"
+                      >
+                        <option value="">All Fleets</option>
+                        {uniqueFleetNumbers.map(f => (
+                          <option key={f} value={f}>{f}</option>
+                        ))}
+                      </select>
                       {truckRecords.filter(r => r.debrief_signed).length > 0 && (
                         <Button
                           variant="outline"
@@ -2351,51 +2549,58 @@ const DieselManagement = () => {
                           className="gap-2"
                         >
                           <Download className="h-4 w-4" />
-                          Export All Debriefs
+                          Export All
                         </Button>
                       )}
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  {truckRecords.filter(r => r.debrief_signed).length > 0 ? (
-                    <div className="space-y-3">
-                      {truckRecords.filter(r => r.debrief_signed).map((record) => (
-                        <div key={record.id} className="border rounded-lg p-4 flex items-center justify-between">
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 flex-1">
-                            <div>
-                              <p className="text-sm text-muted-foreground">Fleet</p>
-                              <p className="font-medium">{record.fleet_number}</p>
+                  {(() => {
+                    const allCompleted = truckRecords.filter(r => r.debrief_signed);
+                    const filtered = completedDebriefFleetFilter
+                      ? allCompleted.filter(r => r.fleet_number === completedDebriefFleetFilter)
+                      : allCompleted;
+                    return filtered.length > 0 ? (
+                      <div className="space-y-2">
+                        {filtered.map((record) => (
+                          <div key={record.id} className="border rounded-lg p-2.5 flex items-center gap-3">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-0.5 flex-1 text-xs">
+                              <div>
+                                <span className="text-muted-foreground">Fleet </span>
+                                <span className="font-medium">{record.fleet_number}</span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Date </span>
+                                <span className="font-medium">{formatDate(record.date)}</span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Efficiency </span>
+                                <span className="font-medium">{record.km_per_litre ? `${formatNumber(record.km_per_litre, 2)} km/L` : 'N/A'}</span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Signed by </span>
+                                <span className="font-medium">{record.debrief_signed_by}</span>
+                              </div>
                             </div>
-                            <div>
-                              <p className="text-sm text-muted-foreground">Date</p>
-                              <p className="font-medium">{formatDate(record.date)}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-muted-foreground">Efficiency</p>
-                              <p className="font-medium">{record.km_per_litre ? `${formatNumber(record.km_per_litre, 2)} km/L` : 'N/A'}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-muted-foreground">Debriefed By</p>
-                              <p className="font-medium">{record.debrief_signed_by}</p>
-                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="shrink-0 text-xs h-7 px-2"
+                              onClick={() => generateDieselDebriefPDF(record, dieselNorms.find(n => n.fleet_number === record.fleet_number))}
+                            >
+                              <FileText className="h-3.5 w-3.5 mr-1" />
+                              PDF
+                            </Button>
                           </div>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => generateDieselDebriefPDF(record, dieselNorms.find(n => n.fleet_number === record.fleet_number))}
-                          >
-                            <FileText className="h-4 w-4 mr-1" />
-                            Export PDF
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-muted-foreground text-center py-8">
-                      No completed debriefs yet
-                    </p>
-                  )}
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground text-center py-8">
+                        {completedDebriefFleetFilter ? `No completed debriefs for ${completedDebriefFleetFilter}` : 'No completed debriefs yet'}
+                      </p>
+                    );
+                  })()}
                 </CardContent>
               </Card>
             </div>
@@ -2413,10 +2618,29 @@ const DieselManagement = () => {
                         Analyze fuel consumption by driver, fleet, or filling station
                       </CardDescription>
                     </div>
-                    <Button onClick={exportReportToExcel} className="gap-2">
-                      <FileSpreadsheet className="h-4 w-4" />
-                      Export Excel
-                    </Button>
+                    <div className="flex items-center gap-3">
+                      {/* Overall / Weekly toggle */}
+                      <div className="flex border border-border rounded-md overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={() => setWeeklyView(false)}
+                          className={`px-3 py-1.5 text-sm font-medium transition-colors ${!weeklyView ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+                        >
+                          Overall
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setWeeklyView(true); setExpandedBreakdownWeeks(new Set()); }}
+                          className={`px-3 py-1.5 text-sm font-medium border-l border-border transition-colors ${weeklyView ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+                        >
+                          Weekly
+                        </button>
+                      </div>
+                      <Button onClick={() => setExportOpen(true)} className="gap-2">
+                        <Download className="h-4 w-4" />
+                        Export Reports
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -2553,7 +2777,88 @@ const DieselManagement = () => {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    {fleetReports.length > 0 ? (
+                    {weeklyView ? (
+                      weeklyFleetBreakdown.length > 0 ? (
+                        <div className="space-y-1">
+                          {weeklyFleetBreakdown.map(week => (
+                            <Collapsible key={week.weekKey} open={expandedBreakdownWeeks.has(`fleet-${week.weekKey}`)} onOpenChange={() => toggleBreakdownWeek(`fleet-${week.weekKey}`)}>
+                              <CollapsibleTrigger asChild>
+                                <div className="flex items-center justify-between p-3 bg-muted/30 hover:bg-muted/50 rounded-md cursor-pointer border">
+                                  <div className="flex items-center gap-3">
+                                    <ChevronRight className={`h-4 w-4 transition-transform ${expandedBreakdownWeeks.has(`fleet-${week.weekKey}`) ? 'rotate-90' : ''}`} />
+                                    <span className="font-semibold">Week {week.weekNumber}</span>
+                                    <span className="text-muted-foreground text-sm">{week.weekLabel}</span>
+                                    <Badge variant="secondary" className="text-xs">{week.data.length} fleets</Badge>
+                                  </div>
+                                  <div className="flex gap-6 text-sm text-muted-foreground">
+                                    <span>{formatNumber(week.totals.totalLitres)} L</span>
+                                    <span>{formatCurrency(week.totals.totalCostZAR, 'ZAR')}</span>
+                                    <span>{week.totals.fillCount} fills</span>
+                                  </div>
+                                </div>
+                              </CollapsibleTrigger>
+                              <CollapsibleContent>
+                                <div className="overflow-x-auto mt-1 rounded-md border bg-muted/10">
+                                  <table className="w-full text-sm">
+                                    <thead>
+                                      <tr className="border-b bg-muted/30">
+                                        <th className="text-left p-3 font-medium">Fleet</th>
+                                        <th className="text-right p-3 font-medium">Total Litres</th>
+                                        <th className="text-right p-3 font-medium">Total Cost</th>
+                                        <th className="text-right p-3 font-medium">Distance (km)</th>
+                                        <th className="text-right p-3 font-medium">Avg km/L</th>
+                                        <th className="text-right p-3 font-medium">Fills</th>
+                                        <th className="text-left p-3 font-medium">Drivers</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {week.data.map((report, i) => {
+                                        const norm = getNormForFleet(report.fleet);
+                                        const isLow = norm && report.avgKmPerLitre < norm.min_acceptable;
+                                        return (
+                                          <tr key={report.fleet} className={`border-b hover:bg-muted/50 ${i % 2 === 1 ? 'bg-muted/10' : ''}`}>
+                                            <td className="p-3 font-medium">{report.fleet}</td>
+                                            <td className="p-3 text-right">{formatNumber(report.totalLitres)} L</td>
+                                            <td className="p-3 text-right">
+                                              {report.totalCostZAR > 0 && <div>{formatCurrency(report.totalCostZAR, 'ZAR')}</div>}
+                                              {report.totalCostUSD > 0 && <div className="text-xs text-muted-foreground">{formatCurrency(report.totalCostUSD, 'USD')}</div>}
+                                            </td>
+                                            <td className="p-3 text-right">{formatNumber(report.totalDistance)}</td>
+                                            <td className={`p-3 text-right font-medium ${isLow ? 'text-destructive' : 'text-green-600 dark:text-green-400'}`}>
+                                              {formatNumber(report.avgKmPerLitre, 2)}
+                                            </td>
+                                            <td className="p-3 text-right">{report.fillCount}</td>
+                                            <td className="p-3">
+                                              <div className="flex flex-wrap gap-1">
+                                                {report.drivers.slice(0, 3).map(d => <Badge key={d} variant="secondary" className="text-xs">{d}</Badge>)}
+                                                {report.drivers.length > 3 && <Badge variant="outline" className="text-xs">+{report.drivers.length - 3}</Badge>}
+                                              </div>
+                                            </td>
+                                          </tr>
+                                        );
+                                      })}
+                                    </tbody>
+                                    <tfoot>
+                                      <tr className="bg-muted/50 font-medium border-t-2">
+                                        <td className="p-3">Week Total</td>
+                                        <td className="p-3 text-right">{formatNumber(week.totals.totalLitres)} L</td>
+                                        <td className="p-3 text-right">{formatCurrency(week.totals.totalCostZAR, 'ZAR')}</td>
+                                        <td className="p-3 text-right">{formatNumber(week.totals.totalDistance)}</td>
+                                        <td className="p-3 text-right">—</td>
+                                        <td className="p-3 text-right">{week.totals.fillCount}</td>
+                                        <td className="p-3"></td>
+                                      </tr>
+                                    </tfoot>
+                                  </table>
+                                </div>
+                              </CollapsibleContent>
+                            </Collapsible>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8"><p className="text-muted-foreground">No diesel records to report</p></div>
+                      )
+                    ) : fleetReports.length > 0 ? (
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                           <thead>
@@ -2708,16 +3013,114 @@ const DieselManagement = () => {
               {reportType === 'driver' && (
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <User className="h-5 w-5" />
-                      Driver Consumption Report
-                    </CardTitle>
-                    <CardDescription>
-                      {driverReports.length} drivers with diesel records
-                    </CardDescription>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          <User className="h-5 w-5" />
+                          Driver Consumption Report
+                        </CardTitle>
+                        <CardDescription>
+                          {driverReports.length} drivers with diesel records
+                        </CardDescription>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" className="gap-2">
+                            <Download className="h-4 w-4" />
+                            Export
+                            <ChevronDown className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => openTabExport({ overview: true, truckByDriver: true })} className="gap-2">
+                            <FileSpreadsheet className="h-4 w-4" />
+                            Driver Report (Excel)
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => { setExportFormat('pdf'); openTabExport({ overview: true, truckByDriver: true }); }} className="gap-2">
+                            <FileText className="h-4 w-4" />
+                            Driver Report (PDF)
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => openTabExport({ overview: true, truckByDriver: true, truckByFleet: true, truckByStation: true, weekly: true })} className="gap-2">
+                            <Download className="h-4 w-4" />
+                            All Truck Reports
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </CardHeader>
                   <CardContent>
-                    {driverReports.length > 0 ? (
+                    {weeklyView ? (
+                      weeklyDriverBreakdown.length > 0 ? (
+                        <div className="space-y-1">
+                          {weeklyDriverBreakdown.map(week => (
+                            <Collapsible key={week.weekKey} open={expandedBreakdownWeeks.has(`driver-${week.weekKey}`)} onOpenChange={() => toggleBreakdownWeek(`driver-${week.weekKey}`)}>
+                              <CollapsibleTrigger asChild>
+                                <div className="flex items-center justify-between p-3 bg-muted/30 hover:bg-muted/50 rounded-md cursor-pointer border">
+                                  <div className="flex items-center gap-3">
+                                    <ChevronRight className={`h-4 w-4 transition-transform ${expandedBreakdownWeeks.has(`driver-${week.weekKey}`) ? 'rotate-90' : ''}`} />
+                                    <span className="font-semibold">Week {week.weekNumber}</span>
+                                    <span className="text-muted-foreground text-sm">{week.weekLabel}</span>
+                                    <Badge variant="secondary" className="text-xs">{week.data.length} drivers</Badge>
+                                  </div>
+                                  <div className="flex gap-6 text-sm text-muted-foreground">
+                                    <span>{formatNumber(week.totals.totalLitres)} L</span>
+                                    <span>{formatCurrency(week.totals.totalCostZAR, 'ZAR')}</span>
+                                    <span>{week.totals.fillCount} fills</span>
+                                  </div>
+                                </div>
+                              </CollapsibleTrigger>
+                              <CollapsibleContent>
+                                <div className="overflow-x-auto mt-1 rounded-md border bg-muted/10">
+                                  <table className="w-full text-sm">
+                                    <thead>
+                                      <tr className="border-b bg-muted/30">
+                                        <th className="text-left p-3 font-medium">Driver</th>
+                                        <th className="text-right p-3 font-medium">Total Litres</th>
+                                        <th className="text-right p-3 font-medium">Total Cost</th>
+                                        <th className="text-right p-3 font-medium">Distance (km)</th>
+                                        <th className="text-right p-3 font-medium">Avg km/L</th>
+                                        <th className="text-right p-3 font-medium">Fills</th>
+                                        <th className="text-right p-3 font-medium">Last Fill</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {week.data.map((report, i) => (
+                                        <tr key={report.driver} className={`border-b hover:bg-muted/50 ${i % 2 === 1 ? 'bg-muted/10' : ''}`}>
+                                          <td className="p-3 font-medium">{report.driver}</td>
+                                          <td className="p-3 text-right">{formatNumber(report.totalLitres)} L</td>
+                                          <td className="p-3 text-right">
+                                            {report.totalCostZAR > 0 && <div>{formatCurrency(report.totalCostZAR, 'ZAR')}</div>}
+                                            {report.totalCostUSD > 0 && <div className="text-xs text-muted-foreground">{formatCurrency(report.totalCostUSD, 'USD')}</div>}
+                                          </td>
+                                          <td className="p-3 text-right">{formatNumber(report.totalDistance)}</td>
+                                          <td className="p-3 text-right font-medium">{report.avgKmPerLitre > 0 ? formatNumber(report.avgKmPerLitre, 2) : '—'}</td>
+                                          <td className="p-3 text-right">{report.fillCount}</td>
+                                          <td className="p-3 text-right text-muted-foreground">{formatDate(report.lastFillDate)}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                    <tfoot>
+                                      <tr className="bg-muted/50 font-medium border-t-2">
+                                        <td className="p-3">Week Total</td>
+                                        <td className="p-3 text-right">{formatNumber(week.totals.totalLitres)} L</td>
+                                        <td className="p-3 text-right">{formatCurrency(week.totals.totalCostZAR, 'ZAR')}</td>
+                                        <td className="p-3 text-right">{formatNumber(week.totals.totalDistance)}</td>
+                                        <td className="p-3 text-right">—</td>
+                                        <td className="p-3 text-right">{week.totals.fillCount}</td>
+                                        <td className="p-3"></td>
+                                      </tr>
+                                    </tfoot>
+                                  </table>
+                                </div>
+                              </CollapsibleContent>
+                            </Collapsible>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8"><p className="text-muted-foreground">No diesel records to report</p></div>
+                      )
+                    ) : driverReports.length > 0 ? (
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                           <thead>
@@ -2781,16 +3184,116 @@ const DieselManagement = () => {
               {reportType === 'station' && (
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Fuel className="h-5 w-5" />
-                      Filling Station Report
-                    </CardTitle>
-                    <CardDescription>
-                      {stationReports.length} filling stations used
-                    </CardDescription>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          <Fuel className="h-5 w-5" />
+                          Filling Station Report
+                        </CardTitle>
+                        <CardDescription>
+                          {stationReports.length} filling stations used
+                        </CardDescription>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" className="gap-2">
+                            <Download className="h-4 w-4" />
+                            Export
+                            <ChevronDown className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => openTabExport({ overview: true, truckByStation: true })} className="gap-2">
+                            <FileSpreadsheet className="h-4 w-4" />
+                            Station Report (Excel)
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => { setExportFormat('pdf'); openTabExport({ overview: true, truckByStation: true }); }} className="gap-2">
+                            <FileText className="h-4 w-4" />
+                            Station Report (PDF)
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => openTabExport({ overview: true, truckByDriver: true, truckByFleet: true, truckByStation: true, weekly: true })} className="gap-2">
+                            <Download className="h-4 w-4" />
+                            All Truck Reports
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </CardHeader>
                   <CardContent>
-                    {stationReports.length > 0 ? (
+                    {weeklyView ? (
+                      weeklyStationBreakdown.length > 0 ? (
+                        <div className="space-y-1">
+                          {weeklyStationBreakdown.map(week => (
+                            <Collapsible key={week.weekKey} open={expandedBreakdownWeeks.has(`station-${week.weekKey}`)} onOpenChange={() => toggleBreakdownWeek(`station-${week.weekKey}`)}>
+                              <CollapsibleTrigger asChild>
+                                <div className="flex items-center justify-between p-3 bg-muted/30 hover:bg-muted/50 rounded-md cursor-pointer border">
+                                  <div className="flex items-center gap-3">
+                                    <ChevronRight className={`h-4 w-4 transition-transform ${expandedBreakdownWeeks.has(`station-${week.weekKey}`) ? 'rotate-90' : ''}`} />
+                                    <span className="font-semibold">Week {week.weekNumber}</span>
+                                    <span className="text-muted-foreground text-sm">{week.weekLabel}</span>
+                                    <Badge variant="secondary" className="text-xs">{week.data.length} stations</Badge>
+                                  </div>
+                                  <div className="flex gap-6 text-sm text-muted-foreground">
+                                    <span>{formatNumber(week.totals.totalLitres)} L</span>
+                                    <span>{formatCurrency(week.totals.totalCostZAR, 'ZAR')}</span>
+                                    <span>{week.totals.fillCount} fills</span>
+                                  </div>
+                                </div>
+                              </CollapsibleTrigger>
+                              <CollapsibleContent>
+                                <div className="overflow-x-auto mt-1 rounded-md border bg-muted/10">
+                                  <table className="w-full text-sm">
+                                    <thead>
+                                      <tr className="border-b bg-muted/30">
+                                        <th className="text-left p-3 font-medium">Station</th>
+                                        <th className="text-right p-3 font-medium">Total Litres</th>
+                                        <th className="text-right p-3 font-medium">Total Cost</th>
+                                        <th className="text-right p-3 font-medium">Avg Cost/L</th>
+                                        <th className="text-right p-3 font-medium">Fills</th>
+                                        <th className="text-left p-3 font-medium">Fleets Served</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {week.data.map((report, i) => (
+                                        <tr key={report.station} className={`border-b hover:bg-muted/50 ${i % 2 === 1 ? 'bg-muted/10' : ''}`}>
+                                          <td className="p-3 font-medium">{report.station}</td>
+                                          <td className="p-3 text-right">{formatNumber(report.totalLitres)} L</td>
+                                          <td className="p-3 text-right">
+                                            {report.totalCostZAR > 0 && <div>{formatCurrency(report.totalCostZAR, 'ZAR')}</div>}
+                                            {report.totalCostUSD > 0 && <div className="text-xs text-muted-foreground">{formatCurrency(report.totalCostUSD, 'USD')}</div>}
+                                          </td>
+                                          <td className="p-3 text-right">{formatNumber(report.avgCostPerLitre, 2)}/L</td>
+                                          <td className="p-3 text-right">{report.fillCount}</td>
+                                          <td className="p-3">
+                                            <div className="flex flex-wrap gap-1">
+                                              {report.fleetsServed.slice(0, 4).map(f => <Badge key={f} variant="secondary" className="text-xs">{f}</Badge>)}
+                                              {report.fleetsServed.length > 4 && <Badge variant="outline" className="text-xs">+{report.fleetsServed.length - 4}</Badge>}
+                                            </div>
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                    <tfoot>
+                                      <tr className="bg-muted/50 font-medium border-t-2">
+                                        <td className="p-3">Week Total</td>
+                                        <td className="p-3 text-right">{formatNumber(week.totals.totalLitres)} L</td>
+                                        <td className="p-3 text-right">{formatCurrency(week.totals.totalCostZAR, 'ZAR')}</td>
+                                        <td className="p-3 text-right">—</td>
+                                        <td className="p-3 text-right">{week.totals.fillCount}</td>
+                                        <td className="p-3"></td>
+                                      </tr>
+                                    </tfoot>
+                                  </table>
+                                </div>
+                              </CollapsibleContent>
+                            </Collapsible>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8"><p className="text-muted-foreground">No diesel records to report</p></div>
+                      )
+                    ) : stationReports.length > 0 ? (
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                           <thead>
@@ -2870,15 +3373,126 @@ const DieselManagement = () => {
                           Fleet, driver, and station reports for reefer units
                         </CardDescription>
                       </div>
-                      <Button onClick={exportReeferReportToExcel} variant="outline" className="gap-2">
-                        <FileSpreadsheet className="h-4 w-4" />
-                        Export Reefer Report
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" className="gap-2">
+                            <Download className="h-4 w-4" />
+                            Export Reefer
+                            <ChevronDown className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => openTabExport({ overview: true, reeferByFleet: true, reeferByDriver: true, reeferByStation: true })} className="gap-2">
+                            <FileSpreadsheet className="h-4 w-4" />
+                            All Reefer Reports (Excel)
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => { setExportFormat('pdf'); openTabExport({ overview: true, reeferByFleet: true, reeferByDriver: true, reeferByStation: true }); }} className="gap-2">
+                            <FileText className="h-4 w-4" />
+                            All Reefer Reports (PDF)
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => openTabExport({ overview: true, reeferByFleet: true })} className="gap-2">
+                            <Truck className="h-4 w-4" />
+                            By Reefer Unit only
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openTabExport({ overview: true, reeferByDriver: true })} className="gap-2">
+                            <User className="h-4 w-4" />
+                            By Driver only
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openTabExport({ overview: true, reeferByStation: true })} className="gap-2">
+                            <Fuel className="h-4 w-4" />
+                            By Station only
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-8">
                     {/* Reefer Fleet Report */}
-                    {reeferFleetReports.length > 0 && (
+                    {weeklyView ? (
+                      weeklyReeferFleetBreakdown.length > 0 ? (
+                        <div>
+                          <div className="flex items-center gap-2 mb-3">
+                            <Truck className="h-4 w-4 text-cyan-500" />
+                            <h4 className="font-semibold text-lg">Reefer Fleet Report — Weekly</h4>
+                          </div>
+                          <div className="space-y-1">
+                            {weeklyReeferFleetBreakdown.map(week => (
+                              <Collapsible key={week.weekKey} open={expandedBreakdownWeeks.has(`reefer-fleet-${week.weekKey}`)} onOpenChange={() => toggleBreakdownWeek(`reefer-fleet-${week.weekKey}`)}>
+                                <CollapsibleTrigger asChild>
+                                  <div className="flex items-center justify-between p-3 bg-cyan-50/40 dark:bg-cyan-900/20 hover:bg-cyan-50/70 dark:hover:bg-cyan-900/30 rounded-md cursor-pointer border border-cyan-200/40 dark:border-cyan-700/30">
+                                    <div className="flex items-center gap-3">
+                                      <ChevronRight className={`h-4 w-4 transition-transform ${expandedBreakdownWeeks.has(`reefer-fleet-${week.weekKey}`) ? 'rotate-90' : ''}`} />
+                                      <span className="font-semibold">Week {week.weekNumber}</span>
+                                      <span className="text-muted-foreground text-sm">{week.weekLabel}</span>
+                                      <Badge variant="secondary" className="text-xs">{week.data.length} units</Badge>
+                                    </div>
+                                    <div className="flex gap-6 text-sm text-muted-foreground">
+                                      <span>{formatNumber(week.totals.totalLitres)} L</span>
+                                      <span>{formatCurrency(week.totals.totalCostZAR, 'ZAR')}</span>
+                                      <span>{week.totals.fillCount} fills</span>
+                                    </div>
+                                  </div>
+                                </CollapsibleTrigger>
+                                <CollapsibleContent>
+                                  <div className="overflow-x-auto mt-1 rounded-md border bg-muted/10">
+                                    <table className="w-full text-sm">
+                                      <thead>
+                                        <tr className="border-b bg-cyan-50/50 dark:bg-cyan-900/20">
+                                          <th className="text-left p-3 font-medium">Fleet</th>
+                                          <th className="text-right p-3 font-medium">Total Litres</th>
+                                          <th className="text-right p-3 font-medium">Total Cost</th>
+                                          <th className="text-right p-3 font-medium">Avg L/hr</th>
+                                          <th className="text-right p-3 font-medium">Hours Operated</th>
+                                          <th className="text-right p-3 font-medium">Fills</th>
+                                          <th className="text-left p-3 font-medium">Drivers</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {week.data.map((report, i) => (
+                                          <tr key={report.fleet} className={`border-b hover:bg-muted/50 ${i % 2 === 1 ? 'bg-muted/10' : ''}`}>
+                                            <td className="p-3 font-medium">{report.fleet}</td>
+                                            <td className="p-3 text-right">{formatNumber(report.totalLitres)} L</td>
+                                            <td className="p-3 text-right">
+                                              {report.totalCostZAR > 0 && <div>{formatCurrency(report.totalCostZAR, 'ZAR')}</div>}
+                                              {report.totalCostUSD > 0 && <div className="text-xs text-muted-foreground">{formatCurrency(report.totalCostUSD, 'USD')}</div>}
+                                            </td>
+                                            <td className="p-3 text-right">
+                                              {report.avgLitresPerHour > 0 ? <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20">{formatNumber(report.avgLitresPerHour, 2)} L/hr</Badge> : <span className="text-muted-foreground">—</span>}
+                                            </td>
+                                            <td className="p-3 text-right">{report.totalHoursOperated > 0 ? `${formatNumber(report.totalHoursOperated)} hrs` : '—'}</td>
+                                            <td className="p-3 text-right">{report.fillCount}</td>
+                                            <td className="p-3">
+                                              <div className="flex flex-wrap gap-1">
+                                                {report.drivers.slice(0, 3).map(d => <Badge key={d} variant="secondary" className="text-xs">{d}</Badge>)}
+                                                {report.drivers.length > 3 && <Badge variant="outline" className="text-xs">+{report.drivers.length - 3}</Badge>}
+                                              </div>
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                      <tfoot>
+                                        <tr className="bg-muted/50 font-medium border-t-2">
+                                          <td className="p-3">Week Total</td>
+                                          <td className="p-3 text-right">{formatNumber(week.totals.totalLitres)} L</td>
+                                          <td className="p-3 text-right">{formatCurrency(week.totals.totalCostZAR, 'ZAR')}</td>
+                                          <td className="p-3 text-right">—</td>
+                                          <td className="p-3 text-right">{formatNumber(week.totals.totalHoursOperated)} hrs</td>
+                                          <td className="p-3 text-right">{week.totals.fillCount}</td>
+                                          <td className="p-3"></td>
+                                        </tr>
+                                      </tfoot>
+                                    </table>
+                                  </div>
+                                </CollapsibleContent>
+                              </Collapsible>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center py-8"><p className="text-muted-foreground">No reefer records to report</p></div>
+                      )
+                    ) : reeferFleetReports.length > 0 && (
                       <div>
                         <div className="flex items-center gap-2 mb-3">
                           <Truck className="h-4 w-4 text-cyan-500" />
@@ -2956,7 +3570,90 @@ const DieselManagement = () => {
                     )}
 
                     {/* Reefer Driver Report */}
-                    {reeferDriverReports.length > 0 && (
+                    {weeklyView ? (
+                      weeklyReeferDriverBreakdown.length > 0 ? (
+                        <div>
+                          <div className="flex items-center gap-2 mb-3">
+                            <User className="h-4 w-4 text-cyan-500" />
+                            <h4 className="font-semibold text-lg">Reefer Driver Report — Weekly</h4>
+                          </div>
+                          <div className="space-y-1">
+                            {weeklyReeferDriverBreakdown.map(week => (
+                              <Collapsible key={week.weekKey} open={expandedBreakdownWeeks.has(`reefer-driver-${week.weekKey}`)} onOpenChange={() => toggleBreakdownWeek(`reefer-driver-${week.weekKey}`)}>
+                                <CollapsibleTrigger asChild>
+                                  <div className="flex items-center justify-between p-3 bg-cyan-50/40 dark:bg-cyan-900/20 hover:bg-cyan-50/70 dark:hover:bg-cyan-900/30 rounded-md cursor-pointer border border-cyan-200/40 dark:border-cyan-700/30">
+                                    <div className="flex items-center gap-3">
+                                      <ChevronRight className={`h-4 w-4 transition-transform ${expandedBreakdownWeeks.has(`reefer-driver-${week.weekKey}`) ? 'rotate-90' : ''}`} />
+                                      <span className="font-semibold">Week {week.weekNumber}</span>
+                                      <span className="text-muted-foreground text-sm">{week.weekLabel}</span>
+                                      <Badge variant="secondary" className="text-xs">{week.data.length} drivers</Badge>
+                                    </div>
+                                    <div className="flex gap-6 text-sm text-muted-foreground">
+                                      <span>{formatNumber(week.totals.totalLitres)} L</span>
+                                      <span>{formatCurrency(week.totals.totalCostZAR, 'ZAR')}</span>
+                                      <span>{week.totals.fillCount} fills</span>
+                                    </div>
+                                  </div>
+                                </CollapsibleTrigger>
+                                <CollapsibleContent>
+                                  <div className="overflow-x-auto mt-1 rounded-md border bg-muted/10">
+                                    <table className="w-full text-sm">
+                                      <thead>
+                                        <tr className="border-b bg-cyan-50/50 dark:bg-cyan-900/20">
+                                          <th className="text-left p-3 font-medium">Driver</th>
+                                          <th className="text-right p-3 font-medium">Total Litres</th>
+                                          <th className="text-right p-3 font-medium">Total Cost</th>
+                                          <th className="text-right p-3 font-medium">Avg L/hr</th>
+                                          <th className="text-right p-3 font-medium">Fills</th>
+                                          <th className="text-right p-3 font-medium">Last Fill</th>
+                                          <th className="text-left p-3 font-medium">Fleets</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {week.data.map((report, i) => (
+                                          <tr key={report.driver} className={`border-b hover:bg-muted/50 ${i % 2 === 1 ? 'bg-muted/10' : ''}`}>
+                                            <td className="p-3 font-medium">{report.driver}</td>
+                                            <td className="p-3 text-right">{formatNumber(report.totalLitres)} L</td>
+                                            <td className="p-3 text-right">
+                                              {report.totalCostZAR > 0 && <div>{formatCurrency(report.totalCostZAR, 'ZAR')}</div>}
+                                              {report.totalCostUSD > 0 && <div className="text-xs text-muted-foreground">{formatCurrency(report.totalCostUSD, 'USD')}</div>}
+                                            </td>
+                                            <td className="p-3 text-right">
+                                              {report.avgLitresPerHour > 0 ? <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20">{formatNumber(report.avgLitresPerHour, 2)} L/hr</Badge> : <span className="text-muted-foreground">—</span>}
+                                            </td>
+                                            <td className="p-3 text-right">{report.fillCount}</td>
+                                            <td className="p-3 text-right text-muted-foreground">{formatDate(report.lastFillDate)}</td>
+                                            <td className="p-3">
+                                              <div className="flex flex-wrap gap-1">
+                                                {report.fleets.slice(0, 3).map(f => <Badge key={f} variant="secondary" className="text-xs">{f}</Badge>)}
+                                                {report.fleets.length > 3 && <Badge variant="outline" className="text-xs">+{report.fleets.length - 3}</Badge>}
+                                              </div>
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                      <tfoot>
+                                        <tr className="bg-muted/50 font-medium border-t-2">
+                                          <td className="p-3">Week Total</td>
+                                          <td className="p-3 text-right">{formatNumber(week.totals.totalLitres)} L</td>
+                                          <td className="p-3 text-right">{formatCurrency(week.totals.totalCostZAR, 'ZAR')}</td>
+                                          <td className="p-3 text-right">—</td>
+                                          <td className="p-3 text-right">{week.totals.fillCount}</td>
+                                          <td className="p-3"></td>
+                                          <td className="p-3"></td>
+                                        </tr>
+                                      </tfoot>
+                                    </table>
+                                  </div>
+                                </CollapsibleContent>
+                              </Collapsible>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center py-8"><p className="text-muted-foreground">No reefer records to report</p></div>
+                      )
+                    ) : reeferDriverReports.length > 0 && (
                       <div>
                         <div className="flex items-center gap-2 mb-3">
                           <User className="h-4 w-4 text-cyan-500" />
@@ -3030,7 +3727,85 @@ const DieselManagement = () => {
                     )}
 
                     {/* Reefer Station Report */}
-                    {reeferStationReports.length > 0 && (
+                    {weeklyView ? (
+                      weeklyReeferStationBreakdown.length > 0 ? (
+                        <div>
+                          <div className="flex items-center gap-2 mb-3">
+                            <Fuel className="h-4 w-4 text-cyan-500" />
+                            <h4 className="font-semibold text-lg">Reefer Station Report — Weekly</h4>
+                          </div>
+                          <div className="space-y-1">
+                            {weeklyReeferStationBreakdown.map(week => (
+                              <Collapsible key={week.weekKey} open={expandedBreakdownWeeks.has(`reefer-station-${week.weekKey}`)} onOpenChange={() => toggleBreakdownWeek(`reefer-station-${week.weekKey}`)}>
+                                <CollapsibleTrigger asChild>
+                                  <div className="flex items-center justify-between p-3 bg-cyan-50/40 dark:bg-cyan-900/20 hover:bg-cyan-50/70 dark:hover:bg-cyan-900/30 rounded-md cursor-pointer border border-cyan-200/40 dark:border-cyan-700/30">
+                                    <div className="flex items-center gap-3">
+                                      <ChevronRight className={`h-4 w-4 transition-transform ${expandedBreakdownWeeks.has(`reefer-station-${week.weekKey}`) ? 'rotate-90' : ''}`} />
+                                      <span className="font-semibold">Week {week.weekNumber}</span>
+                                      <span className="text-muted-foreground text-sm">{week.weekLabel}</span>
+                                      <Badge variant="secondary" className="text-xs">{week.data.length} stations</Badge>
+                                    </div>
+                                    <div className="flex gap-6 text-sm text-muted-foreground">
+                                      <span>{formatNumber(week.totals.totalLitres)} L</span>
+                                      <span>{formatCurrency(week.totals.totalCostZAR, 'ZAR')}</span>
+                                      <span>{week.totals.fillCount} fills</span>
+                                    </div>
+                                  </div>
+                                </CollapsibleTrigger>
+                                <CollapsibleContent>
+                                  <div className="overflow-x-auto mt-1 rounded-md border bg-muted/10">
+                                    <table className="w-full text-sm">
+                                      <thead>
+                                        <tr className="border-b bg-cyan-50/50 dark:bg-cyan-900/20">
+                                          <th className="text-left p-3 font-medium">Station</th>
+                                          <th className="text-right p-3 font-medium">Total Litres</th>
+                                          <th className="text-right p-3 font-medium">Total Cost</th>
+                                          <th className="text-right p-3 font-medium">Avg Cost/L</th>
+                                          <th className="text-right p-3 font-medium">Fills</th>
+                                          <th className="text-left p-3 font-medium">Reefer Units</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {week.data.map((report, i) => (
+                                          <tr key={report.station} className={`border-b hover:bg-muted/50 ${i % 2 === 1 ? 'bg-muted/10' : ''}`}>
+                                            <td className="p-3 font-medium">{report.station}</td>
+                                            <td className="p-3 text-right">{formatNumber(report.totalLitres)} L</td>
+                                            <td className="p-3 text-right">
+                                              {report.totalCostZAR > 0 && <div>{formatCurrency(report.totalCostZAR, 'ZAR')}</div>}
+                                              {report.totalCostUSD > 0 && <div className="text-xs text-muted-foreground">{formatCurrency(report.totalCostUSD, 'USD')}</div>}
+                                            </td>
+                                            <td className="p-3 text-right">{formatNumber(report.avgCostPerLitre, 2)}/L</td>
+                                            <td className="p-3 text-right">{report.fillCount}</td>
+                                            <td className="p-3">
+                                              <div className="flex flex-wrap gap-1">
+                                                {report.fleetsServed.slice(0, 4).map(f => <Badge key={f} variant="secondary" className="text-xs">{f}</Badge>)}
+                                                {report.fleetsServed.length > 4 && <Badge variant="outline" className="text-xs">+{report.fleetsServed.length - 4}</Badge>}
+                                              </div>
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                      <tfoot>
+                                        <tr className="bg-muted/50 font-medium border-t-2">
+                                          <td className="p-3">Week Total</td>
+                                          <td className="p-3 text-right">{formatNumber(week.totals.totalLitres)} L</td>
+                                          <td className="p-3 text-right">{formatCurrency(week.totals.totalCostZAR, 'ZAR')}</td>
+                                          <td className="p-3 text-right">—</td>
+                                          <td className="p-3 text-right">{week.totals.fillCount}</td>
+                                          <td className="p-3"></td>
+                                        </tr>
+                                      </tfoot>
+                                    </table>
+                                  </div>
+                                </CollapsibleContent>
+                              </Collapsible>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center py-8"><p className="text-muted-foreground">No reefer records to report</p></div>
+                      )
+                    ) : reeferStationReports.length > 0 && (
                       <div>
                         <div className="flex items-center gap-2 mb-3">
                           <Fuel className="h-4 w-4 text-cyan-500" />
@@ -3100,6 +3875,41 @@ const DieselManagement = () => {
               {/* Weekly Consumption Report */}
               {reportType === 'weekly' && (
                 <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-xl font-semibold flex items-center gap-2">
+                        <BarChart3 className="h-5 w-5" />
+                        Weekly Consumption Report
+                      </h3>
+                      <p className="text-sm text-muted-foreground mt-0.5">
+                        {weeklyReports.length} week{weeklyReports.length !== 1 ? 's' : ''} of diesel data
+                      </p>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" className="gap-2">
+                          <Download className="h-4 w-4" />
+                          Export Weekly
+                          <ChevronDown className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openTabExport({ overview: true, weekly: true })} className="gap-2">
+                          <FileSpreadsheet className="h-4 w-4" />
+                          Weekly Report (Excel)
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { setExportFormat('pdf'); openTabExport({ overview: true, weekly: true }); }} className="gap-2">
+                          <FileText className="h-4 w-4" />
+                          Weekly Report (PDF)
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => openTabExport({ overview: true, truckByDriver: true, truckByFleet: true, truckByStation: true, weekly: true })} className="gap-2">
+                          <Download className="h-4 w-4" />
+                          All Truck Reports
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                   {weeklyReports.length > 0 ? (
                     weeklyReports.map((weekReport) => {
                       const isExpanded = expandedReportWeeks.has(weekReport.weekStart);
@@ -3391,11 +4201,13 @@ const DieselManagement = () => {
         editRecord={selectedReeferEditRecord}
       />
 
+{/* DieselImportModal hidden
       <DieselImportModal
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
         onImport={handleImport}
       />
+      */}
 
       <TripLinkageModal
         isOpen={isTripLinkageOpen}
@@ -3427,6 +4239,7 @@ const DieselManagement = () => {
         }}
         dieselRecord={selectedRecord as unknown as any}
         onDebrief={handleDebrief}
+        onWhatsappShared={handleWhatsappShared}
       />
 
       <DieselNormsModal
@@ -3478,6 +4291,109 @@ const DieselManagement = () => {
         }}
       />
       {/* eslint-enable @typescript-eslint/no-explicit-any */}
+
+      {/* ── Export Reports Dialog ──────────────────────────────────────── */}
+      <Dialog open={exportOpen} onOpenChange={setExportOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileSpreadsheet className="h-5 w-5" />
+              Export Diesel Reports
+            </DialogTitle>
+            <DialogDescription>
+              Choose format and select which reports to include in your export.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-5 py-2">
+            {/* Format selector */}
+            <div>
+              <p className="text-sm font-semibold mb-2">Export Format</p>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setExportFormat('excel')}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-md border text-sm font-medium transition-colors ${exportFormat === 'excel' ? 'bg-primary text-primary-foreground border-primary' : 'border-border hover:bg-muted'}`}
+                >
+                  <FileSpreadsheet className="h-4 w-4" />
+                  Excel (.xlsx)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setExportFormat('pdf')}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-md border text-sm font-medium transition-colors ${exportFormat === 'pdf' ? 'bg-primary text-primary-foreground border-primary' : 'border-border hover:bg-muted'}`}
+                >
+                  <FileText className="h-4 w-4" />
+                  PDF
+                </button>
+              </div>
+            </div>
+
+            {/* Report sections */}
+            <div className="space-y-3">
+              <p className="text-sm font-semibold">Reports to Include</p>
+
+              <div className="flex items-center gap-2">
+                <Checkbox id="exp-overview" checked={!!exportSel.overview} onCheckedChange={() => toggleSheet('overview')} />
+                <Label htmlFor="exp-overview">Overview / Summary</Label>
+              </div>
+
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider pt-1">Truck Fleet</p>
+              {([
+                { key: 'truckByDriver',  label: 'By Driver' },
+                { key: 'truckByFleet',   label: 'By Fleet Number' },
+                { key: 'truckByStation', label: 'By Fuel Station' },
+                { key: 'weekly',         label: 'Weekly Consumption' },
+              ] as { key: keyof ExportSheetSelection; label: string }[]).map(({ key, label }) => (
+                <div key={key} className="flex items-center gap-2 ml-2">
+                  <Checkbox id={`exp-${key}`} checked={!!exportSel[key]} onCheckedChange={() => toggleSheet(key)} />
+                  <Label htmlFor={`exp-${key}`}>{label}</Label>
+                </div>
+              ))}
+
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider pt-1">Reefer Fleet</p>
+              {([
+                { key: 'reeferByFleet',   label: 'By Reefer Unit' },
+                { key: 'reeferByDriver',  label: 'By Driver' },
+                { key: 'reeferByStation', label: 'By Fuel Station' },
+              ] as { key: keyof ExportSheetSelection; label: string }[]).map(({ key, label }) => (
+                <div key={key} className="flex items-center gap-2 ml-2">
+                  <Checkbox id={`exp-${key}`} checked={!!exportSel[key]} onCheckedChange={() => toggleSheet(key)} />
+                  <Label htmlFor={`exp-${key}`}>{label}</Label>
+                </div>
+              ))}
+
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider pt-1">Raw Transaction Data</p>
+              {([
+                { key: 'truckTransactions',  label: 'Truck Transactions' },
+                { key: 'reeferTransactions', label: 'Reefer Transactions' },
+              ] as { key: keyof ExportSheetSelection; label: string }[]).map(({ key, label }) => (
+                <div key={key} className="flex items-center gap-2 ml-2">
+                  <Checkbox id={`exp-${key}`} checked={!!exportSel[key]} onCheckedChange={() => toggleSheet(key)} />
+                  <Label htmlFor={`exp-${key}`} className="text-muted-foreground">{label}</Label>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setExportOpen(false)} disabled={isExporting}>Cancel</Button>
+            <Button onClick={handleExport} disabled={isExporting} className="gap-2">
+              {isExporting ? (
+                <>
+                  <span className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full inline-block" />
+                  Exporting...
+                </>
+              ) : (
+                <>
+                  {exportFormat === 'pdf' ? <FileText className="h-4 w-4" /> : <FileSpreadsheet className="h-4 w-4" />}
+                  Export {exportFormat === 'pdf' ? 'PDF' : 'Excel'}
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };

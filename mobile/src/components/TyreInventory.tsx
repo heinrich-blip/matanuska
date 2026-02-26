@@ -379,7 +379,67 @@ const TyreInventory = () => {
     }
 
     return (
-      <div className="rounded-lg border overflow-hidden">
+      <>
+        {/* Mobile card list */}
+        <div className="sm:hidden space-y-3">
+          {tyres.map((tyre) => (
+            <div key={tyre.id} className="border rounded-lg p-3 space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="font-semibold">{tyre.brand} <span className="font-normal text-muted-foreground text-sm">{tyre.model}</span></p>
+                  <p className="text-xs font-mono text-muted-foreground">{tyre.serial_number || tyre.id.substring(0, 8)}</p>
+                </div>
+                <div className="flex gap-0.5 shrink-0">
+                  <Button size="sm" variant="outline" className="h-7 w-7 p-0" title="View Details"
+                    onClick={() => { setSelectedTyre(tyre as InstalledTyreWithVehicle); setViewDialogOpen(true); }}>
+                    <Eye className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button size="sm" variant="outline" className="h-7 w-7 p-0" title="Edit"
+                    onClick={() => { setSelectedBayTyre(tyre); setEditBayTyreDialogOpen(true); }}>
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button size="sm" variant="destructive" className="h-7 w-7 p-0" title="Delete"
+                    onClick={async () => {
+                      if (confirm('Are you sure you want to permanently delete this tyre?')) {
+                        const { error } = await supabase.from('tyres').delete().eq('id', tyre.id);
+                        if (error) {
+                          toast({ title: "Error", description: error.message, variant: "destructive" });
+                        } else {
+                          toast({ title: "Deleted", description: "Tyre removed from system" });
+                          refetch();
+                        }
+                      }
+                    }}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2 items-center">
+                {getTyreBadge(tyre.type)}
+                <span className="inline-flex items-center px-2 py-0.5 bg-muted/50 rounded font-mono text-xs">{tyre.size}</span>
+                {tyre.condition && (
+                  <Badge className={`capitalize text-xs ${
+                    tyre.condition === 'excellent' ? 'bg-gradient-to-r from-emerald-500 to-green-400 text-white shadow-sm' :
+                    tyre.condition === 'good' ? 'bg-gradient-to-r from-blue-500 to-cyan-400 text-white shadow-sm' :
+                    tyre.condition === 'fair' ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-white shadow-sm' :
+                    'bg-gradient-to-r from-red-600 to-rose-500 text-white shadow-sm'
+                  }`}>{tyre.condition.replace('_', ' ')}</Badge>
+                )}
+              </div>
+              <div className="flex items-center gap-4 text-xs">
+                <div className="flex items-center gap-1">
+                  <span className="text-muted-foreground">Tread:</span>
+                  <TreadDepthProgress depth={tyre.current_tread_depth} />
+                </div>
+                {tyre.created_at && (
+                  <div><span className="text-muted-foreground">Added: </span>{new Date(tyre.created_at).toLocaleDateString()}</div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+        {/* Desktop table */}
+        <div className="hidden sm:block rounded-lg border overflow-hidden">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -490,7 +550,8 @@ const TyreInventory = () => {
             </TableBody>
           </Table>
         </div>
-      </div>
+        </div>
+      </>
     );
   };
 
@@ -523,7 +584,71 @@ const TyreInventory = () => {
     };
 
     return (
-      <div className="rounded-lg border overflow-hidden">
+      <>
+        {/* Mobile card list */}
+        <div className="sm:hidden space-y-3">
+          {tyres.map((tyre) => (
+            <div key={tyre.id} className="border rounded-lg p-3 space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    {getStatusBadge(tyre.position)}
+                  </div>
+                  <p className="font-semibold">{tyre.brand} <span className="font-normal text-muted-foreground text-sm">{tyre.model}</span></p>
+                  <p className="text-xs font-mono text-muted-foreground">{tyre.serial_number || tyre.id.substring(0, 8)}</p>
+                </div>
+                <div className="flex gap-0.5 shrink-0">
+                  <Button size="sm" variant="outline" className="h-7 w-7 p-0" title="View Details"
+                    onClick={() => { setSelectedTyre(tyre as InstalledTyreWithVehicle); setViewDialogOpen(true); }}>
+                    <Eye className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button size="sm" variant="outline" className="h-7 w-7 p-0" title="Edit"
+                    onClick={() => { setSelectedBayTyre(tyre); setEditBayTyreDialogOpen(true); }}>
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button size="sm" variant="destructive" className="h-7 w-7 p-0" title="Delete"
+                    onClick={async () => {
+                      if (confirm('Are you sure you want to permanently delete this tyre?')) {
+                        const { error } = await supabase.from('tyres').delete().eq('id', tyre.id);
+                        if (error) {
+                          toast({ title: "Error", description: error.message, variant: "destructive" });
+                        } else {
+                          toast({ title: "Deleted", description: "Tyre removed from system" });
+                          refetchBays();
+                        }
+                      }
+                    }}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2 items-center">
+                {getTyreBadge(tyre.type)}
+                <span className="inline-flex items-center px-2 py-0.5 bg-muted/50 rounded font-mono text-xs">{tyre.size}</span>
+                {tyre.condition && (
+                  <Badge className={`capitalize text-xs ${
+                    tyre.condition === 'excellent' ? 'bg-gradient-to-r from-emerald-500 to-green-400 text-white shadow-sm' :
+                    tyre.condition === 'good' ? 'bg-gradient-to-r from-blue-500 to-cyan-400 text-white shadow-sm' :
+                    tyre.condition === 'fair' ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-white shadow-sm' :
+                    'bg-gradient-to-r from-red-600 to-rose-500 text-white shadow-sm'
+                  }`}>{tyre.condition.replace('_', ' ')}</Badge>
+                )}
+              </div>
+              <div className="flex items-center gap-4 text-xs">
+                <div className="flex items-center gap-1">
+                  <span className="text-muted-foreground">Tread:</span>
+                  <TreadDepthProgress depth={tyre.current_tread_depth} />
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Date: </span>
+                  {tyre.updated_at ? new Date(tyre.updated_at).toLocaleDateString() : tyre.created_at ? new Date(tyre.created_at).toLocaleDateString() : '-'}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        {/* Desktop table */}
+        <div className="hidden sm:block rounded-lg border overflow-hidden">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -638,7 +763,8 @@ const TyreInventory = () => {
             </TableBody>
           </Table>
         </div>
-      </div>
+        </div>
+      </>
     );
   };
 
@@ -727,96 +853,142 @@ const TyreInventory = () => {
                   </div>
                 </div>
               ) : (
-                <div className="rounded-lg border overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="bg-gradient-to-r from-muted/80 to-muted/50 hover:from-muted/80 hover:to-muted/50 border-b-2 border-muted">
-                          <TableHead className="min-w-[120px] py-3.5 font-semibold text-foreground/80">Serial Number</TableHead>
-                          <TableHead className="min-w-[160px] py-3.5 font-semibold text-foreground/80">Brand / Model</TableHead>
-                          <TableHead className="min-w-[100px] py-3.5 font-semibold text-foreground/80">Size</TableHead>
-                          <TableHead className="min-w-[100px] py-3.5 font-semibold text-foreground/80">Type</TableHead>
-                          <TableHead className="min-w-[120px] py-3.5 font-semibold text-foreground/80">Vehicle</TableHead>
-                          <TableHead className="min-w-[100px] py-3.5 font-semibold text-foreground/80">Position</TableHead>
-                          <TableHead className="min-w-[100px] py-3.5 font-semibold text-foreground/80 text-center sticky right-0 bg-gradient-to-r from-muted/80 to-muted/50">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {installedTyres.map(( tyre, index) => {
-                          const tyreWithVehicle = tyre as InstalledTyreWithVehicle;
-                          return (
-                            <TableRow
-                              key={ tyre.id}
-                              className={`
-                                ${index % 2 === 0 ? "bg-background" : "bg-muted/10"}
-                                transition-all duration-200 ease-in-out
-                                hover:bg-primary/5 hover:shadow-[inset_4px_0_0_0_hsl(var(--primary))]
-                                group cursor-pointer
-                              `}
-                            >
-                              <TableCell className="font-mono text-sm py-3.5 text-muted-foreground">
-                                { tyre.serial_number || tyre.id.substring(0, 8)}
-                              </TableCell>
-                              <TableCell className="py-3.5">
-                                <div className="flex flex-col">
-                                  <span className="font-semibold group-hover:text-primary transition-colors">{ tyre.brand}</span>
-                                  <span className="text-xs text-muted-foreground">{ tyre.model}</span>
-                                </div>
-                              </TableCell>
-                              <TableCell className="py-3.5">
-                                <span className="inline-flex items-center px-2 py-1 bg-muted/50 rounded font-mono text-sm">
-                                  { tyre.size}
-                                </span>
-                              </TableCell>
-                              <TableCell className="py-3.5">
-                                <Badge className={`${ tyre.type === 'new' ? 'bg-green-100 text-green-800' : tyre.type === 'retread' ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-800'} hover:${ tyre.type === 'new' ? 'bg-green-200' : tyre.type === 'retread' ? 'bg-amber-200' : 'bg-gray-200'}`}>
-                                  { tyre.type || 'unknown'}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="py-3.5">
-                                <div className="flex flex-col">
-                                  <span className="font-semibold">{ tyreWithVehicle.vehicles?.registration_number || '-'}</span>
-                                  <span className="text-xs text-muted-foreground">Fleet: { tyreWithVehicle.vehicles?.fleet_number || '-'}</span>
-                                </div>
-                              </TableCell>
-                              <TableCell className="py-3.5">
-                                <span className="font-mono text-sm">{ tyre.current_fleet_position || '-'}</span>
-                              </TableCell>
-                              <TableCell className="py-3.5 text-center sticky right-0 bg-background">
-                                <div className="flex items-center justify-center gap-1">
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedTyre( tyreWithVehicle);
-                                      setViewDialogOpen(true);
-                                    }}
-                                    title="View tyre details"
-                                  >
-                                    <Eye className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedTyre( tyreWithVehicle);
-                                      setEditInstalledDialogOpen(true);
-                                    }}
-                                    title="Edit tyre"
-                                  >
-                                    <Pencil className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
+                <>
+                  {/* Mobile card list */}
+                  <div className="sm:hidden space-y-3">
+                    {installedTyres.map((tyre) => {
+                      const tyreWithVehicle = tyre as InstalledTyreWithVehicle;
+                      return (
+                        <div key={tyre.id} className="border rounded-lg p-3 space-y-2">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="font-semibold">{tyre.brand} <span className="font-normal text-muted-foreground text-sm">{tyre.model}</span></p>
+                              <p className="text-xs font-mono text-muted-foreground">{tyre.serial_number || tyre.id.substring(0, 8)}</p>
+                            </div>
+                            <div className="flex gap-0.5 shrink-0">
+                              <Button size="sm" variant="outline" className="h-7 w-7 p-0" title="View Details"
+                                onClick={(e) => { e.stopPropagation(); setSelectedTyre(tyreWithVehicle); setViewDialogOpen(true); }}>
+                                <Eye className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button size="sm" variant="outline" className="h-7 w-7 p-0" title="Edit"
+                                onClick={(e) => { e.stopPropagation(); setSelectedTyre(tyreWithVehicle); setEditInstalledDialogOpen(true); }}>
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap gap-2 items-center text-xs">
+                            <Badge className={`${tyre.type === 'new' ? 'bg-green-100 text-green-800' : tyre.type === 'retread' ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-800'}`}>
+                              {tyre.type || 'unknown'}
+                            </Badge>
+                            <span className="inline-flex items-center px-2 py-0.5 bg-muted/50 rounded font-mono">{tyre.size}</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-1 text-xs">
+                            <div>
+                              <span className="text-muted-foreground">Vehicle: </span>
+                              <span className="font-medium">{tyreWithVehicle.vehicles?.registration_number || '-'}</span>
+                              <span className="text-muted-foreground block">Fleet: {tyreWithVehicle.vehicles?.fleet_number || '-'}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Position: </span>
+                              <span className="font-mono font-medium">{tyre.current_fleet_position || '-'}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                </div>
+                  {/* Desktop table */}
+                  <div className="hidden sm:block rounded-lg border overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-gradient-to-r from-muted/80 to-muted/50 hover:from-muted/80 hover:to-muted/50 border-b-2 border-muted">
+                            <TableHead className="min-w-[120px] py-3.5 font-semibold text-foreground/80">Serial Number</TableHead>
+                            <TableHead className="min-w-[160px] py-3.5 font-semibold text-foreground/80">Brand / Model</TableHead>
+                            <TableHead className="min-w-[100px] py-3.5 font-semibold text-foreground/80">Size</TableHead>
+                            <TableHead className="min-w-[100px] py-3.5 font-semibold text-foreground/80">Type</TableHead>
+                            <TableHead className="min-w-[120px] py-3.5 font-semibold text-foreground/80">Vehicle</TableHead>
+                            <TableHead className="min-w-[100px] py-3.5 font-semibold text-foreground/80">Position</TableHead>
+                            <TableHead className="min-w-[100px] py-3.5 font-semibold text-foreground/80 text-center sticky right-0 bg-gradient-to-r from-muted/80 to-muted/50">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {installedTyres.map((tyre, index) => {
+                            const tyreWithVehicle = tyre as InstalledTyreWithVehicle;
+                            return (
+                              <TableRow
+                                key={tyre.id}
+                                className={`
+                                  ${index % 2 === 0 ? "bg-background" : "bg-muted/10"}
+                                  transition-all duration-200 ease-in-out
+                                  hover:bg-primary/5 hover:shadow-[inset_4px_0_0_0_hsl(var(--primary))]
+                                  group cursor-pointer
+                                `}
+                              >
+                                <TableCell className="font-mono text-sm py-3.5 text-muted-foreground">
+                                  {tyre.serial_number || tyre.id.substring(0, 8)}
+                                </TableCell>
+                                <TableCell className="py-3.5">
+                                  <div className="flex flex-col">
+                                    <span className="font-semibold group-hover:text-primary transition-colors">{tyre.brand}</span>
+                                    <span className="text-xs text-muted-foreground">{tyre.model}</span>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="py-3.5">
+                                  <span className="inline-flex items-center px-2 py-1 bg-muted/50 rounded font-mono text-sm">
+                                    {tyre.size}
+                                  </span>
+                                </TableCell>
+                                <TableCell className="py-3.5">
+                                  <Badge className={`${tyre.type === 'new' ? 'bg-green-100 text-green-800' : tyre.type === 'retread' ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-800'} hover:${tyre.type === 'new' ? 'bg-green-200' : tyre.type === 'retread' ? 'bg-amber-200' : 'bg-gray-200'}`}>
+                                    {tyre.type || 'unknown'}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="py-3.5">
+                                  <div className="flex flex-col">
+                                    <span className="font-semibold">{tyreWithVehicle.vehicles?.registration_number || '-'}</span>
+                                    <span className="text-xs text-muted-foreground">Fleet: {tyreWithVehicle.vehicles?.fleet_number || '-'}</span>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="py-3.5">
+                                  <span className="font-mono text-sm">{tyre.current_fleet_position || '-'}</span>
+                                </TableCell>
+                                <TableCell className="py-3.5 text-center sticky right-0 bg-background">
+                                  <div className="flex items-center justify-center gap-1">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedTyre(tyreWithVehicle);
+                                        setViewDialogOpen(true);
+                                      }}
+                                      title="View tyre details"
+                                    >
+                                      <Eye className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedTyre(tyreWithVehicle);
+                                        setEditInstalledDialogOpen(true);
+                                      }}
+                                      title="Edit tyre"
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
@@ -826,12 +998,12 @@ const TyreInventory = () => {
         <TabsContent value="holding-bay">
           <Card className="shadow-card">
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                 <div>
                   <CardTitle>Holding Bay</CardTitle>
                   <CardDescription>Tyres awaiting allocation or inspection</CardDescription>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="outline" size="sm">
@@ -886,12 +1058,12 @@ const TyreInventory = () => {
         <TabsContent value="retread-bay">
           <Card className="shadow-card">
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                 <div>
                   <CardTitle>Retread Bay</CardTitle>
                   <CardDescription>Tyres sent for retreading</CardDescription>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="outline" size="sm">
@@ -946,12 +1118,12 @@ const TyreInventory = () => {
         <TabsContent value="scrap-sold">
           <Card className="shadow-card">
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                 <div>
                   <CardTitle>Scrap & Sold</CardTitle>
                   <CardDescription>Tyres marked for disposal or that have been sold</CardDescription>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="outline" size="sm">
@@ -1007,83 +1179,141 @@ const TyreInventory = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/50">
-                      <TableHead className="py-4 font-semibold">Date</TableHead>
-                      <TableHead className="py-4 font-semibold">Action</TableHead>
-                      <TableHead className="py-4 font-semibold">Tyre</TableHead>
-                      <TableHead className="py-4 font-semibold">Vehicle</TableHead>
-                      <TableHead className="py-4 font-semibold">Position</TableHead>
-                      <TableHead className="py-4 font-semibold">KM Reading</TableHead>
-                      <TableHead className="py-4 font-semibold">Notes</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {positionHistory.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={7} className="text-center py-16 text-muted-foreground">
-                          <div className="flex flex-col items-center gap-3">
-                            <History className="h-12 w-12 opacity-30" />
-                            <p className="text-sm font-medium">No movement history yet</p>
-                            <p className="text-xs">Install or rotate tyres to see history</p>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      positionHistory.map((record) => (
-                        <TableRow key={record.id} className="hover:bg-muted/30 transition-colors">
-                          <TableCell className="py-3">
-                            <span className="text-sm">{new Date(record.performed_at).toLocaleDateString()}</span>
-                            <span className="text-xs text-muted-foreground block">
+              {positionHistory.length === 0 ? (
+                <div className="text-center py-16 text-muted-foreground">
+                  <div className="flex flex-col items-center gap-3">
+                    <History className="h-12 w-12 opacity-30" />
+                    <p className="text-sm font-medium">No movement history yet</p>
+                    <p className="text-xs">Install or rotate tyres to see history</p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Mobile card list */}
+                  <div className="sm:hidden space-y-3">
+                    {positionHistory.map((record) => (
+                      <div key={record.id} className="border rounded-lg p-3 space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <div>
+                            <span className="text-sm font-medium">{new Date(record.performed_at).toLocaleDateString()}</span>
+                            <span className="text-xs text-muted-foreground ml-2">
                               {new Date(record.performed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </span>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={
-                              record.action === 'install' ? 'default' :
-                              record.action === 'remove' ? 'destructive' :
-                              record.action === 'rotate' ? 'secondary' : 'outline'
-                            }>
-                              {record.action}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
+                          </div>
+                          <Badge variant={
+                            record.action === 'install' ? 'default' :
+                            record.action === 'remove' ? 'destructive' :
+                            record.action === 'rotate' ? 'secondary' : 'outline'
+                          }>
+                            {record.action}
+                          </Badge>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div>
+                            <span className="text-muted-foreground block">Tyre</span>
                             {record.tyres ? (
-                              <div>
+                              <>
                                 <span className="font-medium">{record.tyres.brand} {record.tyres.model}</span>
-                                <span className="text-xs text-muted-foreground block">{record.tyres.serial_number}</span>
-                              </div>
-                            ) : '-'}
-                          </TableCell>
-                          <TableCell>
+                                <span className="text-muted-foreground block font-mono">{record.tyres.serial_number}</span>
+                              </>
+                            ) : <span>-</span>}
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground block">Vehicle</span>
                             {record.vehicles ? (
-                              <div>
+                              <>
                                 <span className="font-medium">{record.vehicles.fleet_number}</span>
-                                <span className="text-xs text-muted-foreground block">{record.vehicles.registration_number}</span>
-                              </div>
-                            ) : '-'}
-                          </TableCell>
-                          <TableCell>
+                                <span className="text-muted-foreground block">{record.vehicles.registration_number}</span>
+                              </>
+                            ) : <span>-</span>}
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground block">Position</span>
                             {record.to_position ? (
-                              <Badge variant="outline">{record.to_position}</Badge>
+                              <Badge variant="outline" className="text-xs">{record.to_position}</Badge>
                             ) : record.fleet_position ? (
-                              <Badge variant="outline">{record.fleet_position}</Badge>
-                            ) : '-'}
-                          </TableCell>
-                          <TableCell>
-                            {record.km_reading ? `${record.km_reading.toLocaleString()} km` : '-'}
-                          </TableCell>
-                          <TableCell className="max-w-[200px] truncate">
-                            {record.notes || '-'}
-                          </TableCell>
+                              <Badge variant="outline" className="text-xs">{record.fleet_position}</Badge>
+                            ) : <span>-</span>}
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground block">KM Reading</span>
+                            <span>{record.km_reading ? `${record.km_reading.toLocaleString()} km` : '-'}</span>
+                          </div>
+                        </div>
+                        {record.notes && (
+                          <p className="text-xs text-muted-foreground truncate">{record.notes}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {/* Desktop table */}
+                  <div className="hidden sm:block rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/50">
+                          <TableHead className="py-4 font-semibold">Date</TableHead>
+                          <TableHead className="py-4 font-semibold">Action</TableHead>
+                          <TableHead className="py-4 font-semibold">Tyre</TableHead>
+                          <TableHead className="py-4 font-semibold">Vehicle</TableHead>
+                          <TableHead className="py-4 font-semibold">Position</TableHead>
+                          <TableHead className="py-4 font-semibold">KM Reading</TableHead>
+                          <TableHead className="py-4 font-semibold">Notes</TableHead>
                         </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
+                      </TableHeader>
+                      <TableBody>
+                        {positionHistory.map((record) => (
+                          <TableRow key={record.id} className="hover:bg-muted/30 transition-colors">
+                            <TableCell className="py-3">
+                              <span className="text-sm">{new Date(record.performed_at).toLocaleDateString()}</span>
+                              <span className="text-xs text-muted-foreground block">
+                                {new Date(record.performed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={
+                                record.action === 'install' ? 'default' :
+                                record.action === 'remove' ? 'destructive' :
+                                record.action === 'rotate' ? 'secondary' : 'outline'
+                              }>
+                                {record.action}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {record.tyres ? (
+                                <div>
+                                  <span className="font-medium">{record.tyres.brand} {record.tyres.model}</span>
+                                  <span className="text-xs text-muted-foreground block">{record.tyres.serial_number}</span>
+                                </div>
+                              ) : '-'}
+                            </TableCell>
+                            <TableCell>
+                              {record.vehicles ? (
+                                <div>
+                                  <span className="font-medium">{record.vehicles.fleet_number}</span>
+                                  <span className="text-xs text-muted-foreground block">{record.vehicles.registration_number}</span>
+                                </div>
+                              ) : '-'}
+                            </TableCell>
+                            <TableCell>
+                              {record.to_position ? (
+                                <Badge variant="outline">{record.to_position}</Badge>
+                              ) : record.fleet_position ? (
+                                <Badge variant="outline">{record.fleet_position}</Badge>
+                              ) : '-'}
+                            </TableCell>
+                            <TableCell>
+                              {record.km_reading ? `${record.km_reading.toLocaleString()} km` : '-'}
+                            </TableCell>
+                            <TableCell className="max-w-[200px] truncate">
+                              {record.notes || '-'}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

@@ -355,12 +355,19 @@ export function InspectionForm({ inspectionId, templateId, onComplete }: Inspect
           ) : (
             <Tabs defaultValue={categoriesWithLabels[0]?.id}>
               <ScrollArea className="w-full" type="scroll">
-                <TabsList className="inline-flex w-max md:grid md:w-full" style={{ gridTemplateColumns: categoriesWithLabels.length > 0 ? `repeat(${categoriesWithLabels.length}, 1fr)` : undefined }}>
-                  {categoriesWithLabels.map((cat) => (
-                    <TabsTrigger key={cat.id} value={cat.id} className="whitespace-nowrap px-4">
-                      {cat.label}
-                    </TabsTrigger>
-                  ))}
+                <TabsList className="inline-flex w-max">
+                  {categoriesWithLabels.map((cat) => {
+                    const catCount = inspectionItems.filter(i => i.category === cat.id).length;
+                    const catDone = inspectionItems.filter(i => i.category === cat.id && i.status).length;
+                    return (
+                      <TabsTrigger key={cat.id} value={cat.id} className="whitespace-nowrap px-2 sm:px-4 text-xs sm:text-sm gap-1.5">
+                        {cat.label}
+                        <span className={`inline-flex items-center justify-center rounded-full text-[10px] w-4 h-4 font-medium ${catDone === catCount ? 'bg-green-500 text-white' : 'bg-muted-foreground/20 text-muted-foreground'}`}>
+                          {catDone}
+                        </span>
+                      </TabsTrigger>
+                    );
+                  })}
                 </TabsList>
                 <ScrollBar orientation="horizontal" />
               </ScrollArea>
@@ -370,51 +377,49 @@ export function InspectionForm({ inspectionId, templateId, onComplete }: Inspect
                   {inspectionItems
                     .filter((item) => item.category === cat.id)
                     .map((item) => (
-                      <Card key={item.id} className="shadow-sm">
-                        <CardContent className="pt-6">
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                              <h4 className="font-medium">{item.item_name}</h4>
-                              {getStatusIcon(item.status)}
-                            </div>
+                      <div key={item.id} className="border rounded-lg p-3 space-y-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <h4 className="font-medium leading-snug min-w-0 flex-1">{item.item_name}</h4>
+                            <div className="shrink-0">{getStatusIcon(item.status)}</div>
+                          </div>
 
-                            <div className="grid grid-cols-2 md:flex gap-2">
+                            <div className="grid grid-cols-4 gap-1.5">
                               <Button
                                 variant={item.status === "pass" ? "default" : "outline"}
-                                className={`min-h-[44px] text-sm ${item.status === "pass" ? "bg-green-600 hover:bg-green-700" : ""}`}
+                                className={`h-14 flex flex-col items-center justify-center gap-0.5 p-1 text-xs ${item.status === "pass" ? "bg-green-600 hover:bg-green-700" : ""}`}
                                 onClick={() => updateStatus.mutate({ itemId: item.id, status: "pass" })}
                               >
-                                <CheckCircle2 className="h-4 w-4 mr-1" />
-                                Pass
+                                <CheckCircle2 className="h-5 w-5" />
+                                <span>Pass</span>
                               </Button>
                               <Button
                                 variant={item.status === "fail" ? "destructive" : "outline"}
-                                className="min-h-[44px] text-sm"
+                                className="h-14 flex flex-col items-center justify-center gap-0.5 p-1 text-xs"
                                 onClick={() => updateStatus.mutate({ itemId: item.id, status: "fail" })}
                               >
-                                <XCircle className="h-4 w-4 mr-1" />
-                                Fail
+                                <XCircle className="h-5 w-5" />
+                                <span>Fail</span>
                               </Button>
                               <Button
                                 variant={item.status === "attention" ? "default" : "outline"}
-                                className={`min-h-[44px] text-sm ${item.status === "attention" ? "bg-yellow-600 hover:bg-yellow-700" : ""}`}
+                                className={`h-14 flex flex-col items-center justify-center gap-0.5 p-1 text-xs ${item.status === "attention" ? "bg-yellow-600 hover:bg-yellow-700" : ""}`}
                                 onClick={() => updateStatus.mutate({ itemId: item.id, status: "attention" })}
                               >
-                                <AlertCircle className="h-4 w-4 mr-1" />
-                                Attention
+                                <AlertCircle className="h-5 w-5" />
+                                <span>Attn</span>
                               </Button>
                               <Button
                                 variant={item.status === "not_applicable" ? "secondary" : "outline"}
-                                className="min-h-[44px] text-sm"
+                                className="h-14 flex flex-col items-center justify-center gap-0.5 p-1 text-xs"
                                 onClick={() => updateStatus.mutate({ itemId: item.id, status: "not_applicable" })}
                               >
-                                <CircleDashed className="h-4 w-4 mr-1" />
-                                N/A
+                                <CircleDashed className="h-5 w-5" />
+                                <span>N/A</span>
                               </Button>
                             </div>
 
                             {(item.status === "fail" || item.status === "attention") && (
-                              <div className="space-y-2 pt-2">
+                              <div className="space-y-2 pt-1">
                                 <Textarea
                                   placeholder="Add notes or describe the issue..."
                                   value={item.notes || ""}
@@ -429,7 +434,7 @@ export function InspectionForm({ inspectionId, templateId, onComplete }: Inspect
                                 />
                                 <Button
                                   variant="outline"
-                                  className="gap-2 min-h-[44px] w-full md:w-auto"
+                                  className="gap-2 min-h-[44px] w-full"
                                   onClick={() => {
                                     setSelectedItemForFault(item);
                                     setShowFaultDialog(true);
@@ -440,9 +445,7 @@ export function InspectionForm({ inspectionId, templateId, onComplete }: Inspect
                                 </Button>
                               </div>
                             )}
-                          </div>
-                        </CardContent>
-                      </Card>
+                      </div>
                     ))}
                 </TabsContent>
               ))}

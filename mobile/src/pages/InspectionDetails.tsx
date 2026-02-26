@@ -288,14 +288,14 @@ const InspectionDetails = () => {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl" onClick={() => navigate("/")}>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl shrink-0" onClick={() => navigate("/")}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <div>
+            <div className="min-w-0">
               <h1 className="text-xl font-bold">Inspection Details</h1>
-              <p className="text-sm text-muted-foreground">{inspection.inspection_number}</p>
+              <p className="text-sm text-muted-foreground truncate">{inspection.inspection_number}</p>
             </div>
           </div>
 

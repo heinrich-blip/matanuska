@@ -172,7 +172,50 @@ const JobCardLaborTable = ({ jobCardId, laborEntries, onRefresh }: JobCardLaborT
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto">
+            {/* Mobile card view */}
+            <div className="sm:hidden space-y-3">
+              {laborEntries.map((entry) => (
+                <div key={entry.id} className="border rounded-lg p-3 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm">{entry.technician_name}</p>
+                      {entry.description && (
+                        <p className="text-xs text-muted-foreground">{entry.description}</p>
+                      )}
+                    </div>
+                    <div className="flex gap-0.5 shrink-0">
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => setEditLabor({ ...entry })}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => setDeleteLaborId(entry.id)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    <div>
+                      <span className="text-muted-foreground block">Date</span>
+                      {new Date(entry.work_date).toLocaleDateString()}
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block">Hours</span>
+                      {entry.hours_worked}h @ ${entry.hourly_rate}/h
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block">Total</span>
+                      <span className="font-semibold text-primary">${entry.total_cost.toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <div className="flex justify-end border-t pt-2 text-sm font-semibold">
+                <span className="text-muted-foreground mr-2">Total Labor:</span>
+                <span>${totalCost.toFixed(2)}</span>
+              </div>
+            </div>
+
+            {/* Desktop table view */}
+            <div className="hidden sm:block overflow-x-auto">
             <Table className="min-w-[650px]">
               <TableHeader>
                 <TableRow>

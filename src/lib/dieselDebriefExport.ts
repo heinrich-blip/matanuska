@@ -232,6 +232,95 @@ export const generateDieselDebriefPDF = (record: any, norm?: any) => {
   doc.save(fileName);
 };
 
+/**
+ * Same as generateDieselDebriefPDF but returns the PDF as a Uint8Array instead of
+ * triggering a browser download. Used for programmatic sharing (e.g. WhatsApp).
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const generateDieselDebriefPDFBlob = (record: any, norm?: any): { blob: Blob; fileName: string } => {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const margin = 20;
+  const contentWidth = pageWidth - 2 * margin;
+  let yPos = 20;
+
+  const addWrappedText = (text: string, x: number, y: number, maxWidth: number, lineHeight = 7) => {
+    const lines = doc.splitTextToSize(text, maxWidth);
+    doc.text(lines, x, y);
+    return y + lines.length * lineHeight;
+  };
+
+  doc.setFontSize(18); doc.setFont("helvetica", "bold");
+  doc.text("DIESEL CONSUMPTION DEBRIEF FORM", pageWidth / 2, yPos, { align: "center" }); yPos += 10;
+  doc.setFontSize(10); doc.setFont("helvetica", "normal");
+  doc.text(`Form #: DSL-${record.id.split("-")[0].toUpperCase()}`, pageWidth / 2, yPos, { align: "center" }); yPos += 15;
+
+  doc.setFontSize(12); doc.setFont("helvetica", "bold");
+  doc.text("DIESEL RECORD DETAILS", margin, yPos); yPos += 8;
+  doc.setFontSize(10); doc.setFont("helvetica", "normal"); doc.setDrawColor(200, 200, 200);
+  doc.rect(margin, yPos - 2, contentWidth, 50);
+  const dy = yPos + 3;
+  doc.text(`Fleet Number: ${record.fleet_number}`, margin + 5, dy);
+  doc.text(`Date: ${format(new Date(record.date), "MMM dd, yyyy")}`, pageWidth / 2 + 10, dy);
+  doc.text(`Driver: ${record.driver_name || "N/A"}`, margin + 5, dy + 7);
+  doc.text(`Station: ${record.fuel_station}`, pageWidth / 2 + 10, dy + 7);
+  doc.text(`Litres Filled: ${formatNumber(record.litres_filled)} L`, margin + 5, dy + 14);
+  doc.text(`Total Cost: ${formatCurrency(record.total_cost, record.currency || "ZAR")}`, pageWidth / 2 + 10, dy + 14);
+  if (record.distance_travelled) doc.text(`Distance: ${formatNumber(record.distance_travelled)} km`, margin + 5, dy + 21);
+  if (record.km_per_litre) doc.text(`Efficiency: ${formatNumber(record.km_per_litre, 2)} km/L`, pageWidth / 2 + 10, dy + 21);
+  yPos += 55;
+
+  if (norm || record.requires_debrief) {
+    doc.setFontSize(12); doc.setFont("helvetica", "bold");
+    doc.text("PERFORMANCE ANALYSIS", margin, yPos); yPos += 8;
+    doc.setFontSize(10); doc.setFont("helvetica", "normal");
+    if (norm) { doc.text(`Fleet Norm: ${formatNumber(norm.expected_km_per_litre, 2)} km/L`, margin, yPos); yPos += 7; }
+    if (record.km_per_litre) { doc.text(`Actual: ${formatNumber(record.km_per_litre, 2)} km/L`, margin, yPos); yPos += 10; }
+    if (record.debrief_trigger_reason) {
+      doc.setFont("helvetica", "bold"); doc.text("Issues:", margin, yPos); yPos += 7;
+      doc.setFont("helvetica", "normal");
+      yPos = addWrappedText(`• ${record.debrief_trigger_reason}`, margin + 5, yPos, contentWidth - 5) + 5;
+    }
+    yPos += 5;
+  }
+
+  if (record.debrief_signed) {
+    doc.setFontSize(12); doc.setFont("helvetica", "bold");
+    doc.text("DEBRIEF DISCUSSION", margin, yPos); yPos += 8;
+    doc.setFontSize(10); doc.setFont("helvetica", "normal");
+    doc.text(`Conducted By: ${record.debrief_signed_by}`, margin, yPos); yPos += 7;
+    doc.text(`Date: ${format(new Date(record.debrief_signed_at), "MMM dd, yyyy")}`, margin, yPos); yPos += 10;
+    if (record.debrief_notes) {
+      doc.setFont("helvetica", "bold"); doc.text("Notes:", margin, yPos); yPos += 7;
+      doc.setFont("helvetica", "normal");
+      yPos = addWrappedText(record.debrief_notes, margin, yPos, contentWidth) + 10;
+    }
+  }
+
+  if (yPos > 200) { doc.addPage(); yPos = 20; }
+  doc.setFontSize(12); doc.setFont("helvetica", "bold");
+  doc.text("ACKNOWLEDGMENT & SIGNATURES", margin, yPos); yPos += 10;
+  doc.setDrawColor(200, 200, 200); doc.rect(margin, yPos, contentWidth, 50);
+  doc.setFontSize(9); doc.setFont("helvetica", "normal");
+  doc.text("Debriefer Signature:", margin + 5, yPos + 8);
+  doc.line(margin + 35, yPos + 10, pageWidth - margin - 40, yPos + 10);
+  if (record.debrief_signed_by) { doc.setFont("helvetica", "italic"); doc.text(record.debrief_signed_by, margin + 35, yPos + 9); doc.setFont("helvetica", "normal"); }
+  doc.text(`Date: ${format(new Date(record.debrief_signed_at || new Date()), "MMM dd, yyyy")}`, pageWidth - margin - 35, yPos + 8);
+  doc.setFontSize(8); doc.text("I confirm the debrief was conducted and documented accurately.", margin + 5, yPos + 16, { maxWidth: contentWidth - 10 });
+  doc.setFontSize(9); doc.text("Driver Signature (optional):", margin + 5, yPos + 28);
+  doc.line(margin + 45, yPos + 30, pageWidth - margin - 40, yPos + 30);
+  doc.text("Date: _____________", pageWidth - margin - 35, yPos + 28);
+  doc.setFontSize(8); doc.text("I acknowledge the discussion and understand the corrective actions required.", margin + 5, yPos + 36, { maxWidth: contentWidth - 10 });
+
+  const footerY = doc.internal.pageSize.getHeight() - 15;
+  doc.setFontSize(8); doc.setTextColor(128, 128, 128);
+  doc.text(`Generated: ${format(new Date(), "MMM dd, yyyy HH:mm")} | Form Reference: DSL-${record.id.split("-")[0]}`, pageWidth / 2, footerY, { align: "center" });
+
+  const fileName = `diesel-debrief-${record.fleet_number}-${format(new Date(record.date), "yyyy-MM-dd")}.pdf`;
+  const pdfArrayBuffer = doc.output('arraybuffer') as ArrayBuffer;
+  return { blob: new Blob([pdfArrayBuffer], { type: 'application/pdf' }), fileName };
+};
+
 export interface FleetDebriefSummaryRecord {
   id: string;
   fleet_number: string;
