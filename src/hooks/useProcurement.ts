@@ -899,12 +899,12 @@ export const useOpenRequests = () => {
         .from("parts_requests")
         .select(`
           *,
-          job_card:job_cards(id, job_number, title, status),
+          job_card:job_cards(id, job_number, title, status, vehicle:vehicles(id, fleet_number, registration_number)),
           vendor:vendors(id, vendor_name, contact_person, phone),
           inventory:inventory(id, name, part_number, quantity)
         `)
         .or("procurement_started.is.null,procurement_started.eq.false")
-        .not("status", "in", '("fulfilled","rejected")')
+        .not("status", "in", "(fulfilled,rejected,cancelled)")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -913,7 +913,7 @@ export const useOpenRequests = () => {
   });
 };
 
-// Hook to fetch Cash Manager requests (procurement started OR has an IR number, not yet fulfilled)
+// Hook to fetch Cash Manager requests — any item that has had procurement action taken
 export const useCashManagerRequests = () => {
   return useQuery({
     queryKey: PROCUREMENT_KEYS.cashManager,
@@ -922,10 +922,13 @@ export const useCashManagerRequests = () => {
       const query = supabase
         .from("parts_requests")
         .select("*, job_card:job_cards(id, job_number, title, status, vehicle:vehicles(id, fleet_number, registration_number)), vendor:vendors(id, vendor_name, contact_person, phone), inventory:inventory(id, name, part_number, quantity)") as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+      // All items in Cash Manager have procurement_started = true (set when the
+      // Start Procurement dialog is confirmed). Using a simple equality filter is
+      // the most reliable approach and avoids PostgREST .or() NOT-NULL syntax edge cases.
       const { data, error } = await query
-        // Include items explicitly started OR items that already have an IR/Sage number
-        .or("procurement_started.eq.true,ir_number.not.is.null,sage_requisition_number.not.is.null")
-        .not("status", "eq", "fulfilled")
+        .eq("procurement_started", true)
+        .not("status", "in", "(rejected,cancelled)")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
