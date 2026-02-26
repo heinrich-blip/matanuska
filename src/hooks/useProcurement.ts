@@ -52,7 +52,6 @@ export interface PartsRequest {
   allocated_to_job_card: boolean | null;
   allocated_at: string | null;
   quotes: QuoteAttachment[] | null;
-  urgency_level: string | null;
   created_at: string | null;
   updated_at: string | null;
   // Joined data
@@ -61,11 +60,6 @@ export interface PartsRequest {
     job_number: string;
     title: string;
     status: string;
-    vehicle?: {
-      id: string;
-      fleet_number: string | null;
-      registration_number: string;
-    } | null;
   };
   vendor?: {
     id: string;
@@ -138,7 +132,7 @@ export const useProcurementRequests = (status?: string) => {
         .from("parts_requests")
         .select(`
           *,
-          job_card:job_cards(id, job_number, title, status, vehicle:vehicles(id, fleet_number, registration_number)),
+          job_card:job_cards(id, job_number, title, status),
           vendor:vendors(id, vendor_name, contact_person, phone),
           inventory:inventory(id, name, part_number, quantity)
         `)
@@ -164,7 +158,7 @@ export const usePendingRequests = () => {
         .from("parts_requests")
         .select(`
           *,
-          job_card:job_cards(id, job_number, title, status, vehicle:vehicles(id, fleet_number, registration_number)),
+          job_card:job_cards(id, job_number, title, status),
           vendor:vendors(id, vendor_name, contact_person, phone),
           inventory:inventory(id, name, part_number, quantity)
         `)
@@ -899,12 +893,12 @@ export const useOpenRequests = () => {
         .from("parts_requests")
         .select(`
           *,
-          job_card:job_cards(id, job_number, title, status, vehicle:vehicles(id, fleet_number, registration_number)),
+          job_card:job_cards(id, job_number, title, status),
           vendor:vendors(id, vendor_name, contact_person, phone),
           inventory:inventory(id, name, part_number, quantity)
         `)
         .or("procurement_started.is.null,procurement_started.eq.false")
-        .not("status", "in", "(fulfilled,rejected,cancelled)")
+        .not("status", "in", '("fulfilled","rejected")')
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -913,7 +907,7 @@ export const useOpenRequests = () => {
   });
 };
 
-// Hook to fetch Cash Manager requests — any item that has had procurement action taken
+// Hook to fetch Cash Manager requests (procurement started, not yet fulfilled/allocated)
 export const useCashManagerRequests = () => {
   return useQuery({
     queryKey: PROCUREMENT_KEYS.cashManager,
@@ -921,14 +915,10 @@ export const useCashManagerRequests = () => {
       // Use any-typed select to avoid excessively deep type instantiation
       const query = supabase
         .from("parts_requests")
-        .select("*, job_card:job_cards(id, job_number, title, status, vehicle:vehicles(id, fleet_number, registration_number)), vendor:vendors(id, vendor_name, contact_person, phone), inventory:inventory(id, name, part_number, quantity)") as any; // eslint-disable-line @typescript-eslint/no-explicit-any
-
-      // All items in Cash Manager have procurement_started = true (set when the
-      // Start Procurement dialog is confirmed). Using a simple equality filter is
-      // the most reliable approach and avoids PostgREST .or() NOT-NULL syntax edge cases.
+        .select("*, job_card:job_cards(id, job_number, title, status), vendor:vendors(id, vendor_name, contact_person, phone), inventory:inventory(id, name, part_number, quantity)") as any; // eslint-disable-line @typescript-eslint/no-explicit-any
       const { data, error } = await query
         .eq("procurement_started", true)
-        .not("status", "in", "(rejected,cancelled)")
+        .not("status", "eq", "fulfilled")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -949,16 +939,12 @@ export const useStartProcurement = () => {
       quotes,
       inventory_id,
       is_from_inventory,
-      vendor_id,
-      unit_price,
     }: {
       id: string;
       ir_number: string;
       quotes?: QuoteAttachment[];
       inventory_id?: string | null;
       is_from_inventory?: boolean;
-      vendor_id?: string | null;
-      unit_price?: number | null;
     }) => {
       const updateData: Record<string, unknown> = {
         ir_number,
@@ -973,15 +959,6 @@ export const useStartProcurement = () => {
       if (inventory_id !== undefined) {
         updateData.inventory_id = inventory_id;
         updateData.is_from_inventory = is_from_inventory ?? !!inventory_id;
-      }
-
-      if (vendor_id !== undefined) {
-        updateData.vendor_id = vendor_id;
-      }
-
-      if (unit_price !== undefined && unit_price !== null) {
-        updateData.unit_price = unit_price;
-        updateData.total_price = unit_price; // will be qty-multiplied by caller if needed
       }
 
       const { data, error } = await supabase
@@ -1111,67 +1088,6 @@ export const useCreateInventoryAndLink = () => {
       queryClient.invalidateQueries({ queryKey: PROCUREMENT_KEYS.all });
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
       toast({ title: "Success", description: "New inventory item created and linked" });
-      requestGoogleSheetsSync('workshop');
-    },
-    onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    },
-  });
-};
-
-// Hook to update the urgency level of a Cash Manager item
-export const useUpdateUrgencyLevel = () => {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ id, urgency_level }: { id: string; urgency_level: string | null }) => {
-      const { data, error } = await supabase
-        .from("parts_requests")
-        .update({ urgency_level, updated_at: new Date().toISOString() } as Record<string, unknown>)
-        .eq("id", id)
-        .select()
-        .single();
-      if (error) throw error;
-      return data as unknown as PartsRequest;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: PROCUREMENT_KEYS.cashManager });
-      queryClient.invalidateQueries({ queryKey: PROCUREMENT_KEYS.all });
-    },
-    onError: (error: Error) => {
-      toast({ title: "Error updating urgency", description: error.message, variant: "destructive" });
-    },
-  });
-};
-
-// Hook to move a Cash Manager item back to All Requests (clears procurement_started + IR)
-export const useMoveBackToRequests = () => {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const { data, error } = await supabase
-        .from("parts_requests")
-        .update({
-          procurement_started: false,
-          ir_number: null,
-          status: "pending",
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", id)
-        .select()
-        .single();
-      if (error) throw error;
-      return data as unknown as PartsRequest;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: PROCUREMENT_KEYS.cashManager });
-      queryClient.invalidateQueries({ queryKey: PROCUREMENT_KEYS.openRequests });
-      queryClient.invalidateQueries({ queryKey: PROCUREMENT_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ["procurement-stats"] });
-      toast({ title: "Moved Back", description: "Item moved back to All Requests" });
       requestGoogleSheetsSync('workshop');
     },
     onError: (error: Error) => {

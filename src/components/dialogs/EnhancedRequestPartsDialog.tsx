@@ -118,7 +118,12 @@ export default function EnhancedRequestPartsDialog({
         data: { user },
       } = await supabase.auth.getUser();
 
-      // Create parts request
+      // Determine fulfilment path:
+      // - inventory item with sufficient stock → fulfilled immediately, never goes to procurement
+      // - inventory item with no/insufficient stock → pending, goes to Procurement → All Requests
+      // - external part / service / repair (no inventory) → pending, goes to Procurement → All Requests
+      const fulfilledFromStock = !!selectedInventoryId && !hasInsufficientStock;
+
       const stockNote = hasInsufficientStock
         ? `[OUT OF STOCK - needs procurement] Available: ${availableQuantity}, Requested: ${quantity}${notes ? '. ' + notes : ''}`
         : notes || null;
@@ -130,48 +135,49 @@ export default function EnhancedRequestPartsDialog({
           part_number: partNumber || null,
           quantity,
           job_card_id: jobCardId,
-          notes: stockNote,
-          status: "pending",
+          notes: fulfilledFromStock ? (notes || null) : stockNote,
+          status: fulfilledFromStock ? "fulfilled" : "pending",
           inventory_id: selectedInventoryId || null,
           is_from_inventory: !!selectedInventoryId,
           unit_price: selectedInventoryId ? unitPrice : null,
+          total_price: selectedInventoryId ? unitPrice * quantity : null,
           requested_by: user?.email || null,
+          ...(fulfilledFromStock && {
+            allocated_to_job_card: true,
+            allocated_at: new Date().toISOString(),
+          }),
         })
         .select()
         .single();
 
       if (insertError) throw insertError;
 
-      // If from inventory and there is sufficient stock, reserve it
-      if (selectedInventoryId && partsRequest && !hasInsufficientStock) {
-        const { error: reserveError } = await supabase.rpc(
-          "reserve_inventory",
-          {
-            p_parts_request_id: partsRequest.id,
-            p_inventory_id: selectedInventoryId,
-            p_quantity: quantity,
-            p_performed_by: user?.email || "system",
-          }
-        );
+      // If fulfilled from stock: deduct inventory immediately
+      if (fulfilledFromStock && partsRequest) {
+        const { error: deductError } = await supabase.rpc("deduct_inventory", {
+          p_parts_request_id: partsRequest.id,
+          p_inventory_id: selectedInventoryId!,
+          p_quantity: quantity,
+          p_performed_by: user?.email || "system",
+        });
 
-        if (reserveError) {
-          console.error("Failed to reserve inventory:", reserveError);
+        if (deductError) {
+          console.error("Failed to deduct inventory:", deductError);
           toast({
             variant: "destructive",
             title: "Warning",
-            description:
-              "Parts request created but inventory reservation failed",
+            description: "Part added to job card but inventory deduction failed — please adjust manually",
           });
         }
       }
 
       toast({
         title: "Success",
-        description: hasInsufficientStock
-          ? "Parts request submitted — item is short/out of stock and will need to be procured"
-          : selectedInventoryId
-            ? "Parts request submitted and inventory reserved!"
-            : "Parts request submitted successfully!",
+        description: fulfilledFromStock
+          ? `Part added and ${quantity} unit(s) deducted from inventory`
+          : hasInsufficientStock
+            ? "Parts request submitted — out of stock, sent to Procurement for ordering"
+            : "Parts request submitted — sent to Procurement",
       });
       requestGoogleSheetsSync('workshop');
 
